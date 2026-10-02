@@ -84,7 +84,7 @@ dist/                         Generated JavaScript and declarations
 
 Edit `src/`; `dist/` is rebuilt automatically and ignored by Git. VS Code hides `dist/` and `node_modules/` in the Explorer to keep source files easy to find. The npm archive includes `dist/`, TypeScript source for declaration maps, README, license, and package metadata.
 
-`npm run check` typechecks the source, tests release compatibility, packs the library, and verifies an installed archive with CommonJS, ESM imports, and TypeScript consumers. See [CONTRIBUTING.md](CONTRIBUTING.md) for commands and release steps.
+`npm run check` typechecks the source, tests release compatibility, packs the library, and verifies an installed archive with CommonJS, ESM imports, and TypeScript consumers.
 
 ## License
 
