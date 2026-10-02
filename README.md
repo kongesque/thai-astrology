@@ -1,91 +1,101 @@
-# Thai Astrology
+# Thai Astrology: เครื่องคำนวณโหราศาสตร์ไทย
 
-[English](README.md) | [ภาษาไทย](README-th.md)
+[English](README-en.md) · [npm](https://www.npmjs.com/package/thai-astrology) · [MIT](LICENSE)
 
-Thai Astrology (โหราศาสตร์ไทย) is a TypeScript library for classical Thai astrological calculations. It converts birth details into planetary positions, a 12-channel chart, lakna, and Tanuseth without runtime dependencies. Node.js 16 or later is supported, with TypeScript declarations included.
+`thai-astrology` คือ **ไลบรารีคำนวณโหราศาสตร์ไทย (Thai astrology calculation engine)** สำหรับ JavaScript และ TypeScript ใช้หลักสุริยยาตร์ในการคำนวณตำแหน่งดาว ลัคนา และองค์ประกอบของดวงชะตา
 
-## Install
+ใช้เป็นแกนคำนวณสำหรับผูกดวงกำเนิด คำนวณดาวจร และเตรียมข้อมูลประกอบการอ่านดวง รับวัน เวลา และจังหวัด แล้วคืนผลลัพธ์ที่นำไปใช้งานต่อผ่าน API ได้ โดยแยกข้อมูลคำนวณออกจากกฎการตีความและคำพยากรณ์
+
+เป็นโครงการ open source ภายใต้ MIT License รองรับ Node.js 16 ขึ้นไป มี TypeScript types ใช้ได้ทั้ง ESM และ CommonJS และไม่มี runtime dependencies
+
+<p align="center">
+  <img src="assets/rasi-chart.svg" alt="ตัวอย่างราศีจักรสุริยยาตร์ อาทิตย์เมษ 10 องศา 42 ลิปดา" width="720" />
+</p>
+
+ตัวอย่างผลจาก API: **21 เมษายน พ.ศ. 2325 (ค.ศ. 1782) เวลา 06:54 น. กรุงเทพมหานคร** เลขกลางวงคือองศาอาทิตย์กำเนิด เลขไทยแสดงดาวในแต่ละราศี `ลั` คือลัคนา และ `*` คือตนุเศษ ภาพนี้แสดงผลของ engine สำหรับวันที่อยู่นอกช่วง ค.ศ. 1900–2100 ที่ใช้ตรวจเทียบผลตัวอย่าง จึงไม่ใช่การรับรองความแม่นยำย้อนหลัง
+
+## เริ่มใช้งาน
 
 ```bash
 npm install thai-astrology
 ```
 
-## Usage
+เรียก `calculateThaiHoroscope` ด้วยวัน เวลา และจังหวัด เพื่อคำนวณดวงเดียวกับภาพ:
 
 ```ts
-import {
-  formatChannelOutputs,
-  generateThaiAstrologyChart,
-} from "thai-astrology"
+import { calculateThaiHoroscope } from "thai-astrology"
 
-const chart = generateThaiAstrologyChart({
-  day: 15,
-  monthTh: 9,
-  yearBe: 2566, // Buddhist Era; equivalent to 2023 CE
-  hour: 14,
-  minute: 45,
-  province: "กรุงเทพมหานคร", // Bangkok
+const horoscope = calculateThaiHoroscope({
+  date: { year: 2325, era: "BE", month: 4, day: 21 },
+  time: { hour: 6, minute: 54 },
+  location: { province: "กรุงเทพมหานคร" },
 })
 
-console.log(formatChannelOutputs(chart))
-console.log(formatChannelOutputs(chart, "thai"))
-console.log(formatChannelOutputs(chart, "arabic"))
-console.log(chart.sunPosition)
+console.log(horoscope.points.sun.degrees, horoscope.points.sun.minutes) // 10 42
+console.log(horoscope.points.ascendant.signName) // เมษ
+console.log(horoscope.charts.rasi.channels.thai[0]) // ลั๑*
 ```
 
-Use `yearBe` for the Buddhist Era year. The legacy field `yearBc` accepts a Gregorian year: `yearBc: 2023` is equivalent to `yearBe: 2566`. Supply one year field.
+เปลี่ยน `date`, `time` และ `location` เพื่อคำนวณดวงอื่น อ่านตำแหน่งดาวจาก `points` และช่องราศีจักรจาก `charts.rasi.channels.thai` ซึ่งเรียง 12 ราศีจากเมษถึงมีน เลขกลางภาพมาจาก `points.sun.degrees` และ `points.sun.minutes`
 
-CommonJS consumers can use the same API:
+สำหรับ CommonJS ใช้ `require("thai-astrology")` แทน `import` ได้
 
-```js
-const { generateThaiAstrologyChart, formatChannelOutputs } = require("thai-astrology")
-```
+### ข้อมูลที่ต้องใช้
 
-Example output:
+| ข้อมูล | วิธีระบุ |
+| --- | --- |
+| วันเดือนปี | `date` ใช้เดือนสากล ระบุ `era: "BE"` สำหรับ พ.ศ. หรือ `"CE"` สำหรับ ค.ศ. |
+| เวลา | `time` เป็นเวลาท้องถิ่น ชั่วโมง 0..23 และนาที 0..59 |
+| จังหวัด (ไม่บังคับ) | `location.province` ใช้ชื่อจังหวัดภาษาไทย มีรายการให้เลือกผ่าน `getThaiAstrologyProvinces()` |
 
-```text
-[ '58', '0',  '9',  '6', '14', '23', '',   '', 'ลั',  '',   '7*', '' ]
+เช่น พ.ศ. 2567 ตรงกับ ค.ศ. 2024 ต้องใช้วันที่จริงและตัวเลขชนิด `number` หากไม่ระบุสถานที่ ค่าแก้เวลาจะเป็นศูนย์ ชื่อ เพศ และข้อมูลติดต่อไม่จำเป็นต่อการคำนวณ
 
-[ '๕๘', '๐',  '๙',  '๖', '๑๔', '๒๓', '',   '', 'ลั',  '',   '๗*', '' ]
+### ผลลัพธ์สำคัญ
 
-[ '58', '0',  '9',  '6', '14', '23', '',   '', 'ลั',  '',   '7*', '' ]
+| ส่วนของผลลัพธ์ | นำไปใช้กับอะไร |
+| --- | --- |
+| `points` | อ่านตำแหน่งดาวและลัคนา เช่น `points.moon` สำหรับจันทร์ |
+| `houses` | อ่านภพทั้ง 12 ภพ เจ้าเรือน และดาวที่อยู่ในแต่ละภพ |
+| `factors` | อ่านตนุลัคน์ ตนุเศษ และดาวร่วมราศีลัคนา |
+| `charts` | ใช้ข้อมูลราศีจักร นวางค์จักร ตรียางค์จักร และช่องดวง |
+| `calendar` | อ่านวันทางโหราศาสตร์ ดิถี และวันที่จันทรคติไทย |
+| `taksa` | อ่านบริวาร อายุ เดช ศรี มูละ อุตสาหะ มนตรี และกาลกิณี |
+| `relationships` | อ่านดาวร่วมราศี เล็ง ตรีโกณ จตุสดัย และโยค |
 
-[ 27, 29 ]
-```
+เลขราศีเริ่มจากเมษ = 0 ส่วนเลขภพเริ่มจากตนุ = 1 ช่องดวงเรียงตามราศี แต่ `houses` เรียงจากลัคนา สมผุสมีทั้งองศารวม (`longitudeDegrees`) และลิปดารวม (`longitudeArcMinutes`) ช่องดวงใช้ `ลั` แทนลัคนา และ `*` เป็นเครื่องหมายตนุเศษ
 
-## Key API
+## ใช้ทำอะไรได้บ้าง
 
-- `generateThaiAstrologyChart(input: CalculationInput): ThaiAstrologyChart` – returns planetary positions, Tanuseth, 12 channel outputs, and ruling planets metadata when available. When ruling planets cannot be determined, the chart includes `rulingPlanetsError`.
-- `formatChannelOutputs(chart, options?: { numerals?: "arabic" | "thai" } | "arabic" | "thai")` – strips channel labels and renders numbers in Arabic or Thai numerals.
+- **ผูกดวงกำเนิด**: สมผุสดาว 10 ดวงและลัคนา พร้อมราศี องศา และภพที่อยู่
+- **หาข้อมูลประกอบการอ่านดวง**: ตนุเศษ ตนุลัคน์ เจ้าเรือน ดาวในภพ นักษัตร ฤกษ์ และดาวมาตรฐาน
+- **จัดข้อมูลจักร**: ราศีจักร นวางค์จักร และตรียางค์จักร พร้อมช่องดวงเป็นเลขไทยหรืออารบิก
+- **คำนวณดาวจร**: ตำแหน่งดาว ณ วันที่ระบุ เทียบกับภพและสมผุสในดวงกำเนิด
+- **คำนวณทักษาและปฏิทิน**: ทักษากำเนิด หรคุณ จุลศักราช ดิถี และวันที่จันทรคติไทยในช่วงที่รองรับ
 
-## Development
+ผลลัพธ์เป็นข้อมูลที่แปลงเป็น JSON ได้ เมื่อใช้ข้อมูลนำเข้าเดิมจะได้ผลคำนวณเดิม
 
-```bash
-nvm use
-npm ci
-npm run check
-```
+## API ที่ใช้บ่อย
 
-Node.js 24 is the development default. The package retains its Node.js 16 minimum, and CI checks Node.js 16, 22, and 24.
+| API | ใช้เมื่อ |
+| --- | --- |
+| `calculateThaiHoroscope(input)` | ต้องการข้อมูลดวงกำเนิดครบในผลลัพธ์เดียว |
+| `calculateHoroscopeTransits(natalInput, transitInput)` | ต้องการดวงกำเนิด ดวงจร และผลเปรียบเทียบจากวันเวลาสองชุด |
+| `validateHoroscopeInput(input)` | ต้องการตรวจข้อมูลก่อนคำนวณ คืน `valid` และข้อผิดพลาดใน `issues` เมื่อข้อมูลไม่ถูกต้อง |
+| `getThaiAstrologyProvinces()` | ต้องการรายชื่อ 77 จังหวัดและค่าแก้เวลา |
+| `calculateDetailedPositions(input)` | ต้องการผลสุริยยาตร์แบบละเอียด โดยใช้ input รูป `CalculationInput` |
 
-```text
-src/
-  index.ts                    Public API
-  engine/
-    astro-calculation.ts      Calculation engine
-    astro/ruling-planets.ts   Ruling planet helpers
-test/
-  run.cjs                     Compatibility tests
-  fixtures/                   Expected npm 0.1.7 chart results
-scripts/                      Build cleanup and package verification
-.github/workflows/            CI checks
-dist/                         Generated JavaScript and declarations
-```
+`calculateThaiHoroscope` และ `calculateDetailedPositions` ใช้สุริยยาตร์เสมอ หากใช้ API เดิม `generateThaiAstrologyChart` ต้องระบุ `method: "suriyayatra"` เพื่อเลือกวิธีเดียวกัน เพราะค่าเริ่มต้นเป็น `legacy` ใน input รูปเดิม `yearBe` หมายถึง พ.ศ. และ `yearBc` หมายถึง **ค.ศ.** ควรระบุปีเพียงฟิลด์เดียว
 
-Edit `src/`; `dist/` is rebuilt automatically and ignored by Git. VS Code hides `dist/` and `node_modules/` in the Explorer to keep source files easy to find. The npm archive includes `dist/`, TypeScript source for declaration maps, README, license, and package metadata.
+เมื่อตรวจข้อมูลด้วย `validateHoroscopeInput` จะคืนผลโดยไม่ throw สำหรับข้อมูลที่ไม่ถูกต้อง ส่วน `calculateThaiHoroscope` จะ throw `HoroscopeInputError` พร้อม `issues`
 
-`npm run check` typechecks the source, tests release compatibility, packs the library, and verifies an installed archive with CommonJS, ESM imports, and TypeScript consumers.
+## ข้อจำกัด
 
-## License
+- **คำนวณตามสุริยยาตร์และกฎที่กำหนดไว้** ผลอาจต่างจากโปรแกรมที่ใช้สมผุสดาราศาสตร์สมัยใหม่ อายนางศะ หรือหลักโหราศาสตร์ต่างสำนัก
+- **ลัคนาใช้อันโตนาทีแบบคงที่และค่าแก้เวลาจังหวัด** โดยตรึงตำแหน่งอาทิตย์ ณ เวลาเกิด ยังไม่มีการคำนวณอาทิตย์ขึ้นหรือลัคนาทางดาราศาสตร์จากพิกัดละติจูด/ลองจิจูด เวลาต้นราศีเป็นตารางตามวิธีนี้ ไม่ใช่เวลาย้ายราศีในอนาคตแบบละเอียด
+- **ต้องระบุเวลาเกิด และไม่มีการแปลงเขตเวลา/DST อัตโนมัติ** ค่าแก้เวลาจังหวัดไม่ใช่ UTC offset จึงต้องเตรียมเวลาท้องถิ่นให้ถูกต้องก่อนคำนวณ
+- **มีขอบเขตปีและความละเอียด** รับวันที่สากล ค.ศ. 1..9999 ส่วนปฏิทินจันทรคติไทยรองรับ พ.ศ. 2125..2619 เท่านั้น นอกช่วงนี้ `calendar.thaiLunarDate` เป็น `null` สมผุสดาวใช้ความละเอียดลิปดาจำนวนเต็ม ลิปดาลัคนาอาจมีทศนิยม และภพใช้ระบบราศีเต็ม (`whole-sign`)
+- **ทักษาและจันทรคติมีวิธีนับเฉพาะ** ทักษาเปลี่ยนวันเวลา 06:00 โดยไม่แทนพุธกลางคืนด้วยราหู วันที่จันทรคติไทยเปลี่ยนที่เที่ยงคืน และเป็นข้อมูลแยกจากดิถีที่คำนวณด้วยมุมจันทร์–อาทิตย์ เกตุไทยใช้รอบ 679 วันของตนเอง
+- **ดาวจรเป็นการเปรียบเทียบตำแหน่ง** ความสัมพันธ์ดาวคำนวณระดับราศี ยังไม่มีมุมสัมพันธ์ตามองศาพร้อม orb ความเร็วดาว สถานะพักร์ หรือการค้นหาเวลาย้ายราศี ผลต่างสมผุสระหว่างสองวันไม่ใช่ความเร็ว ณ ขณะนั้น
+- **ผลลัพธ์เป็นองค์ประกอบสำหรับอ่านดวง** การตีความและข้อความคำพยากรณ์ต้องกำหนดเพิ่มเติมเอง ไลบรารีไม่ได้สร้างคำทำนายสำเร็จรูปหรือรับประกันผลของคำพยากรณ์
 
-MIT © Contributors
+[MIT License](LICENSE)

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" role="img" aria-labelledby="title description">
+  <title id="title">ราศีจักร: Thai Astrology</title>
+  <desc id="description">ดวงกำเนิด 21 เมษายน พ.ศ. 2325 เวลา 06:54 น. กรุงเทพมหานคร คำนวณด้วยสุริยยาตร์ ตัวเลขกลางวงคือองศาอาทิตย์กำเนิด 10 องศา 42 ลิปดา ลัคนาเมษ 19 องศา 42 ลิปดา เมษ: ลั๑*; พฤษภ: ๓๙; มิถุน: ๐; กรกฎ: ๒; สิงห์: ไม่มีดาว; กันย์: ไม่มีดาว; ตุล: ไม่มีดาว; พิจิก: ไม่มีดาว; ธนู: ๕๗; มกร: ไม่มีดาว; กุมภ์: ไม่มีดาว; มีน: ๔๖๘</desc>
+  <style>
+    text { font-family: 'Sarabun', 'Arial Unicode MS', Tahoma, Arial, sans-serif; font-weight: 400; text-anchor: middle; fill: #111; }
+    .sign { font-size: 26px; fill: #003366; dominant-baseline: central; }
+    .planet { font-size: 40px; letter-spacing: 1px; dominant-baseline: central; stroke: #fff; stroke-width: 0.6px; paint-order: fill stroke; }
+    .angle { font-family: Arial, Tahoma, sans-serif; font-size: 20px; font-weight: 600; }
+  </style>
+  <rect width="960" height="640" fill="#fff"/>
+  <g transform="translate(38.4 -130.8) scale(0.92)">
+  <circle cx="480" cy="490" r="326" fill="#fff" stroke="#111" stroke-width="1.1"/>
+  <g stroke="#111" stroke-width="0.75"><line x1="421.00" y1="169.38" x2="421.00" y2="810.62"/>
+    <line x1="159.38" y1="431.00" x2="800.62" y2="431.00"/>
+    <line x1="539.00" y1="169.38" x2="539.00" y2="810.62"/>
+    <line x1="159.38" y1="549.00" x2="800.62" y2="549.00"/>
+    <line x1="421.00" y1="431.00" x2="249.48" y2="259.48"/>
+    <line x1="421.00" y1="549.00" x2="249.48" y2="720.52"/>
+    <line x1="539.00" y1="431.00" x2="710.52" y2="259.48"/>
+    <line x1="539.00" y1="549.00" x2="710.52" y2="720.52"/></g>
+  <circle cx="480" cy="490" r="285" fill="none" stroke="#111" stroke-width="1.8"/>
+  <circle cx="480" cy="490" r="279" fill="none" stroke="#111" stroke-width="0.8"/>
+  <text class="sign" transform="translate(480.00 185.00) rotate(0)">เมษ</text>
+  <text class="sign" transform="translate(327.50 225.86) rotate(-30)">พฤษภ</text>
+  <text class="sign" transform="translate(215.86 337.50) rotate(-60)">มิถุน</text>
+  <text class="sign" transform="translate(175.00 490.00) rotate(-90)">กรกฎ</text>
+  <text class="sign" transform="translate(215.86 642.50) rotate(60)">สิงห์</text>
+  <text class="sign" transform="translate(327.50 754.14) rotate(30)">กันย์</text>
+  <text class="sign" transform="translate(480.00 795.00) rotate(0)">ตุล</text>
+  <text class="sign" transform="translate(632.50 754.14) rotate(-30)">พิจิก</text>
+  <text class="sign" transform="translate(744.14 642.50) rotate(-60)">ธนู</text>
+  <text class="sign" transform="translate(785.00 490.00) rotate(-90)">มกร</text>
+  <text class="sign" transform="translate(744.14 337.50) rotate(60)">กุมภ์</text>
+  <text class="sign" transform="translate(632.50 225.86) rotate(30)">มีน</text>
+  <text class="planet" x="480" y="292" aria-label="เมษ ลั๑*"><tspan fill="#e00000">ลั</tspan>๑<tspan fill="#e00000" font-size="21">*</tspan></text>
+  <text class="planet" x="365" y="300" aria-label="พฤษภ ๓๙">๓๙</text>
+  <text class="planet" x="292" y="370" aria-label="มิถุน ๐">๐</text>
+  <text class="planet" x="270" y="490" aria-label="กรกฎ ๒">๒</text>
+  <text class="planet" x="668" y="610" aria-label="ธนู ๕๗">๕๗</text>
+  <text class="planet" x="593" y="300" aria-label="มีน ๔๖๘">๔๖๘</text>
+  <text class="angle" x="480" y="486" aria-label="องศาอาทิตย์กำเนิด"><tspan x="480">10°</tspan><tspan x="480" dy="23">42′</tspan></text>
+  </g>
+</svg>
