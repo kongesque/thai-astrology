@@ -18,7 +18,7 @@
   <a href="https://github.com/kongesque/thai-astrology/issues">Report an issue</a>
 </p>
 
-`thai-astrology` is an **open source Thai astrology calculation library for JavaScript and TypeScript**. It uses classical Suriyayatra (สุริยยาตร์) to calculate natal birth charts, ascendants, planetary positions, transits, Taksa and Thai lunar calendar dates. Supply a civil date, local time and Thai province to get structured horoscope data through its API. Use and modify the code under the [MIT License](LICENSE).
+`thai-astrology` is an **open source Thai astrology calculation library for JavaScript and TypeScript**. It uses classical Suriyayatra (สุริยยาตร์) to calculate natal birth charts, ascendants, planetary positions, transits, Taksa and Thai lunar calendar dates. Supply a civil date, local time and Thai province to get structured horoscope data through its API.
 
 Build Thai horoscope websites, astrology apps or APIs with deterministic, JSON-serializable results and your own interpretation rules. Other uses include ascendant calculators, natal and transit comparison tools, Thai lunar calendars, and educational tools for exploring Suriyayatra calculations.
 
