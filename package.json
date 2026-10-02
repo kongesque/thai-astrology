@@ -1,25 +1,40 @@
 {
   "name": "thai-astrology",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Thai astrology ephemeris calculations and utilities for Node.js and TypeScript projects.",
   "license": "MIT",
+  "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kongesque/thai-astrology.git"
+  },
+  "homepage": "https://github.com/kongesque/thai-astrology#readme",
+  "bugs": {
+    "url": "https://github.com/kongesque/thai-astrology/issues"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "require": "./dist/index.js",
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./dist/index.js"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "README-th.md"
   ],
   "scripts": {
-    "clean": "tsc --build --clean",
-    "build": "tsc --build",
-    "prepublishOnly": "npm run build",
-    "test": "echo \"No tests specified\" && exit 0"
+    "clean": "node scripts/clean.cjs",
+    "build": "npm run clean && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node test/run.cjs",
+    "test:package": "node scripts/test-package.cjs",
+    "check": "npm run typecheck && npm test && npm run test:package",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run check"
   },
   "keywords": [
     "thai",

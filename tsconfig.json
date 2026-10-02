@@ -6,17 +6,16 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "composite": true,
+    "inlineSources": true,
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "outDir": "dist",
-    "rootDir": "."
+    "rootDir": "src"
   },
   "include": [
-    "index.ts",
-    "engine/**/*.ts"
+    "src/**/*.ts"
   ],
   "exclude": [
     "dist",

@@ -1,0 +1,191 @@
+[
+  {
+    "input": {
+      "day": 15,
+      "monthTh": 9,
+      "yearBe": 2566,
+      "hour": 14,
+      "minute": 45,
+      "province": "กรุงเทพมหานคร"
+    },
+    "expected": {
+      "positions": {
+        "ascendant": 8,
+        "sun": 4,
+        "moon": 5,
+        "mars": 5,
+        "mercury": 4,
+        "jupiter": 0,
+        "venus": 3,
+        "saturn": 10,
+        "rahu": 0,
+        "ketu": 2,
+        "uranus": 1
+      },
+      "tanuseth": 7,
+      "channelOutputs": [
+        "๕๘",
+        "๐",
+        "๙",
+        "๖",
+        "๑๔",
+        "๒๓",
+        "",
+        "",
+        "ลั",
+        "",
+        "๗*",
+        ""
+      ],
+      "sunPosition": [
+        27,
+        29
+      ],
+      "rulingPlanetsError": "No ruling planets found in ascendant token"
+    }
+  },
+  {
+    "input": {
+      "day": 1,
+      "monthTh": 1,
+      "yearBe": 2543,
+      "hour": 0,
+      "minute": 0,
+      "province": "เชียงใหม่"
+    },
+    "expected": {
+      "positions": {
+        "ascendant": 5,
+        "sun": 8,
+        "moon": 6,
+        "mars": 10,
+        "mercury": 8,
+        "jupiter": 0,
+        "venus": 7,
+        "saturn": 0,
+        "rahu": 3,
+        "ketu": 11,
+        "uranus": 9
+      },
+      "tanuseth": 7,
+      "channelOutputs": [
+        "๕๗*",
+        "",
+        "",
+        "๘",
+        "",
+        "ลั",
+        "๒",
+        "๖",
+        "๑๔",
+        "๐",
+        "๓",
+        "๙"
+      ],
+      "sunPosition": [
+        15,
+        25
+      ],
+      "rulingPlanetsError": "No ruling planets found in ascendant token"
+    }
+  },
+  {
+    "input": {
+      "day": 29,
+      "monthTh": 2,
+      "yearBe": 2567,
+      "hour": 23,
+      "minute": 59,
+      "province": "ภูเก็ต"
+    },
+    "expected": {
+      "positions": {
+        "ascendant": 7,
+        "sun": 10,
+        "moon": 6,
+        "mars": 9,
+        "mercury": 10,
+        "jupiter": 0,
+        "venus": 9,
+        "saturn": 10,
+        "rahu": 11,
+        "ketu": 11,
+        "uranus": 1
+      },
+      "tanuseth": 6,
+      "channelOutputs": [
+        "๕",
+        "๐",
+        "",
+        "",
+        "",
+        "",
+        "๒",
+        "ลั",
+        "",
+        "๓๖*",
+        "๑๔๗",
+        "๘๙"
+      ],
+      "sunPosition": [
+        16,
+        18
+      ],
+      "rulingPlanetsError": "No ruling planets found in ascendant token"
+    }
+  },
+  {
+    "input": {
+      "day": 1,
+      "monthTh": 12,
+      "yearBe": 2523,
+      "hour": 6,
+      "minute": 30,
+      "province": "ไม่ทราบ"
+    },
+    "expected": {
+      "positions": {
+        "ascendant": 7,
+        "sun": 7,
+        "moon": 5,
+        "mars": 8,
+        "mercury": 7,
+        "jupiter": 5,
+        "venus": 6,
+        "saturn": 5,
+        "rahu": 3,
+        "ketu": 3,
+        "uranus": 6
+      },
+      "tanuseth": -4,
+      "channelOutputs": [
+        "",
+        "",
+        "",
+        "๘๙",
+        "",
+        "๒๕๗",
+        "๖๐",
+        "ลั๑๔",
+        "๓",
+        "",
+        "",
+        ""
+      ],
+      "sunPosition": [
+        14,
+        59
+      ],
+      "rulingPlanets": {
+        "numbers": [
+          "1",
+          "4"
+        ],
+        "names": [
+          "ดาวอาทิตย์",
+          "ดาวพุธ"
+        ]
+      }
+    }
+  }
+]
