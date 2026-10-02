@@ -1,6 +1,6 @@
 {
   "name": "thai-astrology",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Thai astrology (โหราศาสตร์ไทย) library for JavaScript and TypeScript. Suriyayatra birth charts, ascendants, planetary transits, Taksa and Thai lunar calendar.",
   "license": "MIT",
   "type": "commonjs",
