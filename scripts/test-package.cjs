@@ -4,7 +4,8 @@ const assert = require('node:assert/strict')
 const { execFileSync } = require('node:child_process')
 const { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } = require('node:fs')
 const { tmpdir } = require('node:os')
-const { join, resolve } = require('node:path')
+const { dirname, join, resolve, sep } = require('node:path')
+const { createContext, Script } = require('node:vm')
 
 const root = resolve(__dirname, '..')
 const temp = mkdtempSync(join(tmpdir(), 'thai-astrology-package-'))
@@ -21,10 +22,10 @@ try {
   // Exercise prepare so the archive always contains a fresh build.
   const [packed] = JSON.parse(npm(['pack', '--json', '--pack-destination', temp], root))
   const paths = packed.files.map(({ path }) => path)
-  for (const required of ['dist/index.js', 'dist/index.d.ts', 'src/index.ts', 'README.md', 'README-th.md', 'LICENSE']) {
+  for (const required of ['dist/index.js', 'dist/index.d.ts', 'src/index.ts', 'README.md', 'README-en.md', 'assets/rasi-chart.svg', 'LICENSE']) {
     assert.ok(paths.includes(required), `Archive is missing ${required}`)
   }
-  assert.ok(paths.every(path => /^(dist\/|src\/|package\.json$|README(?:-th)?\.md$|LICENSE$)/.test(path)), 'Unexpected development files in archive')
+  assert.ok(paths.every(path => /^(dist\/|src\/|assets\/rasi-chart\.svg$|package\.json$|README(?:-en)?\.md$|LICENSE$)/.test(path)), 'Unexpected development files in archive')
   assert.ok(paths.every(path => !path.endsWith('.tsbuildinfo')), 'Build cache must not be published')
 
   const consumer = join(temp, 'consumer')
@@ -32,6 +33,12 @@ try {
   writeFileSync(join(consumer, 'package.json'), JSON.stringify({ private: true }))
   npm(['install', join(temp, packed.filename), '--ignore-scripts', '--no-audit', '--no-fund', '--offline'], consumer)
   const installed = join(consumer, 'node_modules', 'thai-astrology')
+  for (const readme of ['README.md', 'README-en.md']) {
+    const text = readFileSync(join(installed, readme), 'utf8')
+    for (const [, image] of text.matchAll(/(?:!\[[^\]]*\]\(|<img\s+src=")(assets\/[^)"]+)(?:\)|")/g)) {
+      assert.ok(existsSync(join(installed, image)), `README image is missing: ${readme} -> ${image}`)
+    }
+  }
   for (const path of paths.filter(path => path.endsWith('.map'))) {
     const map = JSON.parse(readFileSync(join(installed, path), 'utf8'))
     for (const source of map.sources) {
@@ -39,33 +46,84 @@ try {
     }
   }
   copyFileSync(join(root, 'test/run.cjs'), join(consumer, 'test/run.cjs'))
+  copyFileSync(join(root, 'test/calculation.cjs'), join(consumer, 'test/calculation.cjs'))
+  copyFileSync(join(root, 'test/horoscope.cjs'), join(consumer, 'test/horoscope.cjs'))
   copyFileSync(join(root, 'test/fixtures/release-0.1.7.json'), join(consumer, 'test/fixtures/release-0.1.7.json'))
   execFileSync(process.execPath, ['test/run.cjs'], { cwd: consumer, stdio: 'inherit' })
+  require('./local-validation.cjs').runLocalValidation(installed, 'installed')
 
   writeFileSync(join(consumer, 'esm.mjs'), `
 import assert from 'node:assert/strict'
-import { generateThaiAstrologyChart, formatChannelOutputs, calculateSun } from 'thai-astrology'
+import { generateThaiAstrologyChart, formatChannelOutputs, calculateSun, calculateDetailedPositions, calculateTransits, describeLongitude, calculateThaiHoroscope, calculateHoroscopeTransits, validateHoroscopeInput, getThaiAstrologyProvinces, HoroscopeInputError } from 'thai-astrology'
 const chart = generateThaiAstrologyChart({ day: 15, monthTh: 9, yearBe: 2566, hour: 14, minute: 45, province: 'กรุงเทพมหานคร' })
 assert.deepEqual(chart.sunPosition, [27, 29])
 assert.equal(formatChannelOutputs(chart)[8], 'ลั')
 assert.equal(calculateSun(9, 2566, 15, 14, 45), chart.positions.sun)
+const details = calculateDetailedPositions({ day: 15, monthTh: 9, yearBe: 2567, hour: 8, minute: 30, province: 'เชียงใหม่' })
+assert.ok(details.longitudes.mercury.longitudeArcMinutes >= 0 && details.longitudes.mercury.longitudeArcMinutes < 21600)
+assert.equal(describeLongitude(61).sign, 0)
+const webInput = { date: { year: 2567, era: 'BE', month: 9, day: 15 }, time: { hour: 8, minute: 30 }, location: { province: 'เชียงใหม่' } }
+assert.equal(calculateThaiHoroscope(webInput).points.mercury.longitudeArcMinutes, details.longitudes.mercury.longitudeArcMinutes)
+assert.equal(calculateHoroscopeTransits(webInput, webInput).comparison.sun.longitudeDifferenceDegrees, 0)
+assert.equal(validateHoroscopeInput(webInput).valid, true)
+assert.equal(getThaiAstrologyProvinces().length, 77)
+assert.throws(() => calculateThaiHoroscope({}), HoroscopeInputError)
+assert.equal(calculateTransits({ day: 15, monthTh: 9, yearBe: 2567, hour: 8, minute: 30, province: 'เชียงใหม่' }, { day: 15, monthTh: 9, yearBe: 2567, hour: 8, minute: 30, province: 'เชียงใหม่' }).comparison.sun.longitudeDifferenceDegrees, 0)
 `)
   execFileSync(process.execPath, ['esm.mjs'], { cwd: consumer, stdio: 'inherit' })
 
+  // Execute the installed modules without Node globals or built-in module imports.
+  // This verifies the runtime needed by browser bundlers, independently of the Node consumer.
+  const context = createContext({ Date: class { constructor() { throw new Error('Civil calculations must not depend on host Date') } } })
+  const moduleCache = new Map()
+  const loadBrowserModule = file => {
+    if (moduleCache.has(file)) return moduleCache.get(file).exports
+    const module = { exports: {} }
+    moduleCache.set(file, module)
+    const localRequire = request => {
+      assert.ok(request.startsWith('.'), `Browser runtime imports a Node/external module: ${request}`)
+      const target = resolve(dirname(file), request.endsWith('.js') ? request : request + '.js')
+      assert.ok(target.startsWith(join(installed, 'dist') + sep), 'Runtime import leaves compiled package')
+      return loadBrowserModule(target)
+    }
+    const wrapper = new Script('(function(exports, require, module) {\n' + readFileSync(file, 'utf8') + '\n})', { filename: file }).runInContext(context)
+    wrapper(module.exports, localRequire, module)
+    return module.exports
+  }
+  const browserApi = loadBrowserModule(join(installed, 'dist/index.js'))
+  const browserInput = { date: { year: 2567, era: 'BE', month: 9, day: 15 }, time: { hour: 8, minute: 30 }, location: { province: 'เชียงใหม่' } }
+  const browserChart = JSON.parse(JSON.stringify(browserApi.calculateThaiHoroscope(browserInput)))
+  const nodeChart = require(installed).calculateThaiHoroscope(browserInput)
+  assert.deepEqual(browserChart, nodeChart)
+  assert.equal(browserApi.calculateHoroscopeTransits(browserInput, browserInput).comparison.sun.longitudeDifferenceDegrees, 0)
+  assert.equal(browserApi.validateHoroscopeInput(browserInput).valid, true)
+
   const types = `
-import { generateThaiAstrologyChart, formatChannelOutputs } from 'thai-astrology'
-import type { CalculationInput, ThaiAstrologyChart } from 'thai-astrology'
+import { generateThaiAstrologyChart, formatChannelOutputs, calculateDetailedPositions, calculateTransits, calculateThaiHoroscope, calculateHoroscopeTransits, validateHoroscopeInput } from 'thai-astrology'
+import type { CalculationInput, ThaiAstrologyChart, DetailedCalculationResult, DetailedThaiAstrologyChart, ThaiLunarDate, TransitCalculationResult, HoroscopeInput, ThaiHoroscope, HoroscopeTransitResult } from 'thai-astrology'
 const input: CalculationInput = { day: 15, monthTh: 9, yearBe: 2566, hour: 14, minute: 45, province: 'กรุงเทพมหานคร' }
 const chart: ThaiAstrologyChart = generateThaiAstrologyChart(input)
 const channels: string[] = formatChannelOutputs(chart, { numerals: 'thai' })
 void channels
+const detailed: DetailedCalculationResult = calculateDetailedPositions(input)
+const richer: DetailedThaiAstrologyChart = generateThaiAstrologyChart({ ...input, method: 'suriyayatra' })
+const lunarDate: ThaiLunarDate | null = richer.calendar.thaiLunarDate
+const transits: TransitCalculationResult = calculateTransits(input, input)
+void [detailed, lunarDate, transits]
+const webInput: HoroscopeInput = { date: { year: 2567, era: 'BE', month: 9, day: 15 }, time: { hour: 8, minute: 30 } }
+const webChart: ThaiHoroscope = calculateThaiHoroscope(webInput)
+const webTransit: HoroscopeTransitResult = calculateHoroscopeTransits(webInput, webInput)
+const validation = validateHoroscopeInput(webInput)
+if (validation.valid) { const ceYear: number = validation.value.date.yearCe; void ceYear }
+else { const field: string = validation.issues[0].field; void field }
+void [webChart, webTransit]
 `
   writeFileSync(join(consumer, 'types.cts'), types)
   writeFileSync(join(consumer, 'types.mts'), types)
   execFileSync(process.execPath, [join(root, 'node_modules/typescript/bin/tsc'),
     '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
     '--target', 'ES2019', 'types.cts', 'types.mts'], { cwd: consumer, stdio: 'inherit' })
-  console.log(`Package verified: ${paths.length} files; CommonJS, ESM imports, and TypeScript consumers pass`)
+  console.log(`Package verified: ${paths.length} files; CommonJS, ESM imports, TypeScript consumers, and browser runtime pass`)
 } finally {
   rmSync(temp, { recursive: true, force: true })
 }

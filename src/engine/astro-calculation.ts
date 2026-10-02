@@ -1,4 +1,11 @@
 // Thai Astrological Calculations - TypeScript Version
+import { normalizeCalculationInput } from "./astro/input"
+import { calculateDetailedPositions } from "./astro/suriyayatra"
+import type { DetailedCalculationResult } from "./astro/suriyayatra"
+
+export { calculateDetailedPositions, calculateSignRelationships, calculateTransits, describeLongitude } from "./astro/suriyayatra"
+export type { ChartPoint, DetailedCalculationResult, DetailedPosition, PlanetKey, SignRelationships, ThaiLunarDate, TransitCalculationResult } from "./astro/suriyayatra"
+export type CalculationMethod = "legacy" | "suriyayatra"
 
 export interface PlanetPositions {
   ascendant: number
@@ -22,6 +29,10 @@ export interface CalculationInput {
   hour: number
   minute: number
   province: string
+  /** Defaults to legacy for release compatibility. Use suriyayatra for detailed Suriyayatra calculations. */
+  method?: CalculationMethod
+  /** Override the province's correction to the 06:00 reference, in minutes. */
+  localTimeCorrectionMinutes?: number
 }
 
 export interface CalculationResult {
@@ -59,86 +70,6 @@ const resolveYearBe = (yearBe?: number, yearBc?: number): number => {
 }
 
 const QUADRANT_ADJUST_TABLE: Record<number, number> = { 0: 0, 1: 244, 2: 427, 3: 488 }
-
-const PROVINCE_TIME_OFFSETS: Record<string, number> = {
-  กระบี่: 24,
-  กรุงเทพมหานคร: 18,
-  กาญจนบุรี: 22,
-  กาฬสินธุ์: 6,
-  กำแพงเพชร: 22,
-  ขอนแก่น: 9,
-  จันทบุรี: 12,
-  ฉะเชิงเทรา: 16,
-  ชลบุรี: 16,
-  ชัยนาท: 19,
-  ชัยภูมิ: 12,
-  ชุมพร: 23,
-  เชียงราย: 21,
-  เชียงใหม่: 24,
-  ตรัง: 22,
-  ตราด: 10,
-  ตาก: 23,
-  นครนายก: 15,
-  นครปฐม: 20,
-  นครพนม: 1,
-  นครราชสีมา: 12,
-  นครศรีธรรมราช: 20,
-  นครสวรรค์: 20,
-  นนทบุรี: 18,
-  นราธิวาส: 13,
-  น่าน: 17,
-  บึงกาฬ: 5,
-  บุรีรัมย์: 8,
-  ปทุมธานี: 18,
-  ประจวบคีรีขันธ์: 21,
-  ปราจีนบุรี: 15,
-  ปัตตานี: 15,
-  พระนครศรีอยุธยา: 18,
-  พะเยา: 20,
-  พังงา: 26,
-  พัทลุง: 20,
-  พิจิตร: 19,
-  พิษณุโลก: 19,
-  เพชรบุรี: 20,
-  เพชรบูรณ์: 15,
-  แพร่: 19,
-  ภูเก็ต: 27,
-  มหาสารคาม: 7,
-  มุกดาหาร: 1,
-  แม่ฮ่องสอน: 28,
-  ยโสธร: 3,
-  ยะลา: 15,
-  ร้อยเอ็ด: 5,
-  ระนอง: 26,
-  ระยอง: 15,
-  ราชบุรี: 21,
-  ลพบุรี: 17,
-  ลำปาง: 22,
-  ลำพูน: 24,
-  เลย: 13,
-  ศรีสะเกษ: 3,
-  สกลนคร: 3,
-  สงขลา: 18,
-  สตูล: 20,
-  สมุทรปราการ: 18,
-  สมุทรสงคราม: 20,
-  สมุทรสาคร: 19,
-  สระแก้ว: 12,
-  สระบุรี: 16,
-  สิงห์บุรี: 18,
-  สุโขทัย: 21,
-  สุพรรณบุรี: 20,
-  สุราษฎร์ธานี: 23,
-  สุรินทร์: 6,
-  หนองคาย: 9,
-  หนองบัวลำภู: 10,
-  อ่างทอง: 18,
-  อำนาจเจริญ: 1,
-  อุดรธานี: 9,
-  อุตรดิตถ์: 20,
-  อุทัยธานี: 20,
-  อุบลราชธานี: 1,
-}
 
 const SIGN_DURATIONS_MINUTES = [120.0, 96.0, 72.0, 120.0, 144.0, 168.0, 168.0, 144.0, 120.0, 72.0, 96.0, 120.0]
 
@@ -211,6 +142,7 @@ function calculateBaseValues(
   hour: number,
   minute: number,
 ): SolarBaseValues {
+  normalizeCalculationInput({ day, monthTh, yearBe, hour, minute, province: "ไม่ใช้จังหวัด" })
   const monthNum = ensureMonthTh(monthTh)
   const yearAd = yearBe - 543
 
@@ -686,13 +618,14 @@ export function calculateAscendant(
   hour: number,
   minute: number,
   province: string,
+  localTimeCorrectionMinutes?: number,
 ): number {
   const sunLongitude = calculateSunPrecisePosition(monthTh, yearBe, day, hour, minute)
   const sunSignIndex = Math.floor(Math.trunc(sunLongitude / 1800))
   const sunMinutesInSign = sunLongitude % 1800
   const sunDegreesWithinSign = Math.trunc(sunMinutesInSign / 60)
   const sunMinutesWithinDegree = Math.trunc(sunMinutesInSign % 60)
-  const provinceSunriseOffsetMinutes = PROVINCE_TIME_OFFSETS[province] ?? 18
+  const provinceSunriseOffsetMinutes = normalizeCalculationInput({ day, monthTh, yearBe, hour, minute, province, localTimeCorrectionMinutes }, false).localTimeCorrectionMinutes
   const localTimeMinutes = hour * 60 + minute
   const minutesBeforeSunSign = SIGN_DURATIONS_MINUTES.slice(0, sunSignIndex).reduce(
     (sum, duration) => sum + duration,
@@ -761,12 +694,17 @@ export function calculateTanuseth(positions: Record<string, number>, ascSign: nu
   }
 }
 
+export function calculateAllPositions(input: CalculationInput & { method: "suriyayatra" }): DetailedCalculationResult
+export function calculateAllPositions(input: CalculationInput): CalculationResult
 export function calculateAllPositions(input: CalculationInput): CalculationResult {
+  if (input.method === "suriyayatra") return calculateDetailedPositions(input)
+  if (input.method !== undefined && input.method !== "legacy") throw new RangeError("Unknown calculation method")
+  normalizeCalculationInput(input, false)
   const { day, monthTh, yearBe, yearBc, hour, minute, province } = input
   const normalizedYearBe = resolveYearBe(yearBe, yearBc)
 
   const positions: PlanetPositions = {
-    ascendant: calculateAscendant(day, monthTh, normalizedYearBe, hour, minute, province),
+    ascendant: calculateAscendant(day, monthTh, normalizedYearBe, hour, minute, province, input.localTimeCorrectionMinutes),
     sun: calculateSun(monthTh, normalizedYearBe, day, hour, minute),
     moon: calculateMoon(monthTh, normalizedYearBe, day, hour, minute),
     mars: calculateMars(monthTh, normalizedYearBe, day, hour, minute),

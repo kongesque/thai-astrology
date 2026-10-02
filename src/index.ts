@@ -1,10 +1,11 @@
-import type { CalculationInput, CalculationResult } from "./engine/astro-calculation"
+import type { CalculationInput, CalculationResult, DetailedCalculationResult } from "./engine/astro-calculation"
 import { calculateAllPositions } from "./engine/astro-calculation"
 import type { RulingPlanetInfo } from "./engine/astro/ruling-planets"
 import { findRulingPlanets } from "./engine/astro/ruling-planets"
 
 export * from "./engine/astro-calculation"
 export * from "./engine/astro/ruling-planets"
+export * from "./horoscope"
 
 const THAI_DIGITS = ["๐", "๑", "๒", "๓", "๔", "๕", "๖", "๗", "๘", "๙"] as const
 
@@ -44,7 +45,14 @@ export interface ThaiAstrologyChart extends CalculationResult {
   rulingPlanetsError?: string
 }
 
-export const generateThaiAstrologyChart = (input: CalculationInput): ThaiAstrologyChart => {
+export interface DetailedThaiAstrologyChart extends DetailedCalculationResult {
+  rulingPlanets?: RulingPlanetInfo
+  rulingPlanetsError?: string
+}
+
+export function generateThaiAstrologyChart(input: CalculationInput & { method: "suriyayatra" }): DetailedThaiAstrologyChart
+export function generateThaiAstrologyChart(input: CalculationInput): ThaiAstrologyChart
+export function generateThaiAstrologyChart(input: CalculationInput): ThaiAstrologyChart {
   const result = calculateAllPositions(input)
   try {
     const rulingPlanets = findRulingPlanets(result.channelOutputs)

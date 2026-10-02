@@ -6,4 +6,6 @@ coverage/
 *.log
 .DS_Store
 
-/example/
+/.example/
+/docs/
+AGENTS.md

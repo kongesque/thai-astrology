@@ -24,15 +24,18 @@
   "files": [
     "dist",
     "src",
-    "README-th.md"
+    "README-en.md",
+    "assets/rasi-chart.svg"
   ],
   "scripts": {
     "clean": "node scripts/clean.cjs",
     "build": "npm run clean && tsc -p tsconfig.json",
+    "docs:chart": "npm run build && node scripts/render-readme-chart.cjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node test/run.cjs",
     "test:package": "node scripts/test-package.cjs",
-    "check": "npm run typecheck && npm test && npm run test:package",
+    "test:local": "npm run build && node scripts/local-validation.cjs",
+    "check": "npm run typecheck && npm test && npm run test:local && npm run test:package",
     "prepare": "npm run build",
     "prepublishOnly": "npm run check"
   },
