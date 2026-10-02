@@ -18,19 +18,24 @@
   <a href="https://github.com/kongesque/thai-astrology/issues">Report an issue</a>
 </p>
 
-<p align="center">
-  <img src="assets/rasi-chart.svg" alt="Thai natal horoscope: Suriyayatra Rasi chart with Thai numerals and an Aries ascendant" width="100%" />
-</p>
-
-`thai-astrology` is an **open source Thai astrology calculation library for JavaScript and TypeScript**. It uses classical Suriyayatra (สุริยยาตร์) to calculate natal birth charts, ascendants, planetary positions, transits, Taksa and Thai lunar calendar dates. Supply a civil date, local time and Thai province to get structured horoscope data through its API.
+`thai-astrology` is an **open source Thai astrology calculation library for JavaScript and TypeScript**. It uses classical Suriyayatra (สุริยยาตร์) to calculate natal birth charts, ascendants, planetary positions, transits, Taksa and Thai lunar calendar dates. Supply a civil date, local time and Thai province to get structured horoscope data through its API. Use and modify the code under the [MIT License](LICENSE).
 
 Build Thai horoscope websites, astrology apps or APIs with deterministic, JSON-serializable results and your own interpretation rules. Other uses include ascendant calculators, natal and transit comparison tools, Thai lunar calendars, and educational tools for exploring Suriyayatra calculations.
 
 Supports **Node.js 16+**, ESM and CommonJS, includes TypeScript types, works in browsers through a bundler, and has no runtime dependencies.
 
+<p align="center">
+  <img src="assets/rasi-chart.svg" alt="Thai natal horoscope: Suriyayatra Rasi chart with Thai numerals and an Aries ascendant" width="100%" />
+</p>
+
+<p align="center">
+  <sub><a href="https://github.com/kongesque/thai-astrology/blob/main/scripts/render-readme-chart.cjs">Example Suriyayatra Rasi chart</a> · 21 April 1782 (BE 2325), 06:54, Bangkok</sub><br />
+  <sub>Thai numerals identify planets; <code>ลั</code> marks the ascendant and <code>*</code> marks Tanuseth.</sub>
+</p>
+
 ## What it calculates
 
-- **Natal horoscopes:** 10 planetary positions, ascendants, houses, rulers, Tanuseth, lunar mansions and dignities.
+- **Natal horoscopes:** 10 planetary positions, ascendants, houses, rulers, Tanuseth, lunar mansions, nine Rerk categories and dignities.
 - **Chart data:** Rasi, navamsa and drekkana positions with Thai or Arabic numeral channels.
 - **Transits and calendars:** Natal comparisons, Taksa, geometric lunar phase and Thai lunar dates.
 
@@ -58,7 +63,7 @@ console.log(horoscope.charts.rasi.channels.thai[0]) // ลั๑*
 
 For CommonJS, replace the `import` line with `const { calculateThaiHoroscope } = require("thai-astrology")`.
 
-In the chart, the center shows the Sun’s degrees and arcminutes; Thai numerals identify planets, `ลั` marks the ascendant and `*` marks Tanuseth. The 1782 CE example is outside the 1900-2100 sample-comparison interval and does not establish historical accuracy.
+The 1782 CE example is outside the 1900-2100 sample-comparison interval and does not establish historical accuracy.
 
 ### Birth date, local time and province
 
@@ -74,15 +79,17 @@ Supply valid dates and times as numbers. Omitting the location applies zero corr
 
 | Result section | Available data |
 | --- | --- |
-| `points` | Planetary and ascendant positions; for example, `points.moon` |
+| `points` | Planetary and ascendant positions, lunar mansion/Rerk data and planetary dignities; for example, `points.moon` |
 | `houses` | All 12 houses, their rulers and occupants |
 | `factors` | Ascendant ruler (`ascendantRuler`), Tanuseth and ascendant occupants (`ascendantOccupants`) |
 | `charts` | Positions and channels for Rasi (ราศีจักร), navamsa (นวางค์จักร) and drekkana (ตรียางค์จักร) charts |
 | `calendar` | Astrological weekday, geometric lunar phase and Thai lunar calendar date |
 | `taksa` | บริวาร, อายุ, เดช, ศรี, มูละ, อุตสาหะ, มนตรี and กาลกิณี |
-| `relationships` | Sign conjunctions, oppositions, trines, squares and sextiles |
+| `relationships` | Sign-based conjunctions, oppositions, trines, quadrangular groups (จตุโกณ) and sextiles |
 
 Zodiac indices start at Aries = 0; house numbers start at ตนุ = 1. Chart channels run from Aries to Pisces, while `houses` start from the ascendant. Absolute longitudes are available in degrees (`longitudeDegrees`) and arcminutes (`longitudeArcMinutes`).
+
+In `relationships`, `squares` contains planets in the 4th, 7th and 10th signs, counting the reference sign as 1. This quadrangular group includes the opposition.
 
 ## Compare planetary transits with a natal chart
 
