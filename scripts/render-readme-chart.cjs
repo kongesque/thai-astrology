@@ -56,9 +56,15 @@ const planets = horoscope.charts.rasi.channels.thai.map((channel, index) => {
 })
 const ascendant = horoscope.points.ascendant
 const sun = horoscope.points.sun
+// Center the circular chart in a 3:2 landscape image without stretching it.
+const chartScale = 0.92
+const chartTranslation = {
+  x: 480 - center.x * chartScale,
+  y: 320 - center.y * chartScale,
+}
 const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" role="img" aria-labelledby="title description">
-  <title id="title">ราศีจักร: Thai Astrology</title>
+  <title id="title">Thai Astrology: ตัวอย่างราศีจักรสุริยยาตร์และลัคนา</title>
   <desc id="description">ดวงกำเนิด 21 เมษายน พ.ศ. 2325 เวลา 06:54 น. กรุงเทพมหานคร คำนวณด้วยสุริยยาตร์ ตัวเลขกลางวงคือองศาอาทิตย์กำเนิด ${sun.degrees} องศา ${sun.minutes} ลิปดา ลัคนา${ascendant.signName} ${ascendant.degrees} องศา ${ascendant.minutes} ลิปดา ${horoscope.charts.rasi.channels.thai.map((channel, index) => `${signs[index]}: ${channel || 'ไม่มีดาว'}`).join('; ')}</desc>
   <style>
     text { font-family: 'Sarabun', 'Arial Unicode MS', Tahoma, Arial, sans-serif; font-weight: 400; text-anchor: middle; fill: #111; }
@@ -67,7 +73,7 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
     .angle { font-family: Arial, Tahoma, sans-serif; font-size: 20px; font-weight: 600; }
   </style>
   <rect width="960" height="640" fill="#fff"/>
-  <g transform="translate(38.4 -130.8) scale(0.92)">
+  <g transform="translate(${number(chartTranslation.x)} ${number(chartTranslation.y)}) scale(${chartScale})">
   <circle cx="480" cy="490" r="326" fill="#fff" stroke="#111" stroke-width="1.1"/>
   <g stroke="#111" stroke-width="0.75">${divisions.join('\n    ')}</g>
   <circle cx="480" cy="490" r="285" fill="none" stroke="#111" stroke-width="1.8"/>

@@ -1,7 +1,7 @@
 {
   "name": "thai-astrology",
-  "version": "0.1.9",
-  "description": "Thai astrology ephemeris calculations and utilities for Node.js and TypeScript projects.",
+  "version": "0.2.0",
+  "description": "Thai astrology (โหราศาสตร์ไทย) library for JavaScript and TypeScript. Suriyayatra birth charts, ascendants, planetary transits, Taksa and Thai lunar calendar.",
   "license": "MIT",
   "type": "commonjs",
   "repository": {
@@ -41,10 +41,25 @@
   },
   "keywords": [
     "thai",
+    "thai-astrology",
+    "thai-horoscope",
+    "โหราศาสตร์ไทย",
+    "สุริยยาตร์",
+    "ผูกดวง",
+    "ลัคนา",
     "astrology",
     "horoscope",
+    "suriyayatra",
+    "natal-chart",
+    "birth-chart",
+    "ascendant",
+    "planetary-transits",
     "ephemeris",
-    "lunar"
+    "lunar",
+    "thai-lunar-calendar",
+    "taksa",
+    "javascript",
+    "typescript"
   ],
   "devDependencies": {
     "typescript": "^5.4.0"

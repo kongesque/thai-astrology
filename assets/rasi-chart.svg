@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" role="img" aria-labelledby="title description">
-  <title id="title">ราศีจักร: Thai Astrology</title>
+  <title id="title">Thai Astrology: ตัวอย่างราศีจักรสุริยยาตร์และลัคนา</title>
   <desc id="description">ดวงกำเนิด 21 เมษายน พ.ศ. 2325 เวลา 06:54 น. กรุงเทพมหานคร คำนวณด้วยสุริยยาตร์ ตัวเลขกลางวงคือองศาอาทิตย์กำเนิด 10 องศา 42 ลิปดา ลัคนาเมษ 19 องศา 42 ลิปดา เมษ: ลั๑*; พฤษภ: ๓๙; มิถุน: ๐; กรกฎ: ๒; สิงห์: ไม่มีดาว; กันย์: ไม่มีดาว; ตุล: ไม่มีดาว; พิจิก: ไม่มีดาว; ธนู: ๕๗; มกร: ไม่มีดาว; กุมภ์: ไม่มีดาว; มีน: ๔๖๘</desc>
   <style>
     text { font-family: 'Sarabun', 'Arial Unicode MS', Tahoma, Arial, sans-serif; font-weight: 400; text-anchor: middle; fill: #111; }
@@ -9,7 +9,7 @@
     .angle { font-family: Arial, Tahoma, sans-serif; font-size: 20px; font-weight: 600; }
   </style>
   <rect width="960" height="640" fill="#fff"/>
-  <g transform="translate(38.4 -130.8) scale(0.92)">
+  <g transform="translate(38.40 -130.80) scale(0.92)">
   <circle cx="480" cy="490" r="326" fill="#fff" stroke="#111" stroke-width="1.1"/>
   <g stroke="#111" stroke-width="0.75"><line x1="421.00" y1="169.38" x2="421.00" y2="810.62"/>
     <line x1="159.38" y1="431.00" x2="800.62" y2="431.00"/>
