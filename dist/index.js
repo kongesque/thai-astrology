@@ -19,7 +19,6 @@ const astro_calculation_1 = require("./engine/astro-calculation");
 const ruling_planets_1 = require("./engine/astro/ruling-planets");
 __exportStar(require("./engine/astro-calculation"), exports);
 __exportStar(require("./engine/astro/ruling-planets"), exports);
-__exportStar(require("./engine/thai-lunar"), exports);
 const THAI_DIGITS = ["๐", "๑", "๒", "๓", "๔", "๕", "๖", "๗", "๘", "๙"];
 const CHANNEL_PREFIX_PATTERN = /^Channel\s+\d+:/i;
 const stripChannelLabel = (value) => value.replace(CHANNEL_PREFIX_PATTERN, "").trimStart();
@@ -27,11 +26,10 @@ const convertDigits = (value, system) => {
     if (system === "thai") {
         return value.replace(/\d/g, (digit) => { var _a; return (_a = THAI_DIGITS[Number(digit)]) !== null && _a !== void 0 ? _a : digit; });
     }
-    const normalized = value.replace(/[๐-๙]/g, (digit) => {
+    return value.replace(/[๐-๙]/g, (digit) => {
         const index = THAI_DIGITS.indexOf(digit);
         return index === -1 ? digit : index.toString();
     });
-    return normalized === "ลั" ? "L" : normalized;
 };
 const formatChannelOutputs = (chart, options = {}) => {
     const { numerals = "arabic" } = typeof options === "string" ? { numerals: options } : options;
