@@ -89,7 +89,25 @@ console.log(horoscope.charts.rasi.channels.thai[0]) // ลั๑*
 
 เลขราศีเริ่มที่เมษ = 0 ส่วนเลขภพเริ่มที่ตนุ = 1 ช่องดวงเรียงจากเมษถึงมีน ส่วน `houses` เริ่มนับจากลัคนา ค่าสมผุสมีทั้งองศารวม (`longitudeDegrees`) และลิปดารวม (`longitudeArcMinutes`)
 
-ใน `relationships` ฟิลด์ `squares` เก็บดาวในกลุ่มจตุโกณ คือราศีที่ 4, 7 และ 10 เมื่อนับราศีอ้างอิงเป็น 1 จึงรวมตำแหน่งเล็งด้วย
+ตัวอย่างอ่านลัคนา ตนุลัคน์ ตนุเศษ ทักษา และวันที่จันทรคติ:
+
+```ts
+import { calculateThaiHoroscope } from "thai-astrology"
+
+const horoscope = calculateThaiHoroscope({
+  date: { year: 2567, era: "BE", month: 9, day: 15 },
+  time: { hour: 8, minute: 30 },
+  location: { province: "เชียงใหม่" },
+})
+
+console.log(horoscope.points.ascendant.signName) // กันย์
+console.log(horoscope.points[horoscope.factors.ascendantRuler].nameThai) // พุธ
+console.log(horoscope.factors.tanuseth.nameThai) // พฤหัสบดี
+console.log(horoscope.taksa.kalakini) // 6 = ศุกร์
+console.log(horoscope.calendar.thaiLunarDate?.label) // ข๑๓ด๑๐
+```
+
+`thaiLunarDate` คือวันที่ตามปฏิทินจันทรคติไทย ในตัวอย่างคือขึ้น 13 ค่ำ เดือน 10 ส่วน `calendar.lunarDay` เป็นดิถีจากมุมจันทร์กับอาทิตย์ จึงอาจได้คนละค่า ดูคำอธิบายฟิลด์ หน่วย และตัวอย่างเพิ่มเติมใน [คู่มือ API](https://github.com/kongesque/thai-astrology/blob/main/docs/api.md)
 
 ## คำนวณดาวจรเทียบดวงกำเนิด
 

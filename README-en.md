@@ -89,7 +89,25 @@ Supply valid dates and times as numbers. Omitting the location applies zero corr
 
 Zodiac indices start at Aries = 0; house numbers start at ตนุ = 1. Chart channels run from Aries to Pisces, while `houses` start from the ascendant. Absolute longitudes are available in degrees (`longitudeDegrees`) and arcminutes (`longitudeArcMinutes`).
 
-In `relationships`, `squares` contains planets in the 4th, 7th and 10th signs, counting the reference sign as 1. This quadrangular group includes the opposition.
+Read the ascendant, its ruler, Tanuseth, Taksa and Thai lunar date:
+
+```ts
+import { calculateThaiHoroscope } from "thai-astrology"
+
+const horoscope = calculateThaiHoroscope({
+  date: { year: 2567, era: "BE", month: 9, day: 15 },
+  time: { hour: 8, minute: 30 },
+  location: { province: "เชียงใหม่" },
+})
+
+console.log(horoscope.points.ascendant.signName) // กันย์ (Virgo)
+console.log(horoscope.points[horoscope.factors.ascendantRuler].nameThai) // พุธ (Mercury)
+console.log(horoscope.factors.tanuseth.nameThai) // พฤหัสบดี (Jupiter)
+console.log(horoscope.taksa.kalakini) // 6 = Venus
+console.log(horoscope.calendar.thaiLunarDate?.label) // ข๑๓ด๑๐
+```
+
+`thaiLunarDate` is the Thai calendar date: waxing day 13, month 10 in this example. `calendar.lunarDay` is calculated from the Moon-Sun angle, so its value can differ. See the [API guide](https://github.com/kongesque/thai-astrology/blob/main/docs/api-en.md) for fields, units and further examples.
 
 ## Compare planetary transits with a natal chart
 
