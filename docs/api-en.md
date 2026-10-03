@@ -105,43 +105,45 @@ Tanulak is the ascendant sign's ruler. Tanuseth is derived by its own calculatio
 
 ## Thai lunar calendar: `calendar.thaiLunarDate`
 
-Use this field for the calendar's waxing/waning day and lunar month. Supported years are BE 2125-2619; outside this range the value is `null`, so check it before use.
+Use this field for the waxing/waning day and lunar month. Supply a Gregorian date and local civil time; `time` is required and `location` is optional. Supported years are CE **1582–2076** (BE **2125–2619**). Outside this range, the field is `null`.
 
-| Field | Type and meaning |
-| --- | --- |
-| `phase` | `"waxing"` = ขึ้น; `"waning"` = แรม |
-| `day` | `number`: waxing/waning day 1-15; a 29-day month ends on waning day 14 |
-| `month` | `number`: lunar month 1-12, separate from the Gregorian month |
-| `secondEighthMonth` | `boolean`: `true` for the second eighth month in an intercalary-month year |
-| `yearType` | `"ordinary"` = ปกติมาส ปกติวาร; `"intercalary-month"` = อธิกมาส; `"intercalary-day"` = อธิกวาร |
-| `dayBoundary` | `"civil-midnight"`: the day changes at local 00:00 |
-| `label` | `string`: abbreviated Thai numeral label, such as `"ข๑๓ด๑๐"`; the second eighth month uses `ด๘๘`, and single-digit values may contain alignment spaces |
+```ts
+import { calculateThaiHoroscope } from "thai-astrology"
 
-Example for 15 September BE 2567 (2024), 08:30 in Chiang Mai:
+const { calendar } = calculateThaiHoroscope({
+  date: { year: 2026, era: "CE", month: 7, day: 29 },
+  time: { hour: 12, minute: 0 },
+})
+const lunar = calendar.thaiLunarDate
 
-```json
-{
-  "dayBoundary": "civil-midnight",
-  "yearType": "ordinary",
-  "phase": "waxing",
-  "day": 13,
-  "month": 10,
-  "secondEighthMonth": false,
-  "label": "ข๑๓ด๑๐"
+if (lunar) {
+  const phase = lunar.phase === "waxing" ? "ขึ้น" : "แรม"
+  const month = lunar.secondEighthMonth ? "8 หลัง" : String(lunar.month)
+  console.log(`${phase} ${lunar.day} ค่ำ เดือน ${month}`) // ขึ้น 15 ค่ำ เดือน 8 หลัง
 }
 ```
 
-The example is waxing day 13, month 10. Check day-boundary conventions when comparing dates near midnight or before 06:00, as conventions can differ.
+| Field | Meaning |
+| --- | --- |
+| `phase` | `"waxing"` = ขึ้น; `"waning"` = แรม |
+| `day` | Day 1–15 of that phase; a 29-day month ends on waning day 14 |
+| `month` | Lunar month 1–12, separate from the Gregorian input month |
+| `secondEighthMonth` | `true` for the second eighth month; both eighth months return `month: 8` |
+| `yearType` | `"ordinary"` = ปกติมาส ปกติวาร (354 days); `"intercalary-month"` = อธิกมาส (adds a second eighth month, 384 days); `"intercalary-day"` = อธิกวาร (adds a day to month 7, 355 days) |
+| `dayBoundary` | `"civil-midnight"`: local 00:00 is the civil-day boundary |
+| `label` | Abbreviated Thai text, e.g. `"ข๑๓ด๑๐"`; `ด๘๘` means the second eighth month. Can contain alignment spaces; format from the fields rather than parsing it |
+
+The calculation uses annual calendar tables and can differ from published calendars, particularly in intercalation and around the Chula Sakarat new year. `yearType` follows the calculated Chula Sakarat year and can change at the Thaloeng Sak time. The supported range does not guarantee accuracy for every date.
 
 | Other `calendar` fields | Meaning |
 | --- | --- |
 | `civilWeekday` | Civil weekday, changing at 00:00; 1 = Sunday through 7 = Saturday |
 | `astrologicalWeekday` | Astrological weekday, changing at 06:00; same numbering |
-| `lunarPhase`, `lunarDay` | Waxing/waning phase and geometric lunar day 1-15 derived from the Moon-Sun angle, separate from the calendar date |
+| `lunarPhase`, `lunarDay` | Phase and lunar day 1–15 derived from the Moon-Sun angle; can differ from `thaiLunarDate` |
 | `elongationDegrees` | Moon's angular distance from the Sun, 0 to less than 360 degrees |
-| `julianDayNumber`, `horakhun`, `chulaSakarat` | Julian day number, Horakhun day count and Chula Sakarat year for calendar comparisons |
+| `julianDayNumber`, `horakhun`, `chulaSakarat` | Julian day number, Horakhun day count and Chula Sakarat year |
 
-In this example, `lunarDay` is 12 while `thaiLunarDate.day` is 13. Use `thaiLunarDate` for the calendar date.
+For 15 September 2024 at 08:30 in Chiang Mai, `lunarDay` is 12 while `thaiLunarDate.day` is 13. Use `thaiLunarDate.phase` and `.day` together for a calendar display.
 
 ## Taksa: `taksa`
 

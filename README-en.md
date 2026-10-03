@@ -115,7 +115,24 @@ console.log(horoscope.taksa.kalakini) // 6 = Venus
 console.log(horoscope.calendar.thaiLunarDate?.label) // ข๑๓ด๑๐
 ```
 
-`thaiLunarDate` is the Thai calendar date: waxing day 13, month 10 in this example. `calendar.lunarDay` is calculated from the Moon-Sun angle, so its value can differ. See the [API guide](https://github.com/kongesque/thai-astrology/blob/main/docs/api-en.md) for fields, units and further examples.
+See the [API guide](https://github.com/kongesque/thai-astrology/blob/main/docs/api-en.md) for fields, units and further examples.
+
+### Read a Thai lunar date
+
+`calendar.thaiLunarDate` gives the waxing/waning day and lunar month. Read `phase`, `day` and `month`, or use `label` for abbreviated Thai text. The second eighth month has `month: 8` and `secondEighthMonth: true`.
+
+```ts
+import { calculateThaiHoroscope } from "thai-astrology"
+
+const { calendar } = calculateThaiHoroscope({
+  date: { year: 2567, era: "BE", month: 9, day: 15 },
+  time: { hour: 12, minute: 0 },
+})
+
+console.log(calendar.thaiLunarDate?.label) // ข๑๓ด๑๐ = waxing 13, month 10
+```
+
+Supports CE **1582–2076** (BE **2125–2619**); outside this range the value is `null`. Dates can differ from published calendars. `calendar.lunarDay` describes the Moon-Sun angle and can differ from the calendar day. See the [lunar calendar API guide](https://github.com/kongesque/thai-astrology/blob/main/docs/api-en.md#thai-lunar-calendar-calendarthailunardate) for an example and limits.
 
 ## Compare planetary transits with a natal chart
 
