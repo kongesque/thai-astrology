@@ -46,7 +46,7 @@ export function normalizeCalculationInput(input: CalculationInput, strictProvinc
   }
   const provinceOffset = Object.prototype.hasOwnProperty.call(PROVINCE_TIME_OFFSETS, input.province)
     ? PROVINCE_TIME_OFFSETS[input.province]
-    : strictProvince && input.province === "ไม่ใช้จังหวัด" ? 0 : undefined
+    : strictProvince && (input.province === "ไม่ระบุจังหวัด" || input.province === "ไม่ใช้จังหวัด") ? 0 : undefined
   const offset = input.localTimeCorrectionMinutes ?? provinceOffset
   if (strictProvince && offset === undefined) {
     throw new RangeError("Unknown province; supply a Thai province or `localTimeCorrectionMinutes`")

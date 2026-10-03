@@ -42,6 +42,14 @@ module.exports = [
     }
     assert.equal(base.ascendant.localTimeCorrectionMinutes, 0)
   }],
+  ['No-province names apply zero correction in Suriyayatra and preserve the legacy fallback', () => {
+    const zero = api.calculateDetailedPositions({ ...input, localTimeCorrectionMinutes: 0 })
+    for (const province of ['ไม่ระบุจังหวัด', 'ไม่ใช้จังหวัด']) {
+      assert.deepEqual(api.calculateDetailedPositions({ ...input, province }), zero)
+      assert.equal(api.calculateDetailedPositions({ ...input, province, localTimeCorrectionMinutes: 24 }).ascendant.localTimeCorrectionMinutes, 24)
+      assert.deepEqual(api.generateThaiAstrologyChart({ ...input, province }), api.generateThaiAstrologyChart({ ...input, province, localTimeCorrectionMinutes: 18 }))
+    }
+  }],
   ['Repeated and same-time transit calculations remain deterministic', () => {
     const first = api.calculateDetailedPositions(input)
     assert.deepEqual(api.calculateDetailedPositions(input), first)

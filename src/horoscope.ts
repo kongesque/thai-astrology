@@ -66,7 +66,7 @@ export function validateHoroscopeInput(input: unknown): HoroscopeInputValidation
   const correction = location.localTimeCorrectionMinutes
   if (correction !== undefined && (typeof correction !== "number" || !Number.isFinite(correction) || Math.abs(correction) > 1440)) issue("location.localTimeCorrectionMinutes", "range", "Expected finite minutes between -1440 and 1440")
   const province = location.province === undefined ? "ไม่ใช้จังหวัด" : location.province as string
-  if (typeof province === "string" && province.length && province !== "ไม่ใช้จังหวัด" && !Object.prototype.hasOwnProperty.call(PROVINCE_TIME_OFFSETS, province) && correction === undefined) {
+  if (typeof province === "string" && province.length && province !== "ไม่ระบุจังหวัด" && province !== "ไม่ใช้จังหวัด" && !Object.prototype.hasOwnProperty.call(PROVINCE_TIME_OFFSETS, province) && correction === undefined) {
     issue("location.province", "unknown", "Unknown province; provide an explicit local-time correction")
   }
   if (!issues.some(value => value.field === "date" || value.field.startsWith("date."))) {

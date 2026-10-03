@@ -75,6 +75,14 @@ The 1782 CE example is outside the 1900-2100 sample-comparison interval and does
 
 Supply valid dates and times as numbers. Omitting the location applies zero correction. Set `location.localTimeCorrectionMinutes` to override the province correction in minutes. Names and gender are not required for calculation.
 
+### Unknown birthplace or birth time
+
+- **Unknown birthplace:** omit `location` in `calculateThaiHoroscope`. Zero correction is applied, which can affect the ascendant and houses.
+- **Unknown birth time:** `time` is always required. There is no default time or date-only mode.
+- **When using an assumed time:** state the assumption clearly and omit ascendant-dependent results. Planetary positions are estimates, and Taksa can differ before or after 06:00.
+
+Lower-level Suriyayatra APIs use `province: "ไม่ระบุจังหวัด"` for zero correction (the previous name `"ไม่ใช้จังหวัด"` remains supported). Legacy uses 18 minutes for an unrecognized province without an explicit correction, preserving existing behavior rather than estimating the birthplace.
+
 ### Planetary positions, ascendants and horoscope results
 
 | Result section | Available data |

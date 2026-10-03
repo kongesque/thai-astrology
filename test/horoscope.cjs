@@ -37,6 +37,17 @@ module.exports = [
     provinces[0].localTimeCorrectionMinutes = 999
     assert.equal(api.getThaiAstrologyProvinces()[0].localTimeCorrectionMinutes, original)
   }],
+  ['No-province names are accepted without changing the omitted-location result', () => {
+    const { location, ...withoutLocation } = input
+    const omitted = api.calculateThaiHoroscope(withoutLocation)
+    assert.equal(omitted.input.location.province, 'ไม่ใช้จังหวัด')
+    assert.equal(omitted.input.location.localTimeCorrectionMinutes, 0)
+    for (const province of ['ไม่ระบุจังหวัด', 'ไม่ใช้จังหวัด']) {
+      const chart = api.calculateThaiHoroscope({ ...withoutLocation, location: { province } })
+      assert.deepEqual(chart, { ...omitted, input: { ...omitted.input, location: { province, localTimeCorrectionMinutes: 0 } } })
+      assert.equal(api.calculateThaiHoroscope({ ...withoutLocation, location: { province, localTimeCorrectionMinutes: 24 } }).input.location.localTimeCorrectionMinutes, 24)
+    }
+  }],
   ['Transit results use explicit dates and natal houses', () => {
     const result = api.calculateHoroscopeTransits(input, { ...input, date: { ...input.date, day: 16 } })
     assert.equal(result.natal.input.date.day, 15)
