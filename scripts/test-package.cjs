@@ -72,7 +72,9 @@ assert.equal(framed.diagnostics.planetaryTime.secondOfDay, 29524)
 assert.deepEqual(framed.calendar.thaiLunarDate, details.calendar.thaiLunarDate)
 assert.equal(describeLongitude(61).sign, 0)
 const webInput = { date: { year: 2567, era: 'BE', month: 9, day: 15 }, time: { hour: 8, minute: 30 }, location: { province: 'เชียงใหม่' } }
-assert.equal(calculateThaiHoroscope(webInput).points.mercury.longitudeArcMinutes, details.longitudes.mercury.longitudeArcMinutes)
+assert.equal(calculateThaiHoroscope(webInput).profile.referenceMode, 'auto')
+assert.equal(calculateThaiHoroscope(webInput).points.mercury.longitudeArcMinutes, framed.longitudes.mercury.longitudeArcMinutes)
+assert.equal(calculateThaiHoroscope({ ...webInput, referenceMode: 'traditional' }).points.mercury.longitudeArcMinutes, details.longitudes.mercury.longitudeArcMinutes)
 assert.equal(calculateHoroscopeTransits(webInput, webInput).comparison.sun.longitudeDifferenceDegrees, 0)
 assert.equal(validateHoroscopeInput(webInput).valid, true)
 assert.equal(getThaiAstrologyProvinces().length, 77)
@@ -149,6 +151,10 @@ const transits: TransitCalculationResult = calculateTransits(input, input)
 void [detailed, lunarDate, transits]
 const webInput: HoroscopeInput = { date: { year: 2567, era: 'BE', month: 9, day: 15 }, time: { hour: 8, minute: 30 } }
 const webChart: ThaiHoroscope = calculateThaiHoroscope(webInput)
+const automaticInput: HoroscopeInput = { ...webInput, location: { province: 'เชียงใหม่' }, referenceMode: 'auto' }
+const automaticChart: ThaiHoroscope = calculateThaiHoroscope(automaticInput)
+const selectedMode: 'auto' | 'traditional' | 'explicit' = automaticChart.profile.referenceMode
+void selectedMode
 const webTransit: HoroscopeTransitResult = calculateHoroscopeTransits(webInput, webInput)
 const validation = validateHoroscopeInput(webInput)
 if (validation.valid) { const ceYear: number = validation.value.date.yearCe; void ceYear }

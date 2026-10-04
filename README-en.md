@@ -72,9 +72,9 @@ console.log(horoscope.calendar.thaiLunarDate?.label) // ข๑๐ด ๖ = waxin
 
 Edit `date`, `time` and `location.province` for another chart. Use `era: "CE"` for Common Era, or `year: 2325, era: "BE"` for the equivalent Buddhist Era date. Enter local time as numbers: hour 0–23 and minute 0–59. Names and gender are not required.
 
-**Example settings:** the call uses the default 06:00 ascendant reference with province correction and the entered civil-local planetary clock, matching the hero image. Selecting a province does not automatically enable coordinate sunrise, resolve UTC or select a planetary reference frame.
+**Automatic settings:** for a recognized Thai province in CE 1900–2100, `calculateThaiHoroscope()` fills provincial-seat coordinates, resolves the date’s UTC offset, uses daily sunrise rounded to the nearest minute and selects the historical Bangkok +06:42:04 planetary frame. Supply only `date`, `time` and `location.province`; users do not need to enter those calculation settings.
 
-For daily sunrise rounded to the nearest minute, date-aware UTC and the +06:42:04 planetary frame, use the [complete API example](docs/api-en.md#input-and-main-apis). It supplies both `ascendantReference` and `planetaryTimeReference` explicitly. The sunrise and timezone helpers support CE 1900–2100, so that workflow cannot be applied to this 1782 chart.
+This 1782 example is outside the supported sunrise range, so it automatically retains the 06:00 province reference and matches the hero image. Read `horoscope.profile.referenceMode` and `.referenceFallback` to see what was used. To retain the earlier calculation for supported dates, select `referenceMode: "traditional"`. See [automatic settings and explicit overrides](docs/api-en.md#sunrise-and-planetary-time-settings).
 
 For CommonJS, replace the import with `const { calculateThaiHoroscope } = require("thai-astrology")`.
 
@@ -110,7 +110,7 @@ The [English API guide](docs/api-en.md) covers fields, units, options and furthe
 
 Planetary positions follow classical Suriyayatra formulas. The ascendant uses fixed classical rising durations (อันโตนาทีสามัญ), and houses use the whole-sign system. Relationships count zodiac signs. These conventions matter when comparing results with another school or implementing interpretation rules.
 
-The README example uses the 06:00 province reference. For coordinate sunrise, supply `ascendantReference`; for a chosen planetary frame, supply `planetaryTimeReference` as well. The birthplace's UTC offset and the selected calculation frame are separate settings. See [calculation settings](docs/api-en.md#sunrise-and-planetary-time-settings).
+Automatic selection applies only when neither reference nor a custom province correction is supplied. Explicit `ascendantReference` or `planetaryTimeReference` settings retain their existing meaning. The birthplace's UTC offset and the calculation frame are separate values. Low-level `calculateDetailedPositions()` and the earlier chart wrapper retain their existing defaults; see [calculation settings](docs/api-en.md#sunrise-and-planetary-time-settings).
 
 | Reference area | Basis used by the library |
 | --- | --- |

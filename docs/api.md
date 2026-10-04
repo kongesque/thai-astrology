@@ -8,40 +8,26 @@
 
 ## ข้อมูลนำเข้าและ API หลัก
 
-สถานที่เกิดในไทย เริ่มจากตัวอย่างนี้ได้เลย แก้ `birth` และ `province` แล้วโค้ดจะสร้าง `date`, `time` และตัวเลือกคำนวณให้ครบ
+สถานที่เกิดในไทย ระบุวัน เวลา และจังหวัดได้เลย API จะหาอาทิตย์ขึ้น UTC ตามวันที่ และกรอบเวลาดาวให้เองสำหรับ ค.ศ. 1900–2100
 
 ```ts
-import {
-  calculateThaiHoroscope,
-  createSunriseReference,
-  resolveCivilTimeOffset,
-} from "thai-astrology"
+import { calculateThaiHoroscope } from "thai-astrology"
 
-// แก้ข้อมูลเกิดตรงนี้ โดย yearCe ใช้ปี ค.ศ.
-const birth = { yearCe: 2024, month: 9, day: 15, hour: 8, minute: 30 }
-const province = "เชียงใหม่"
-
-const { utcOffsetHours } = resolveCivilTimeOffset(birth, "Asia/Bangkok")
 const horoscope = calculateThaiHoroscope({
-  date: { year: birth.yearCe, era: "CE", month: birth.month, day: birth.day },
-  time: { hour: birth.hour, minute: birth.minute },
-  ascendantReference: createSunriseReference({
-    province, utcOffsetHours, timePrecision: "minute",
-  }),
-  planetaryTimeReference: {
-    civilUtcOffsetSeconds: Math.round(utcOffsetHours * 3600),
-    referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4,
-  },
+  date: { year: 2024, era: "CE", month: 9, day: 15 },
+  time: { hour: 8, minute: 30 },
+  location: { province: "เชียงใหม่" },
 })
 
 console.log(horoscope.points.ascendant.signName) // กันย์
 console.log(horoscope.points.sun.signName) // สิงห์
 console.log(horoscope.calendar.thaiLunarDate?.label) // ข๑๓ด๑๐ = ขึ้น 13 ค่ำ เดือน 10
+console.log(horoscope.profile.referenceMode) // auto
 ```
 
 ## อาทิตย์ขึ้นและกรอบเวลาดาว
 
-ตัวอย่างด้านบนทำสามขั้นตอน:
+ค่าเริ่มต้น `referenceMode: "auto"` ทำสามขั้นตอนให้เอง:
 
 1. `resolveCivilTimeOffset` หา UTC ของสถานที่เกิด ณ วันเวลาเกิด
 2. `createSunriseReference` เติมพิกัดจังหวัด แล้วดวงคำนวณอาทิตย์ขึ้นตามวันที่ของตัวเองแบบปัดนาทีใกล้ที่สุด
@@ -55,7 +41,13 @@ console.log(horoscope.calendar.thaiLunarDate?.label) // ข๑๓ด๑๐ = ข
 | `planetaryTimeReference` | เวลาคำนวณดาว | UTC ของสถานที่เกิด → +06:42:04 |
 | `location.localTimeCorrectionMinutes` | จุดอ้างอิง 06:00 แบบ traditional | ไม่ส่งเมื่อใช้อาทิตย์ขึ้นตามพิกัด |
 
-ไม่บวกค่าแก้จังหวัดซ้ำกับอาทิตย์ขึ้น หากเว้นตัวเลือกทั้งสอง API จะไม่เปิดให้เอง
+โหมดอัตโนมัติต้องมีจังหวัดไทยที่อยู่ในรายการ ปี ค.ศ. 1900–2100 และไม่ได้ระบุจุดอ้างอิงหรือค่าแก้จังหวัดเอง `input` จะเก็บพิกัดและ UTC ที่เลือกแล้ว ส่วน `profile.referenceMode` บอกว่าใช้ `"auto"`, `"traditional"` หรือ `"explicit"` หากใช้วิธีเดิมแทน จะมี `profile.referenceFallback` เป็น `"year-out-of-range"`, `"missing-province"` หรือ `"explicit-correction"`
+
+หากระบุ `ascendantReference` หรือ `planetaryTimeReference` จะใช้ตามที่ส่งมา ไม่เติมอีกตัวเลือกหรือเปลี่ยนความละเอียดอาทิตย์ขึ้นให้เอง ประเทศอย่างเดียวไม่เปิดโหมดเลือกสถานที่อัตโนมัติ สำหรับต่างประเทศให้ใช้ตัวช่วยสถานที่และ UTC ด้านล่าง และไม่บวกค่าแก้จังหวัดซ้ำกับอาทิตย์ขึ้น
+
+UTC อัตโนมัติใช้ข้อมูล IANA ผ่าน `Intl` ของระบบ เวลาท้องถิ่นที่ไม่มีจริงหรือซ้ำกันจะเป็นข้อผิดพลาด ไม่เปลี่ยนไปใช้วิธีเดิมโดยเงียบ ๆ หากต้องการคำนวณซ้ำข้ามเวอร์ชันระบบ ให้เก็บ `input.ascendantReference` และ `input.planetaryTimeReference` ไว้แล้วส่งสองค่านี้โดยตรง จะไม่ค้นเขตเวลาใหม่
+
+การเปลี่ยนค่าเริ่มต้นนี้มีผลกับดวงกำเนิดและดาวจรแบบมีโครงสร้างที่เคยระบุเพียงจังหวัด เลือก `referenceMode: "traditional"` เพื่อคงผลเดิม ส่วน `calculateDetailedPositions()` และ `generateThaiAstrologyChart()` ยังใช้ค่าเริ่มต้นเดิม
 
 ## นำผลไปแสดงในแอป
 
@@ -101,9 +93,9 @@ console.log(chart.timing.sunrise?.timeMinutes) // นาทีตั้งแต
 
 รองรับวันที่ ค.ศ. 1900–2100 ทั้งในและนอกประเทศไทย ใช้โมเดล NOAA/Meeus กับขอบฟ้าระดับทะเลที่ศูนย์กลางอาทิตย์ต่ำกว่าขอบฟ้า 50′ ไม่ชดเชยภูเขา ความสูง หรืออากาศจริง ต้องส่ง UTC offset ที่ใช้ในวันนั้นเอง พิกัดไม่กำหนดเขตเวลาและไม่มีการค้น DST อัตโนมัติ
 
-`calculateSunrise()` คืน `status: "rise"` พร้อม `timeMinutes` ก่อนปัดค่า (0 ถึงน้อยกว่า 1440), `roundedTimeMinutes` สำหรับแสดงผลหรือใช้กับความละเอียดระดับนาที (อาจเป็น 1440 หรือ 24:00) และ `altitudeResidualDegrees` ซึ่งเป็นเศษเชิงตัวเลข ไม่ใช่ความแม่นยำทางกายภาพ หากวันนั้นไม่มีอาทิตย์ขึ้น คืน `status: "no-rise"` การใช้ตัวเลือกนี้กับดวงที่ไม่มีอาทิตย์ขึ้นจะ throw `RangeError`; ถ้าต้องการวิธีเดิมให้ไม่ระบุ `ascendantReference`
+`calculateSunrise()` คืน `status: "rise"` พร้อม `timeMinutes` ก่อนปัดค่า (0 ถึงน้อยกว่า 1440), `roundedTimeMinutes` สำหรับแสดงผลหรือใช้กับความละเอียดระดับนาที (อาจเป็น 1440 หรือ 24:00) และ `altitudeResidualDegrees` ซึ่งเป็นเศษเชิงตัวเลข ไม่ใช่ความแม่นยำทางกายภาพ หากวันนั้นไม่มีอาทิตย์ขึ้น คืน `status: "no-rise"` การใช้ตัวเลือกนี้กับดวงที่ไม่มีอาทิตย์ขึ้นจะ throw `RangeError`; ถ้าต้องการวิธีเดิมใน API แบบมีโครงสร้าง ให้เลือก `referenceMode: "traditional"` และไม่ระบุจุดอ้างอิง ส่วน API ระดับล่างให้เว้น `ascendantReference`
 
-`timePrecision: "minute"` ใช้เวลาอาทิตย์ขึ้นที่ปัดเป็นนาทีใกล้ที่สุดกับลัคนาและเวลาเริ่มทั้ง 12 ราศี ไม่ระบุหรือใช้ `"continuous"` จะใช้เวลาก่อนปัดและคงผลเดิม ค่านี้ส่งผ่าน `createSunriseReference` และ `createSunriseReferenceForLocation` ได้ด้วย ไม่เปลี่ยนเวลาอาทิตย์ขึ้นดิบ สมผุสดาวหรือวันจันทรคติ ถ้าปัดได้ 24:00 จะใช้ 00:00 ในวงรอบลัคนา ไม่เลื่อนวันที่
+`timePrecision: "minute"` ใช้เวลาอาทิตย์ขึ้นที่ปัดเป็นนาทีใกล้ที่สุดกับลัคนาและเวลาเริ่มทั้ง 12 ราศี เมื่อส่งจุดอ้างอิงเอง หากไม่ระบุความละเอียดหรือใช้ `"continuous"` จะใช้เวลาก่อนปัดและคงผลเดิม ส่วนการเลือกจังหวัดอัตโนมัติใช้ `"minute"` ค่านี้ส่งผ่าน `createSunriseReference` และ `createSunriseReferenceForLocation` ได้ด้วย ไม่เปลี่ยนเวลาอาทิตย์ขึ้นดิบ สมผุสดาวหรือวันจันทรคติ ถ้าปัดได้ 24:00 จะใช้ 00:00 ในวงรอบลัคนา ไม่เลื่อนวันที่
 
 ค่าแก้เวลาจังหวัดเป็นศูนย์ หากส่ง `localTimeCorrectionMinutes` ที่ไม่ใช่ศูนย์ร่วมกันจะถูกปฏิเสธ เลือกตัวเลือกเดียวกันได้ใน `CalculationInput`; `generateThaiAstrologyChart` ต้องระบุ `method: "suriyayatra"`
 
@@ -221,7 +213,7 @@ console.log(chart.diagnostics.planetaryTime?.secondOfDay) // 85324
 
 ตัวอย่าง +06:42:04 มาจากข้อมูลเวลาพลเรือน IANA ไม่รับรองว่าเป็นเมริเดียนของทุกสูตรสุริยยาตร์ ประเทศ/พิกัดไม่เลือกรอบดาวอัตโนมัติ สำหรับต่างประเทศให้ resolve offset ของสถานที่และวันเวลานั้น แล้วใช้กรอบดาวที่ได้ตรวจหลักฐานแล้ว `Math.round` ข้างบนเพียงคืน offset IANA ที่มีหน่วยวินาทีจากการแทนเป็นชั่วโมง ไม่ใช่การจูนสมผุสดาว
 
-ไม่ระบุตัวเลือกให้ผลเดิม ระบุ offset เท่ากันก็ให้ค่าคำนวณเดิมพร้อม diagnostics เพิ่ม เมื่อกรอบต่างกัน ขั้นเวลาในรอบอาทิตย์/จันทร์/เกตุใช้เศษส่วนวินาทีแบบจำนวนเต็มก่อนหาร จึงรักษาวินาทีของกรอบอ้างอิง วัน civil, `calendar.chulaSakarat`, วันจันทรคติ และทักษาคงเดิม แต่ดิถีเชิงมุมจันทร์–อาทิตย์อิงสมผุสที่เปลี่ยน เวลาและอาทิตย์ขึ้นของลัคนาอยู่ในกรอบ civil; ตำแหน่งอาทิตย์ใหม่อาจทำให้ลัคนาและเรือนเปลี่ยน หากใช้ sunrise ร่วมกัน offset civil ทั้งสองตัวเลือกต้องตรงกัน
+API ระดับล่างยังใช้เวลาดาวตามเวลาท้องถิ่นเมื่อไม่ระบุตัวเลือกนี้ ส่วน API แบบมีโครงสร้างจะเติมให้เมื่อเลือกจังหวัดอัตโนมัติ ใช้ `referenceMode: "traditional"` เพื่อคงเวลาดาวเดิม ระบุ offset เท่ากันก็ให้ค่าคำนวณเดิมพร้อม diagnostics เพิ่ม เมื่อกรอบต่างกัน ขั้นเวลาในรอบอาทิตย์/จันทร์/เกตุใช้เศษส่วนวินาทีแบบจำนวนเต็มก่อนหาร จึงรักษาวินาทีของกรอบอ้างอิง วัน civil, `calendar.chulaSakarat`, วันจันทรคติ และทักษาคงเดิม แต่ดิถีเชิงมุมจันทร์–อาทิตย์อิงสมผุสที่เปลี่ยน เวลาและอาทิตย์ขึ้นของลัคนาอยู่ในกรอบ civil; ตำแหน่งอาทิตย์ใหม่อาจทำให้ลัคนาและเรือนเปลี่ยน หากใช้ sunrise ร่วมกัน offset civil ทั้งสองตัวเลือกต้องตรงกัน
 
 `diagnostics.planetaryTime` เพิ่มเฉพาะเมื่อเลือก มี `horakhun`, `secondOfDay`, `dayOffset` และ offset ทั้งสอง จ.ศ. สำหรับ epoch ดาวใช้กรอบที่เลือก ขณะที่ จ.ศ. ปฏิทินยังอิง civil โมเดลนี้เป็นการแปลงกรอบคำนวณแบบ fixed offset ไม่ใช่การแปลง UT1/TT หรือจำลอง leap seconds
 
@@ -407,7 +399,7 @@ console.log(result.comparison.sun.longitudeDifferenceDegrees)
 
 ## วิธี traditional
 
-เว้น `planetaryTimeReference` และ `ascendantReference` เพื่อคงนาฬิกาดาว civil-local และจุดอ้างอิงลัคนา 06:00 พร้อมค่าแก้เวลาจังหวัด API ยังรับรูปแบบนี้สำหรับการเรียกเดิม ส่วนวันจันทรคติใช้สูตรปัจจุบันเหมือนกัน นี่เป็นการเลือกวิธีคำนวณ ไม่ใช่การเลือกเวอร์ชันไลบรารี
+เลือก `referenceMode: "traditional"` และเว้นจุดอ้างอิงทั้งสอง เพื่อคงเวลาดาวตามเวลาท้องถิ่นที่กรอกและลัคนาอ้างอิง 06:00 พร้อมค่าแก้จังหวัด ทั้งสองโหมดใช้ปฏิทินจันทรคติปัจจุบันเหมือนกัน นี่เป็นการเลือกวิธีคำนวณ ไม่ใช่เวอร์ชันไลบรารี
 
 ## ตารางฟังก์ชันและข้อมูลนำเข้า
 
@@ -416,12 +408,13 @@ console.log(result.comparison.sun.longitudeDifferenceDegrees)
 | `date.year`, `date.era` | ปีจำนวนเต็ม ใช้ `"BE"` สำหรับ พ.ศ. 544-10542 หรือ `"CE"` สำหรับ ค.ศ. 1-9999 |
 | `date.month`, `date.day` | เดือน 1-12 และวันที่ที่มีอยู่จริงตามปฏิทินเกรกอเรียน ทั้งสองค่าเป็นจำนวนเต็ม |
 | `time.hour`, `time.minute` | เวลาเกิดตามเวลาท้องถิ่น ชั่วโมง 0-23 นาที 0-59 เป็นจำนวนเต็ม |
+| `referenceMode` | ไม่บังคับ ใช้ `"auto"` เป็นค่าเริ่มต้น หรือ `"traditional"` เพื่อคงวิธีเดิม หากระบุจุดอ้างอิงเองจะใช้ตามที่ส่ง |
 | `location.province` | ไม่บังคับ ใช้ชื่อจังหวัดภาษาไทยจาก `getThaiAstrologyProvinces()` |
 | `location.localTimeCorrectionMinutes` | ไม่บังคับ จำนวนนาทีตั้งแต่ -1440 ถึง 1440 ใช้แทนค่าแก้เวลาของจังหวัด |
 | `planetaryTimeReference` | ไม่บังคับ ระบุ `civilUtcOffsetSeconds` และ `referenceUtcOffsetSeconds` เป็นวินาทีจำนวนเต็ม ช่วง ±50,400 |
 | `ascendantReference` | ไม่บังคับ เลือก `method: "sunrise"` พร้อม `latitude` (-90..90), `longitude` (-180..180) และ `utcOffsetHours` (-14..14) ที่รวม DST แล้ว |
 
-เมื่อใช้จุดอ้างอิงเดิม หากไม่ระบุจังหวัดหรือค่าแก้เวลา จะใช้ค่าแก้เวลาเป็นศูนย์ ชื่อจังหวัดที่ไม่อยู่ในรายการต้องระบุค่าแก้เวลาเอง ค่านี้ปรับจุดอ้างอิง 06:00 ของการหาลัคนา ไม่ใช่เขตเวลาหรือ UTC offset ต้องจัดการเขตเวลาและ DST ก่อนส่งข้อมูล
+เมื่อใช้จุดอ้างอิงเดิม หากไม่ระบุจังหวัดหรือค่าแก้เวลา จะใช้ค่าแก้เวลาเป็นศูนย์ ชื่อจังหวัดที่ไม่อยู่ในรายการต้องระบุค่าแก้เวลาเอง ค่านี้ปรับจุดอ้างอิง 06:00 ของการหาลัคนา ไม่ใช่เขตเวลาหรือ UTC offset สำหรับต่างประเทศต้องหาหรือระบุ UTC offset ที่รวม DST ก่อนส่งข้อมูล
 
 | API | ผลลัพธ์ |
 | --- | --- |
@@ -464,7 +457,7 @@ if (!validation.valid) {
 }
 ```
 
-`validateHoroscopeInput()` รับ `unknown` และไม่แปลงข้อความเป็นตัวเลข เมื่อไม่ผ่าน `issues` จะบอก `field`, `code` (`required`, `type`, `range`, `unknown`) และ `message` เมื่อผ่าน `value` เป็นข้อมูลที่จัดรูปแบบแล้ว มีทั้ง `date.yearBe` และ `date.yearCe` ไม่ใช่รูปแบบนำเข้าสำหรับส่งกลับไปคำนวณ
+`validateHoroscopeInput()` รับ `unknown` และไม่แปลงข้อความเป็นตัวเลข เมื่อไม่ผ่าน `issues` จะบอก `field`, `code` (`required`, `type`, `range`, `unknown`) และ `message` เมื่อผ่าน `value` มีจุดอ้างอิงที่เลือกและเหตุผลเมื่อใช้วิธีเดิม พร้อมข้อมูลที่จัดรูปแบบแล้ว มีทั้ง `date.yearBe` และ `date.yearCe` ไม่ใช่รูปแบบนำเข้าสำหรับส่งกลับไปคำนวณ
 
 `calculateThaiHoroscope()` และ `calculateHoroscopeTransits()` จะ throw `HoroscopeInputError` เมื่อข้อมูลไม่ถูกต้อง อ่านรายการข้อผิดพลาดได้จาก `error.issues` ชนิดข้อมูลทั้งหมด รวมถึง `profile`, `timing` และ `diagnostics` ดูได้ใน [horoscope.ts](../src/horoscope.ts), [DetailedPosition](../src/engine/astro/suriyayatra.ts) และ [CalculationInput](../src/engine/astro-calculation.ts)
 
