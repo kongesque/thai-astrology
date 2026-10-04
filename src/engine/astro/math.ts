@@ -27,6 +27,22 @@ export function meanLunarApogeeArcMinutes(dayIndex: number, timeMinutes: number)
   return Math.floor((dayIndex * 1440 + timeMinutes) * 15 / 3232) + 2
 }
 
+/** Annual reference day and exact fractional-day seconds in the inherited Gregorian rule. */
+export function thaloengSokReference(chulaSakarat: number): { horakhun: number; fractionalDaySeconds: number } {
+  // Eade, Appendix A, A1: discard the division remainder, then add 1 even at remainder 0.
+  // This also agrees with the calendar module's annual day construction.
+  const horakhun = Math.floor((292207 * chulaSakarat + 373) / 800) + 1
+  // Exact common denominator for 0.25875, 0.38, 0.5, 0.595 and 5.53375.
+  // Keep the inherited truncation for proleptic dates before the era; do not fit a tolerance.
+  const equationUnits = chulaSakarat * 207 + 800 * (
+    Math.trunc((chulaSakarat + 38) / 100)
+    - Math.trunc((chulaSakarat + 2) / 4)
+    - Math.trunc((chulaSakarat + 238) / 400)
+  ) - 4427
+  // Each 1/800 day is exactly 108 seconds. A near-integer float must not become 24:00.
+  return { horakhun, fractionalDaySeconds: equationUnits % 800 === 0 ? 0 : (equationUnits % 800) * 108 }
+}
+
 export const SIGN_RULERS = [3, 6, 4, 2, 1, 4, 6, 3, 5, 7, 8, 5] as const
 export const SIGN_DURATIONS = [120, 96, 72, 120, 144, 168, 168, 144, 120, 72, 96, 120] as const
 export const PLANET_KEYS = ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn", "rahu", "ketu", "uranus"] as const

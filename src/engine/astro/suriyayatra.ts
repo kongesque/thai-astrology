@@ -1,6 +1,6 @@
 import type { CalculationInput, CalculationResult, PlanetPositions } from "../astro-calculation"
 import { civilJulianDay, normalizeCalculationInput, resolvePlanetaryTime } from "./input"
-import { interpolateTableFloor, meanLunarApogeeArcMinutes, modulo, PLANET_KEYS, PLANET_NUMBERS, SIGN_DURATIONS, SIGN_NAMES, SIGN_RULERS, solarIntradayUnits } from "./math"
+import { interpolateTableFloor, meanLunarApogeeArcMinutes, modulo, PLANET_KEYS, PLANET_NUMBERS, SIGN_DURATIONS, SIGN_NAMES, SIGN_RULERS, solarIntradayUnits, thaloengSokReference } from "./math"
 import { planetDignities } from "./dignities"
 import { subdivisionLabels } from "./divisions"
 import { calculateThaiLunarDate } from "./lunar-calendar"
@@ -280,14 +280,13 @@ export function calculateDetailedPositions(input: CalculationInput): DetailedCal
   const planetaryTime = normalized.planetaryTimeReference ? resolvePlanetaryTime(normalized, horakhun) : undefined
   const shiftedTime = normalized.planetaryTimeReference?.civilUtcOffsetSeconds !== normalized.planetaryTimeReference?.referenceUtcOffsetSeconds ? planetaryTime : undefined
   const planetaryHorakhun = planetaryTime?.horakhun ?? horakhun
-  const planetaryHours = shiftedTime ? shiftedTime.secondOfDay / 3600 : hours
   const cs = yearBe - 1181
-  const thaloeng = Math.ceil((292207 * cs + 373) / 800)
-  const equation = cs * 0.25875 + Math.trunc(cs / 100 + 0.38) - Math.trunc(cs / 4 + 0.5) - Math.trunc(cs / 400 + 0.595) - 5.53375
-  // เทียบเวลาจุดเปลี่ยนปีด้วยหน่วยนาทีเดียวกัน รวมส่วนวินาทีของจุดเปลี่ยนด้วย
-  const thaloengTime = (equation - Math.trunc(equation)) * 1440
-  const chulaSakarat = horakhun < thaloeng || (horakhun === thaloeng && hours * 60 <= thaloengTime) ? cs - 1 : cs
-  const planetaryChulaSakarat = planetaryHorakhun < thaloeng || (planetaryHorakhun === thaloeng && planetaryHours * 60 <= thaloengTime) ? cs - 1 : cs
+  const thaloeng = thaloengSokReference(cs)
+  const civilSeconds = timeMinutes * 60
+  const planetarySeconds = planetaryTime?.secondOfDay ?? civilSeconds
+  // Exact seconds preserve the existing inclusive boundary for both civil and planetary clocks.
+  const chulaSakarat = horakhun < thaloeng.horakhun || (horakhun === thaloeng.horakhun && civilSeconds <= thaloeng.fractionalDaySeconds) ? cs - 1 : cs
+  const planetaryChulaSakarat = planetaryHorakhun < thaloeng.horakhun || (planetaryHorakhun === thaloeng.horakhun && planetarySeconds <= thaloeng.fractionalDaySeconds) ? cs - 1 : cs
   // Explicit frame uses integral seconds; the omitted-option path preserves published arithmetic.
   const solarUnits = shiftedTime ? Math.floor(shiftedTime.secondOfDay * 800 / 86400) : solarIntradayUnits(timeMinutes)
   const solarCycleUnits = modulo((planetaryHorakhun - 1) * 800 + solarUnits - 373, 292207)

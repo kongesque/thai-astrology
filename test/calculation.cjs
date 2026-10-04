@@ -11,6 +11,54 @@ const civilTimeCases = [1900, 1920, 2000, 2024, 2076].flatMap(yearBc =>
     Array.from({ length: 24 }, (_, hour) => ({ ...input, yearBc, monthTh, day, hour, minute: [0, 1, 59][hour % 3] }))))
 
 module.exports = [
+  ['Annual reference uses quotient plus one and exact seconds at year boundaries', () => {
+    const { dirname, join } = require('node:path')
+    const { thaloengSokReference } = require(join(dirname(require.resolve('thai-astrology')), 'engine/astro/math.js'))
+    // Independently evaluate the inherited decimal rule as rational fractions, including
+    // pre-era truncation. Eade Appendix A A1 specifies quotient + 1, not ceil.
+    // https://thesiamsociety.org/wp-content/uploads/2000/03/JSS_088_0r_Eade_RulesForInterpolationInThaiCalendar.pdf
+    const floor = (n, d) => n / d - (n < 0n && n % d !== 0n ? 1n : 0n)
+    const fraction = (n, d) => ({ n, d })
+    const add = (a, b) => fraction(a.n * b.d + b.n * a.d, a.d * b.d)
+    let zeroRemainders = 0
+    for (let year = 1; year <= 9999; year++) {
+      const cs = BigInt(year - 638)
+      const q = [
+        fraction(cs * 25875n, 100000n),
+        fraction((cs * 100n + 3800n) / 10000n, 1n),
+        fraction(-((cs * 10n + 20n) / 40n), 1n),
+        fraction(-((cs * 1000n + 238000n) / 400000n), 1n),
+        fraction(-553375n, 100000n),
+      ].reduce(add)
+      const expectedSeconds = Number((q.n % q.d) * 86400n / q.d)
+      const numerator = cs * 292207n + 373n
+      const actual = thaloengSokReference(Number(cs))
+      assert.equal(actual.horakhun, Number(floor(numerator, 800n) + 1n))
+      assert.equal(actual.fractionalDaySeconds, expectedSeconds)
+      if (numerator % 800n === 0n) zeroRemainders++
+    }
+    assert.equal(zeroRemainders, 13)
+    assert.deepEqual(thaloengSokReference(1061), { horakhun: 387541, fractionalDaySeconds: 0 })
+    assert.deepEqual(thaloengSokReference(1325), { horakhun: 483969, fractionalDaySeconds: 26784 })
+  }],
+  ['Civil and planetary year selection preserve the exact inclusive transition', () => {
+    // Times independently derived with Python Fraction; synthetic, not chart records.
+    for (const [yearBc, day, hour, minute, second] of [[1900, 15, 0, 12, 36], [1904, 15, 1, 3, 0], [2024, 16, 2, 15, 0]]) {
+      const cs = yearBc - 638
+      for (const delta of [-1, 0, 1]) {
+        const value = { yearBc, monthTh: 4, day, hour, minute, province: 'ไม่ใช้จังหวัด', planetaryTimeReference: { civilUtcOffsetSeconds: 25200, referenceUtcOffsetSeconds: 25200 + second + delta } }
+        const actual = api.calculateDetailedPositions(value)
+        const epochYear = (actual.diagnostics.planetaryEpochArcMinutes - actual.diagnostics.meanRaviArcMinutes) / 21600 + (actual.diagnostics.solarCycleUnits >= 364 ? 610 : 611)
+        assert.equal(epochYear, delta <= 0 ? cs - 1 : cs)
+      }
+    }
+    const value = { yearBc: 1699, monthTh: 4, day: 11, hour: 0, minute: 0, province: 'ไม่ใช้จังหวัด' }
+    assert.equal(api.calculateDetailedPositions(value).calendar.chulaSakarat, 1060)
+    assert.equal(api.calculateDetailedPositions({ ...value, minute: 1 }).calendar.chulaSakarat, 1061)
+    const modern = { yearBc: 1904, monthTh: 4, day: 15, hour: 1, minute: 3, province: 'ไม่ใช้จังหวัด' }
+    assert.equal(api.calculateDetailedPositions(modern).calendar.chulaSakarat, 1265)
+    assert.equal(api.calculateDetailedPositions({ ...modern, minute: 4 }).calendar.chulaSakarat, 1266)
+  }],
   ['Day-based solar division feeds Moon consistently across annual boundaries', () => {
     // Source-supported convention, rather than an algebraic identity:
     // https://thanan4astro.blogspot.com/2015/02/blog-post_11.html. Synthetic dates do not use external chart records.
