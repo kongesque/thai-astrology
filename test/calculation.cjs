@@ -11,6 +11,74 @@ const civilTimeCases = [1900, 1920, 2000, 2024, 2076].flatMap(yearBc =>
     Array.from({ length: 24 }, (_, hour) => ({ ...input, yearBc, monthTh, day, hour, minute: [0, 1, 59][hour % 3] }))))
 
 module.exports = [
+  ['Solar intraday units and lunar apogee agree with exact integer division across their complete domains', () => {
+    const { dirname, join } = require('node:path')
+    const { solarIntradayUnits, meanLunarApogeeArcMinutes } = require(join(dirname(require.resolve('thai-astrology')), 'engine/astro/math.js'))
+    // Independent rational evaluation of the inherited formula; not observed ephemerides.
+    // See https://thesiamsociety.org/wp-content/uploads/2000/03/JSS_088_0r_Eade_RulesForInterpolationInThaiCalendar.pdf for units, source evidence and rounding boundaries.
+    for (let minuteOfDay = 0; minuteOfDay < 1440; minuteOfDay++) {
+      assert.equal(solarIntradayUnits(minuteOfDay), Number(BigInt(minuteOfDay) * 800n / 1440n))
+      const chart = api.calculateDetailedPositions({ yearBc: 2024, monthTh: 1, day: 3, hour: Math.floor(minuteOfDay / 60), minute: minuteOfDay % 60, province: 'ไม่ใช้จังหวัด' })
+      const solarNumerator = BigInt(chart.calendar.horakhun - 1) * 800n + BigInt(minuteOfDay) * 800n / 1440n - 373n
+      assert.equal(chart.diagnostics.solarCycleUnits, Number((solarNumerator % 292207n + 292207n) % 292207n))
+      for (let dayIndex = 0; dayIndex < 3232; dayIndex++) {
+        // Keep the unsimplified fraction, independent of the implementation's *15 factor.
+        const numerator = (BigInt(dayIndex) * 1440n + BigInt(minuteOfDay)) * 21600n
+        const expected = Number(numerator / (3232n * 1440n)) + 2
+        assert.equal(meanLunarApogeeArcMinutes(dayIndex, minuteOfDay), expected)
+      }
+    }
+    assert.equal(solarIntradayUnits(153), 85)
+    assert.equal(meanLunarApogeeArcMinutes(1102, 32), 7367)
+  }],
+  ['Exact solar-time and apogee corrections reach public Moon results', () => {
+    // Synthetic inputs selected from a declared 2024 affected-time grid. Expected values
+    // were separately derived with Python Fraction; no external chart records are used.
+    for (const [monthTh, day, hour, minute, solarCycleUnits, expectedMoon] of [
+      [1, 3, 4, 21, 209077, 9443],
+      [10, 4, 0, 32, 136742, 10775],
+      [12, 1, 9, 4, 183427, 13513],
+    ]) {
+      const value = { yearBc: 2024, monthTh, day, hour, minute, province: 'ไม่ใช้จังหวัด' }
+      const chart = api.calculateDetailedPositions(value)
+      assert.equal(chart.diagnostics.solarCycleUnits, solarCycleUnits)
+      assert.equal(chart.longitudes.moon.longitudeArcMinutes, expectedMoon)
+      assert.equal(api.calculateThaiHoroscope({ date: { year: 2024, era: 'CE', month: monthTh, day }, time: { hour, minute } }).points.moon.longitudeArcMinutes, expectedMoon)
+      assert.equal(api.generateThaiAstrologyChart({ ...value, method: 'suriyayatra' }).longitudes.moon.longitudeArcMinutes, expectedMoon)
+    }
+  }],
+  ['Planetary table interpolation agrees with exact integer-weight arithmetic at every whole-minute node', () => {
+    // Two-node Lagrange interpolation, evaluated with BigInt weighted endpoints as an oracle.
+    // https://dlmf.nist.gov/3.3.E1 ; Number arithmetic uses IEEE 754 binary64:
+    // https://tc39.es/ecma262/#sec-ecmascript-language-types-number-type
+    const { dirname, join } = require('node:path')
+    const { interpolateTableFloor } = require(join(dirname(require.resolve('thai-astrology')), 'engine/astro/math.js'))
+    const table = [0, 244, 427, 488]
+    for (let arc = 0; arc <= 5400; arc++) {
+      const segment = Math.min(Math.floor(arc / 1800), 2)
+      const distance = BigInt(arc - segment * 1800)
+      const weightedEndpoints = BigInt(table[segment]) * (1800n - distance) + BigInt(table[segment + 1]) * distance
+      const expected = Number(weightedEndpoints * 60n / 1800n)
+      assert.equal(interpolateTableFloor(arc, 1800, table, 60), expected, `arc ${arc}`)
+    }
+    assert.equal(interpolateTableFloor(165, 1800, table, 60), 1342)
+    assert.equal(interpolateTableFloor(5400, 1800, table, 60), 29280)
+  }],
+  ['Exact interpolation corrections reach detailed and structured planetary positions', () => {
+    // Synthetic civil inputs; expected outputs follow exact rational evaluation of the existing
+    // classical formulas, not an external ephemeris or a captured chart. Derivations in
+    // https://dlmf.nist.gov/3.3#i distinguish numerical correctness from sky accuracy.
+    for (const [monthTh, day, hour, planet, expected] of [
+      [1, 14, 1, 'mars', 15197],
+      [3, 25, 3, 'venus', 19170],
+      [5, 19, 9, 'jupiter', 2076],
+    ]) {
+      const value = { yearBc: 2024, monthTh, day, hour, minute: 0, province: 'ไม่ใช้จังหวัด' }
+      const chart = api.calculateDetailedPositions(value)
+      assert.equal(chart.longitudes[planet].longitudeArcMinutes, expected)
+      assert.equal(api.calculateThaiHoroscope({ date: { year: 2024, era: 'CE', month: monthTh, day }, time: { hour, minute: 0 } }).points[planet].longitudeArcMinutes, expected)
+    }
+  }],
   ['Civil date boundaries and the fixed 06:00 weekday use separate clocks', () => {
     // USNO's J2000.0 is JD 2451545.0 at 2000-01-01 noon UT.
     // The API exposes a civil-date JDN, not the instant's fractional UT Julian date.
