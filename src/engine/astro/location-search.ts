@@ -44,6 +44,7 @@ export interface LocationSunriseSelection {
   /** Required for automatic timezone resolution. */
   civilTime?: CivilDateTime
   disambiguation?: CivilTimeDisambiguation
+  timePrecision?: SunriseReference["timePrecision"]
 }
 
 const provinceEnglishNames = new Map(PROVINCE_SEAT_NAMES)
@@ -97,5 +98,5 @@ export function createSunriseReferenceForLocation(input: LocationSunriseSelectio
     if (!timeZone || !input.civilTime) throw new RangeError("Automatic offset requires civilTime and a named timeZone")
     utcOffsetHours = resolveCivilTimeOffset(input.civilTime, timeZone, input.disambiguation).utcOffsetHours
   }
-  return createSunriseReference({ latitude, longitude, utcOffsetHours, countryCode: input.countryCode ?? location?.countryCode })
+  return createSunriseReference({ latitude, longitude, utcOffsetHours, countryCode: input.countryCode ?? location?.countryCode, timePrecision: input.timePrecision })
 }

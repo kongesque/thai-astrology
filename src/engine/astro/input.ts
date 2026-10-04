@@ -43,13 +43,17 @@ export function normalizeSunriseReference(value: unknown): SunriseReference {
   if (typeof value !== "object" || value === null || Array.isArray(value)) throw new TypeError("`ascendantReference` must be an object")
   const reference = value as Record<string, unknown>
   if (reference.method !== "sunrise") throw new RangeError("`ascendantReference.method` must be sunrise")
+  if (reference.timePrecision !== undefined && reference.timePrecision !== "continuous" && reference.timePrecision !== "minute") {
+    throw new RangeError("`ascendantReference.timePrecision` must be continuous or minute")
+  }
   for (const [name, min, max] of [["latitude", -90, 90], ["longitude", -180, 180], ["utcOffsetHours", -14, 14]] as const) {
     const number = reference[name]
     if (typeof number !== "number" || !Number.isFinite(number) || number < min || number > max) {
       throw new RangeError(`\`ascendantReference.${name}\` must be finite and between ${min} and ${max}`)
     }
   }
-  return { method: "sunrise", latitude: reference.latitude as number, longitude: reference.longitude as number, utcOffsetHours: reference.utcOffsetHours as number }
+  return { method: "sunrise", latitude: reference.latitude as number, longitude: reference.longitude as number, utcOffsetHours: reference.utcOffsetHours as number,
+    ...(reference.timePrecision !== undefined ? { timePrecision: reference.timePrecision } : {}) }
 }
 
 const integerInRange = (value: number, name: string, min: number, max: number): number => {

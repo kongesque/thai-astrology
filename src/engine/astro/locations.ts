@@ -30,6 +30,7 @@ export interface SunriseReferenceSelection {
   longitude?: number
   /** Civil offset on the chart date, including DST. Required even for Thailand. */
   utcOffsetHours: number
+  timePrecision?: SunriseReference["timePrecision"]
 }
 
 /** Fresh province records, suitable for filling editable latitude/longitude fields. */
@@ -47,7 +48,7 @@ export function getThaiAstrologyCountries(): AstrologyCountry[] {
 /** Resolve a location into the existing sunrise option; the chart supplies its own date. */
 export function createSunriseReference(selection: SunriseReferenceSelection): SunriseReference {
   if (typeof selection !== "object" || selection === null || Array.isArray(selection)) throw new TypeError("Sunrise selection must be an object")
-  const { province, countryCode, latitude, longitude, utcOffsetHours } = selection
+  const { province, countryCode, latitude, longitude, utcOffsetHours, timePrecision } = selection
   if (countryCode !== undefined && (typeof countryCode !== "string" || !COUNTRIES.some(row => row[0] === countryCode))) {
     throw new RangeError("Unknown countryCode; use a code from getThaiAstrologyCountries()")
   }
@@ -62,5 +63,6 @@ export function createSunriseReference(selection: SunriseReferenceSelection): Su
     latitude: precise ? latitude : seat?.[1],
     longitude: precise ? longitude : seat?.[2],
     utcOffsetHours,
+    timePrecision,
   })
 }

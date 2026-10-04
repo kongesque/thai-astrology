@@ -9,6 +9,51 @@ const input = { yearBc: 2024, monthTh: 6, day: 21, hour: 8, minute: 30, province
 const structured = { date: { year: 2024, era: 'CE', month: 6, day: 21 }, time: { hour: 8, minute: 30 }, ascendantReference: reference }
 
 module.exports = [
+  ['Minute-table sunrise is explicit, bounded and preserved by every chart entry point', () => {
+    // Minute-scale public predictions: https://aa.usno.navy.mil/data/RS_OneYear
+    // This tests a declared time convention, not improved physical sunrise accuracy.
+    const distance = (a, b) => Math.abs(((a - b + 32400) % 21600) - 10800)
+    for (const value of events.filter(value => value.expectedSunriseMinutes !== null)) {
+      const { yearCe, month, day, latitude, longitude, utcOffsetHours } = value
+      const ascendantReference = { method: 'sunrise', latitude, longitude, utcOffsetHours }
+      const base = { ...input, yearBc: yearCe, monthTh: month, day, ascendantReference }
+      const continuous = api.calculateDetailedPositions(base)
+      assert.deepEqual(api.calculateDetailedPositions({ ...base, ascendantReference: { ...ascendantReference, timePrecision: 'continuous' } }), continuous)
+      const minute = api.calculateDetailedPositions({ ...base, ascendantReference: { ...ascendantReference, timePrecision: 'minute' } })
+      assert.deepEqual(minute.ascendant.sunrise, continuous.ascendant.sunrise)
+      assert.equal(minute.ascendant.referenceTimeMinutes, continuous.ascendant.sunrise.roundedTimeMinutes % 1440)
+      // The fastest fixed sign lasts 72 minutes: 30 seconds can move at most 12.5′.
+      assert.ok(distance(minute.longitudes.ascendant.longitudeArcMinutes, continuous.longitudes.ascendant.longitudeArcMinutes) <= 12.5 + 1e-9)
+      for (const key of ['calendar', 'taksa', 'diagnostics', 'sunPosition']) assert.deepEqual(minute[key], continuous[key])
+      for (const key of Object.keys(minute.longitudes).filter(key => key !== 'ascendant')) assert.equal(minute.longitudes[key].longitudeArcMinutes, continuous.longitudes[key].longitudeArcMinutes)
+      const riseTime = continuous.ascendant.sunrise.roundedTimeMinutes
+      if (riseTime < 1440) {
+        const atRise = api.calculateDetailedPositions({ ...base, hour: Math.floor(riseTime / 60), minute: riseTime % 60, ascendantReference: { ...ascendantReference, timePrecision: 'minute' } })
+        assert.ok(distance(atRise.longitudes.ascendant.longitudeArcMinutes, atRise.longitudes.sun.longitudeArcMinutes) < 1e-9)
+      }
+    }
+    const reference = api.createSunriseReference({ province: 'กรุงเทพมหานคร', utcOffsetHours: 7, timePrecision: 'minute' })
+    const withMinute = { ...structured, ascendantReference: reference }
+    const chart = api.calculateThaiHoroscope(withMinute)
+    assert.equal(chart.input.ascendantReference.timePrecision, 'minute')
+    assert.equal(chart.timing.referenceTimeMinutes, chart.timing.sunrise.roundedTimeMinutes % 1440)
+    assert.deepEqual(api.generateThaiAstrologyChart({ ...input, method: 'suriyayatra', ascendantReference: reference }).channelOutputs, chart.charts.rasi.channels.thai)
+    const transits = api.calculateHoroscopeTransits(withMinute, withMinute)
+    assert.equal(transits.natal.points.ascendant.longitudeArcMinutes, transits.transit.points.ascendant.longitudeArcMinutes)
+    assert.equal(api.createSunriseReferenceForLocation({ latitude: 13.7563, longitude: 100.5018, utcOffsetHours: 7, timePrecision: 'minute' }).timePrecision, 'minute')
+    // Deliberate fixed-offset edge case, not a claimed civil timezone at this coordinate.
+    const midnight = api.calculateDetailedPositions({ ...input, ascendantReference: { method: 'sunrise', latitude: 0, longitude: 180, utcOffsetHours: 6.02, timePrecision: 'minute' } })
+    assert.ok(midnight.ascendant.sunrise.timeMinutes >= 1439.5 && midnight.ascendant.sunrise.timeMinutes < 1440)
+    assert.equal(midnight.ascendant.sunrise.roundedTimeMinutes, 1440)
+    assert.equal(midnight.ascendant.referenceTimeMinutes, 0)
+    assert.deepEqual(midnight.calendar, api.calculateDetailedPositions({ ...input, ascendantReference: { method: 'sunrise', latitude: 0, longitude: 180, utcOffsetHours: 6.02 } }).calendar)
+    for (const timePrecision of [null, 'second', 60, false]) {
+      const ascendantReference = { ...reference, timePrecision }
+      assert.throws(() => api.calculateDetailedPositions({ ...input, ascendantReference }), /timePrecision/)
+      assert.deepEqual(api.validateHoroscopeInput({ ...structured, ascendantReference }).issues.map(issue => issue.field), ['ascendantReference.timePrecision'])
+      assert.throws(() => api.createSunriseReference({ province: 'กรุงเทพมหานคร', utcOffsetHours: 7, timePrecision }), /timePrecision/)
+    }
+  }],
   ['Coordinate sunrise agrees with independent public event data and preserves no-rise dates', () => {
     // USNO public numerical predictions; explicit offsets include any chosen DST.
     // https://aa.usno.navy.mil/data/api and https://aa.usno.navy.mil/faq/RST_defs

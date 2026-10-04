@@ -271,7 +271,11 @@ export function calculateDetailedPositions(input: CalculationInput): DetailedCal
   const sunrise = normalized.ascendantReference
     ? calculateSunrise({ yearCe, month, day, ...normalized.ascendantReference }) : undefined
   if (sunrise?.status === "no-rise") throw new RangeError("No sunrise on the requested civil date; use the traditional ascendant reference")
-  const referenceTime = sunrise?.status === "rise" ? sunrise.timeMinutes : 360 + localTimeCorrectionMinutes
+  // Published minute tables are a distinct time convention, not a more precise event model.
+  // Keep the raw event and the omitted-option calculation intact; see https://aa.usno.navy.mil/data/RS_OneYear.
+  const referenceTime = sunrise?.status === "rise"
+    ? normalized.ascendantReference?.timePrecision === "minute" ? sunrise.roundedTimeMinutes : sunrise.timeMinutes
+    : 360 + localTimeCorrectionMinutes
   const julianDayNumber = civilJulianDay(yearCe, month, day)
   // ใช้วันสากลเป็นฐาน เพื่อไม่ให้ timezone ของเครื่องเปลี่ยนวันคำนวณ
   const horakhun = julianDayNumber - 1954167
@@ -312,7 +316,7 @@ export function calculateDetailedPositions(input: CalculationInput): DetailedCal
   const venusMean = modulo(Math.trunc(epoch * 5 / 3) - Math.floor(epoch * 10 / 243) + 10944, 21600)
   const saturnMean = modulo(Math.trunc(epoch / 30) + Math.floor(epoch * 6 / 10000) + 11944, 21600)
   const uranusMean = modulo(Math.trunc(epoch / 84) + Math.floor(epoch / 7224) + 16277, 21600)
-  const asc = ascendantLongitude(sun, hours * 60, localTimeCorrectionMinutes, sunrise?.status === "rise" ? sunrise.timeMinutes : undefined)
+  const asc = ascendantLongitude(sun, hours * 60, localTimeCorrectionMinutes, sunrise?.status === "rise" ? referenceTime : undefined)
   const arcs: Record<ChartPoint, number> = {
     ascendant: asc.longitude,
     sun,

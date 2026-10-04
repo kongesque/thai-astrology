@@ -12,6 +12,8 @@ export interface SunriseLocation {
 /** Opt into seasonal sunrise as the reference for the classical ascendant. */
 export interface SunriseReference extends SunriseLocation {
   method: "sunrise"
+  /** Minute-table reference rounds sunrise to the nearest minute; omitted uses continuous time. */
+  timePrecision?: "continuous" | "minute"
 }
 
 export interface SunriseInput extends SunriseLocation {
@@ -28,7 +30,7 @@ export type SunriseResult = {
   status: "rise"
   /** Unrounded minutes from the requested local civil midnight, in [0, 1440). */
   timeMinutes: number
-  /** Display only: nearest minute, possibly 1440 (24:00). */
+  /** Nearest minute, possibly 1440 (24:00); used only by an explicit minute reference. */
   roundedTimeMinutes: number
   /** Numerical solver residual; not a physical accuracy estimate. */
   altitudeResidualDegrees: number

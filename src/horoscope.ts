@@ -84,6 +84,9 @@ export function validateHoroscopeInput(input: unknown): HoroscopeInputValidation
     if (!object(reference)) issue("ascendantReference", "type", "Expected a coordinate sunrise object")
     else {
       if (reference.method !== "sunrise") issue("ascendantReference.method", "unknown", "Use sunrise")
+      if (reference.timePrecision !== undefined && reference.timePrecision !== "continuous" && reference.timePrecision !== "minute") {
+        issue("ascendantReference.timePrecision", "unknown", "Use continuous or minute")
+      }
       for (const [name, min, max] of [["latitude", -90, 90], ["longitude", -180, 180], ["utcOffsetHours", -14, 14]] as const) {
         const number = reference[name]
         if (number === undefined) issue(`ascendantReference.${name}`, "required", "Required")
