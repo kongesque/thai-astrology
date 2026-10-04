@@ -57,4 +57,94 @@ module.exports = [
       assert.ok(comparison.longitudeDifferenceDegrees >= -180 && comparison.longitudeDifferenceDegrees < 180)
     }
   }],
+  ['Province-only horoscopes select daily minute sunrise and historical planetary time', () => {
+    const chart = api.calculateThaiHoroscope(input)
+    assert.equal(chart.profile.referenceMode, 'auto')
+    assert.equal(chart.input.referenceMode, 'auto')
+    assert.equal(chart.input.location.localTimeCorrectionMinutes, 0)
+    assert.equal(chart.input.ascendantReference.timePrecision, 'minute')
+    assert.deepEqual(chart.input.planetaryTimeReference, { civilUtcOffsetSeconds: 25200, referenceUtcOffsetSeconds: 24124 })
+    assert.equal(chart.timing.referenceTimeMinutes, chart.timing.sunrise.roundedTimeMinutes)
+    assert.equal(chart.points.sun.minutes, 56)
+    const validation = api.validateHoroscopeInput(input)
+    assert.equal(validation.valid, true)
+    assert.deepEqual(validation.value, chart.input)
+    for (const seat of api.getThaiAstrologyProvinceLocations()) {
+      const resolved = api.validateHoroscopeInput({ ...input, location: { province: seat.province } })
+      assert.equal(resolved.valid, true)
+      assert.equal(resolved.value.ascendantReference.latitude, seat.latitude)
+      assert.equal(resolved.value.ascendantReference.longitude, seat.longitude)
+    }
+  }],
+  ['Automatic provincial settings retain historical offset seconds and clock-gap rejection', () => {
+    // IANA Asia/Bangkok: +06:42:04 until April 1920, then +07:00.
+    // https://data.iana.org/time-zones/tzdb-2025b/asia
+    const historical = api.calculateThaiHoroscope({ ...input, date: { year: 1900, era: 'CE', month: 6, day: 21 }, location: { province: 'กรุงเทพมหานคร' } })
+    assert.equal(historical.input.planetaryTimeReference.civilUtcOffsetSeconds, 24124)
+    assert.equal(historical.input.ascendantReference.utcOffsetHours * 3600, 24124)
+    assert.equal(historical.timing.sunrise.roundedTimeMinutes, 333)
+    const gap = api.validateHoroscopeInput({ ...input, date: { year: 1920, era: 'CE', month: 4, day: 1 }, time: { hour: 0, minute: 10 } })
+    assert.equal(gap.valid, false)
+    assert.equal(gap.issues[0].field, 'time')
+    assert.match(gap.issues[0].message, /does not exist/)
+    const extra = api.calculateThaiHoroscope({ ...input, time: { ...input.time, yearCe: 1900, month: 1, day: 1 } })
+    assert.deepEqual(extra, api.calculateThaiHoroscope(input))
+  }],
+  ['Traditional mode preserves the earlier structured calculation and validates the selector', () => {
+    const chart = api.calculateThaiHoroscope({ ...input, referenceMode: 'traditional' })
+    const detailed = api.calculateDetailedPositions({ yearBc: 2024, monthTh: 9, day: 15, hour: 8, minute: 30, province: 'เชียงใหม่' })
+    assert.equal(chart.profile.referenceMode, 'traditional')
+    assert.equal(chart.profile.referenceFallback, undefined)
+    assert.equal(chart.input.ascendantReference, undefined)
+    assert.equal(chart.input.planetaryTimeReference, undefined)
+    assert.deepEqual(chart.charts.rasi.channels.thai, detailed.channelOutputs)
+    for (const [key, point] of Object.entries(chart.points)) assert.equal(point.longitudeArcMinutes, detailed.longitudes[key].longitudeArcMinutes)
+    assert.equal(chart.points.sun.minutes, 57)
+    for (const referenceMode of [null, 'best', false, 1]) {
+      const validation = api.validateHoroscopeInput({ ...input, referenceMode })
+      assert.equal(validation.valid, false)
+      assert.deepEqual(validation.issues.map(issue => issue.field), ['referenceMode'])
+    }
+  }],
+  ['Automatic references report fallback instead of guessing absent locations or unsupported years', () => {
+    for (const year of [1782, 1899, 2101]) {
+      const chart = api.calculateThaiHoroscope({ ...input, date: { year, era: 'CE', month: 4, day: 21 } })
+      assert.equal(chart.profile.referenceMode, 'traditional')
+      assert.equal(chart.profile.referenceFallback, 'year-out-of-range')
+      assert.equal(chart.input.ascendantReference, undefined)
+    }
+    const { location, ...withoutLocation } = input
+    assert.equal(api.calculateThaiHoroscope(withoutLocation).profile.referenceFallback, 'missing-province')
+    for (const localTimeCorrectionMinutes of [0, 24]) {
+      const chart = api.calculateThaiHoroscope({ ...input, location: { province: 'custom', localTimeCorrectionMinutes } })
+      assert.equal(chart.profile.referenceFallback, 'explicit-correction')
+      assert.equal(chart.input.location.localTimeCorrectionMinutes, localTimeCorrectionMinutes)
+    }
+    const historic = api.calculateThaiHoroscope({ date: { year: 2325, era: 'BE', month: 4, day: 21 }, time: { hour: 6, minute: 54 }, location: { province: 'กรุงเทพมหานคร' } })
+    assert.equal(historic.points.sun.degrees, 10)
+    assert.equal(historic.points.sun.minutes, 42)
+    assert.equal(historic.points.ascendant.signName, 'เมษ')
+  }],
+  ['Explicit references preserve continuous sunrise and sunrise-only civil planetary clocks', () => {
+    const ascendantReference = api.createSunriseReference({ province: 'เชียงใหม่', utcOffsetHours: 7 })
+    const chart = api.calculateThaiHoroscope({ ...input, ascendantReference })
+    assert.equal(chart.profile.referenceMode, 'explicit')
+    assert.equal(chart.input.planetaryTimeReference, undefined)
+    assert.equal(chart.input.ascendantReference.timePrecision, undefined)
+    assert.equal(chart.points.sun.minutes, 57)
+    assert.equal(chart.timing.referenceTimeMinutes, chart.timing.sunrise.timeMinutes)
+    const planetaryTimeReference = { civilUtcOffsetSeconds: 25200, referenceUtcOffsetSeconds: 24124 }
+    const framed = api.calculateThaiHoroscope({ ...input, planetaryTimeReference })
+    assert.equal(framed.profile.referenceMode, 'explicit')
+    assert.equal(framed.input.ascendantReference, undefined)
+    assert.deepEqual(framed.input.planetaryTimeReference, planetaryTimeReference)
+  }],
+  ['Natal and transit charts independently resolve automatic and traditional references', () => {
+    const traditional = { ...input, referenceMode: 'traditional', date: { ...input.date, day: 16 } }
+    const result = api.calculateHoroscopeTransits(input, traditional)
+    assert.deepEqual(result.natal, api.calculateThaiHoroscope(input))
+    assert.deepEqual(result.transit, api.calculateThaiHoroscope(traditional))
+    assert.equal(result.natal.profile.referenceMode, 'auto')
+    assert.equal(result.transit.profile.referenceMode, 'traditional')
+  }],
 ]

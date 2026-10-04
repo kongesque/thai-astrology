@@ -1,0 +1,332 @@
+{
+  "source": "https://data.iana.org/time-zones/releases/tzdata2025b.tar.gz",
+  "sourceVersion": "2025b",
+  "sourceSha256": "11810413345fc7805017e27ea9fa4885fd74cd61b2911711ad038f5d28d71474",
+  "method": "Compiled with system zic, read using Python ZoneInfo.from_file; enumerate folds and require civil round trips. Distilled numerical facts only.",
+  "cases": [
+    {
+      "timeZone": "America/New_York",
+      "civilTime": {
+        "yearCe": 2024,
+        "month": 6,
+        "day": 21,
+        "hour": 8,
+        "minute": 30
+      },
+      "candidates": [
+        {
+          "utcEpochMilliseconds": 1718973000000,
+          "utcOffsetHours": -4.0
+        }
+      ]
+    },
+    {
+      "timeZone": "America/New_York",
+      "civilTime": {
+        "yearCe": 2024,
+        "month": 12,
+        "day": 21,
+        "hour": 8,
+        "minute": 30
+      },
+      "candidates": [
+        {
+          "utcEpochMilliseconds": 1734787800000,
+          "utcOffsetHours": -5.0
+        }
+      ]
+    },
+    {
+      "timeZone": "America/New_York",
+      "civilTime": {
+        "yearCe": 2024,
+        "month": 3,
+        "day": 10,
+        "hour": 1,
+        "minute": 59
+      },
+      "candidates": [
+        {
+          "utcEpochMilliseconds": 1710053940000,
+          "utcOffsetHours": -5.0
+        }
+      ]
+    },
+    {
+      "timeZone": "America/New_York",
+      "civilTime": {
+        "yearCe": 2024,
+        "month": 3,
+        "day": 10,
+        "hour": 2,
+        "minute": 30
+      },
+      "candidates": []
+    },
+    {
+      "timeZone": "America/New_York",
+      "civilTime": {
+        "yearCe": 2024,
+        "month": 3,
+        "day": 10,
+        "hour": 3,
+        "minute": 0
+      },
+      "candidates": [
+        {
+          "utcEpochMilliseconds": 1710054000000,
+          "utcOffsetHours": -4.0
+        }
+      ]
+    },
+    {
+      "timeZone": "America/New_York",
+      "civilTime": {
+        "yearCe": 2024,
+        "month": 11,
+        "day": 3,
+        "hour": 1,
+        "minute": 30
+      },
+      "candidates": [
+        {
+          "utcEpochMilliseconds": 1730611800000,
+          "utcOffsetHours": -4.0
+        },
+        {
+          "utcEpochMilliseconds": 1730615400000,
+          "utcOffsetHours": -5.0
+        }
+      ]
+    },
+    {
+      "timeZone": "America/New_York",
+      "civilTime": {
+        "yearCe": 2024,
+        "month": 11,
+        "day": 3,
+        "hour": 2,
+        "minute": 0
+      },
+      "candidates": [
+        {
+          "utcEpochMilliseconds": 1730617200000,
+          "utcOffsetHours": -5.0
+        }
+      ]
+    },
+    {
+      "timeZone": "Australia/Lord_Howe",
+      "civilTime": {
+        "yearCe": 2024,
+        "month": 4,
+        "day": 7,
+        "hour": 1,
+        "minute": 45
+      },
+      "candidates": [
+        {
+          "utcEpochMilliseconds": 1712414700000,
+          "utcOffsetHours": 11.0
+        },
+        {
+          "utcEpochMilliseconds": 1712416500000,
+          "utcOffsetHours": 10.5
+        }
+      ]
+    },
+    {
+      "timeZone": "Australia/Lord_Howe",
+      "civilTime": {
+        "yearCe": 2024,
+        "month": 10,
+        "day": 6,
+        "hour": 2,
+        "minute": 15
+      },
+      "candidates": []
+    },
+    {
+      "timeZone": "Pacific/Apia",
+      "civilTime": {
+        "yearCe": 2011,
+        "month": 12,
+        "day": 30,
+        "hour": 8,
+        "minute": 30
+      },
+      "candidates": []
+    },
+    {
+      "timeZone": "Asia/Bangkok",
+      "civilTime": {
+        "yearCe": 1900,
+        "month": 6,
+        "day": 21,
+        "hour": 8,
+        "minute": 30
+      },
+      "candidates": [
+        {
+          "utcEpochMilliseconds": -2194207924000,
+          "utcOffsetHours": 6.7011111111111115
+        }
+      ]
+    },
+    {
+      "timeZone": "Asia/Bangkok",
+      "civilTime": {
+        "yearCe": 1920,
+        "month": 3,
+        "day": 31,
+        "hour": 23,
+        "minute": 59
+      },
+      "candidates": [
+        {
+          "utcEpochMilliseconds": -1570084984000,
+          "utcOffsetHours": 6.7011111111111115
+        }
+      ]
+    },
+    {
+      "timeZone": "Asia/Bangkok",
+      "civilTime": {
+        "yearCe": 1920,
+        "month": 4,
+        "day": 1,
+        "hour": 0,
+        "minute": 5
+      },
+      "candidates": []
+    },
+    {
+      "timeZone": "Asia/Bangkok",
+      "civilTime": {
+        "yearCe": 1920,
+        "month": 4,
+        "day": 1,
+        "hour": 0,
+        "minute": 18
+      },
+      "candidates": [
+        {
+          "utcEpochMilliseconds": -1570084920000,
+          "utcOffsetHours": 7.0
+        }
+      ]
+    },
+    {
+      "timeZone": "Asia/Kathmandu",
+      "civilTime": {
+        "yearCe": 2024,
+        "month": 6,
+        "day": 21,
+        "hour": 8,
+        "minute": 30
+      },
+      "candidates": [
+        {
+          "utcEpochMilliseconds": 1718937900000,
+          "utcOffsetHours": 5.75
+        }
+      ]
+    },
+    {
+      "timeZone": "Asia/Kolkata",
+      "civilTime": {
+        "yearCe": 2024,
+        "month": 6,
+        "day": 21,
+        "hour": 8,
+        "minute": 30
+      },
+      "candidates": [
+        {
+          "utcEpochMilliseconds": 1718938800000,
+          "utcOffsetHours": 5.5
+        }
+      ]
+    },
+    {
+      "timeZone": "Africa/Ouagadougou",
+      "civilTime": {
+        "yearCe": 2024,
+        "month": 6,
+        "day": 21,
+        "hour": 8,
+        "minute": 30
+      },
+      "candidates": [
+        {
+          "utcEpochMilliseconds": 1718958600000,
+          "utcOffsetHours": 0.0
+        }
+      ]
+    },
+    {
+      "timeZone": "Europe/London",
+      "civilTime": {
+        "yearCe": 2024,
+        "month": 6,
+        "day": 21,
+        "hour": 8,
+        "minute": 30
+      },
+      "candidates": [
+        {
+          "utcEpochMilliseconds": 1718955000000,
+          "utcOffsetHours": 1.0
+        }
+      ]
+    },
+    {
+      "timeZone": "Europe/London",
+      "civilTime": {
+        "yearCe": 2024,
+        "month": 12,
+        "day": 21,
+        "hour": 8,
+        "minute": 30
+      },
+      "candidates": [
+        {
+          "utcEpochMilliseconds": 1734769800000,
+          "utcOffsetHours": 0.0
+        }
+      ]
+    },
+    {
+      "timeZone": "Australia/Sydney",
+      "civilTime": {
+        "yearCe": 2024,
+        "month": 6,
+        "day": 21,
+        "hour": 8,
+        "minute": 30
+      },
+      "candidates": [
+        {
+          "utcEpochMilliseconds": 1718922600000,
+          "utcOffsetHours": 10.0
+        }
+      ]
+    },
+    {
+      "timeZone": "Australia/Sydney",
+      "civilTime": {
+        "yearCe": 2024,
+        "month": 12,
+        "day": 21,
+        "hour": 8,
+        "minute": 30
+      },
+      "candidates": [
+        {
+          "utcEpochMilliseconds": 1734730200000,
+          "utcOffsetHours": 11.0
+        }
+      ]
+    }
+  ]
+}

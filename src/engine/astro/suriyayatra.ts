@@ -1,10 +1,12 @@
 import type { CalculationInput, CalculationResult, PlanetPositions } from "../astro-calculation"
-import { civilJulianDay, normalizeCalculationInput } from "./input"
-import { modulo, PLANET_KEYS, PLANET_NUMBERS, SIGN_DURATIONS, SIGN_NAMES, SIGN_RULERS } from "./math"
+import { civilJulianDay, normalizeCalculationInput, resolvePlanetaryTime } from "./input"
+import { interpolateTableFloor, meanLunarApogeeArcMinutes, modulo, PLANET_KEYS, PLANET_NUMBERS, SIGN_DURATIONS, SIGN_NAMES, SIGN_RULERS, solarIntradayUnits, thaloengSokReference } from "./math"
 import { planetDignities } from "./dignities"
 import { subdivisionLabels } from "./divisions"
 import { calculateThaiLunarDate } from "./lunar-calendar"
 import type { ThaiLunarDate } from "./lunar-calendar"
+import { calculateSunrise } from "./sunrise"
+import type { SunriseResult } from "./sunrise"
 
 export type { ThaiLunarDate } from "./lunar-calendar"
 
@@ -80,6 +82,8 @@ export interface DetailedCalculationResult extends CalculationResult {
     localTimeCorrectionMinutes: number
     referenceTimeMinutes: number
     signStartTimesMinutes: number[]
+    /** Present only when coordinate sunrise is explicitly selected. */
+    sunrise?: SunriseResult & { status: "rise" }
   }
   relationships: SignRelationships[]
   divisionalCharts: {
@@ -112,6 +116,8 @@ export interface DetailedCalculationResult extends CalculationResult {
     meanRaviArcMinutes: number
     planetaryEpochArcMinutes: number
     solarCycleUnits: number
+    /** Present only for an explicitly selected planetary clock; calendar/timing stay civil. */
+    planetaryTime?: { horakhun: number; secondOfDay: number; dayOffset: number; civilUtcOffsetSeconds: number; referenceUtcOffsetSeconds: number }
   }
 }
 
@@ -149,12 +155,12 @@ interface PlanetModel {
 // ปัดลงหรือตัดเศษในแต่ละขั้นตามหน่วยที่ใช้ อย่ารวมไปปัดเฉพาะผลสุดท้าย
 function correctedPlanet(model: PlanetModel, meanRavi: number): number {
   const primary = quadrant(model.primaryBase - model.anomalyOffset)
-  const primaryNumerator = Math.floor(interpolate(primary.arc, 1800, SHADOW_TABLE) * 60)
+  const primaryNumerator = interpolateTableFloor(primary.arc, 1800, SHADOW_TABLE, 60)
   const coCorrection = Math.floor(interpolate(primary.coArc, 1800, SHADOW_TABLE) + 0.5)
   const denominator = model.denominator + Math.floor(coCorrection / 2) * primary.coDirection
   const first = model.primaryBase + Math.floor(primaryNumerator * 60 / denominator) * primary.direction
   const secondary = quadrant(modulo(first, 21600) - (model.fixed === undefined ? meanRavi : model.mean))
-  const secondaryNumerator = Math.floor(interpolate(secondary.arc, 1800, SHADOW_TABLE) * 60)
+  const secondaryNumerator = interpolateTableFloor(secondary.arc, 1800, SHADOW_TABLE, 60)
   const sineCorrection = Math.floor(Math.floor(secondaryNumerator / 60 + 0.5) / 3)
   const scaledDenominator = model.fixed ?? Math.floor(denominator * (model.scale as number))
   const secondaryCoCorrection = Math.floor(interpolate(secondary.coArc, 1800, SHADOW_TABLE) + 0.5)
@@ -238,16 +244,18 @@ export function calculateSignRelationships(positions: PlanetPositions): SignRela
   })
 }
 
-function ascendantLongitude(sun: number, timeMinutes: number, correction: number): { longitude: number; starts: number[] } {
+function ascendantLongitude(sun: number, timeMinutes: number, correction: number, sunriseTime?: number): { longitude: number; starts: number[] } {
   const sunSign = Math.floor(sun / 1800)
   const elapsedSun = SIGN_DURATIONS.slice(0, sunSign).reduce((sum: number, duration) => sum + duration, 0)
     + SIGN_DURATIONS[sunSign] * modulo(sun, 1800) / 1800
-  const progression = modulo(elapsedSun + timeMinutes - 360 - correction, 1440)
+  const referenceTime = sunriseTime ?? 360 + correction
+  // Preserve the original arithmetic order for the traditional correction, including fractions.
+  const progression = modulo(sunriseTime === undefined ? elapsedSun + timeMinutes - 360 - correction : elapsedSun + timeMinutes - sunriseTime, 1440)
   let cumulative = 0
   let longitude = 0
   const starts: number[] = []
   for (const [sign, duration] of SIGN_DURATIONS.entries()) {
-    starts.push(modulo(360 + correction - elapsedSun + cumulative, 1440))
+    starts.push(modulo(referenceTime - elapsedSun + cumulative, 1440))
     if (progression >= cumulative && progression < cumulative + duration) {
       longitude = sign * 1800 + (progression - cumulative) * 1800 / duration
     }
@@ -260,25 +268,47 @@ function ascendantLongitude(sun: number, timeMinutes: number, correction: number
 export function calculateDetailedPositions(input: CalculationInput): DetailedCalculationResult {
   const normalized = normalizeCalculationInput(input)
   const { day, month, yearCe, yearBe, hour, minute, localTimeCorrectionMinutes } = normalized
+  const sunrise = normalized.ascendantReference
+    ? calculateSunrise({ yearCe, month, day, ...normalized.ascendantReference }) : undefined
+  if (sunrise?.status === "no-rise") throw new RangeError("No sunrise on the requested civil date; use the traditional ascendant reference")
+  // Published minute tables are a distinct time convention, not a more precise event model.
+  // Keep the raw event and the omitted-option calculation intact.
+  const referenceTime = sunrise?.status === "rise"
+    ? normalized.ascendantReference?.timePrecision === "minute" ? sunrise.roundedTimeMinutes : sunrise.timeMinutes
+    : 360 + localTimeCorrectionMinutes
   const julianDayNumber = civilJulianDay(yearCe, month, day)
   // ใช้วันสากลเป็นฐาน เพื่อไม่ให้ timezone ของเครื่องเปลี่ยนวันคำนวณ
   const horakhun = julianDayNumber - 1954167
   const hours = hour + minute / 60
+  const timeMinutes = hour * 60 + minute
+  const planetaryTime = normalized.planetaryTimeReference ? resolvePlanetaryTime(normalized, horakhun) : undefined
+  const shiftedTime = normalized.planetaryTimeReference?.civilUtcOffsetSeconds !== normalized.planetaryTimeReference?.referenceUtcOffsetSeconds ? planetaryTime : undefined
+  const planetaryHorakhun = planetaryTime?.horakhun ?? horakhun
   const cs = yearBe - 1181
-  const thaloeng = Math.ceil((292207 * cs + 373) / 800)
-  const equation = cs * 0.25875 + Math.trunc(cs / 100 + 0.38) - Math.trunc(cs / 4 + 0.5) - Math.trunc(cs / 400 + 0.595) - 5.53375
-  // เทียบเวลาจุดเปลี่ยนปีด้วยหน่วยนาทีเดียวกัน รวมส่วนวินาทีของจุดเปลี่ยนด้วย
-  const thaloengTime = (equation - Math.trunc(equation)) * 1440
-  const chulaSakarat = horakhun < thaloeng || (horakhun === thaloeng && hours * 60 <= thaloengTime) ? cs - 1 : cs
-  const solarCycleUnits = modulo((horakhun - 1) * 800 + Math.trunc(hours * 800 / 24) - 373, 292207)
-  const remainder = modulo(solarCycleUnits, 24350)
-  const meanSun = modulo(Math.trunc(solarCycleUnits / 24350) * 1800 + Math.trunc(remainder / 811) * 60 + Math.trunc(modulo(remainder, 811) / 14) - 3, 21600)
+  const thaloeng = thaloengSokReference(cs)
+  const civilSeconds = timeMinutes * 60
+  const planetarySeconds = planetaryTime?.secondOfDay ?? civilSeconds
+  // Exact seconds preserve the existing inclusive boundary for both civil and planetary clocks.
+  const chulaSakarat = horakhun < thaloeng.horakhun || (horakhun === thaloeng.horakhun && civilSeconds <= thaloeng.fractionalDaySeconds) ? cs - 1 : cs
+  const planetaryChulaSakarat = planetaryHorakhun < thaloeng.horakhun || (planetaryHorakhun === thaloeng.horakhun && planetarySeconds <= thaloeng.fractionalDaySeconds) ? cs - 1 : cs
+  // Explicit frame uses integral seconds; the omitted-option path preserves published arithmetic.
+  const solarUnits = shiftedTime ? Math.floor(shiftedTime.secondOfDay * 800 / 86400) : solarIntradayUnits(timeMinutes)
+  const solarCycleUnits = modulo((planetaryHorakhun - 1) * 800 + solarUnits - 373, 292207)
+  // Add birth-time units to the day's reduced base before staged longitude division.
+  // The 292207-unit year and 12 * 24350-unit sign scale differ by seven units;
+  // reducing the sum by the year period would change the intraday division phase.
+  // Public formula references: SOURCES.md.
+  const solarLongitudeUnits = modulo((planetaryHorakhun - 1) * 800 - 373, 292207) + solarUnits
+  const remainder = modulo(solarLongitudeUnits, 24350)
+  const meanSun = modulo(Math.trunc(solarLongitudeUnits / 24350) * 1800 + Math.trunc(remainder / 811) * 60 + Math.trunc(modulo(remainder, 811) / 14) - 3, 21600)
   const meanRavi = modulo(meanSun - 23, 21600)
-  const epoch = (chulaSakarat - (solarCycleUnits >= 364 ? 610 : 611)) * 21600 + meanRavi
+  const epoch = (planetaryChulaSakarat - (solarCycleUnits >= 364 ? 610 : 611)) * 21600 + meanRavi
   const sun = luminary(meanSun, meanSun - 4800, SUN_TABLE)
-  const lunarCycle = modulo((horakhun - 1) * 703 + 650 + Math.trunc(hours * 703 / 24), 20760)
+  const lunarUnits = shiftedTime ? Math.floor(shiftedTime.secondOfDay * 703 / 86400) : Math.trunc(hours * 703 / 24)
+  const lunarCycle = modulo((planetaryHorakhun - 1) * 703 + 650 + lunarUnits, 20760)
   const meanMoon = modulo(Math.floor(lunarCycle / 692) * 720 + Math.trunc(1.04 * modulo(lunarCycle, 692)) - 40 + meanSun, 21600)
-  const lunarAnomaly = Math.trunc((modulo(horakhun - 1 - 621, 3232) + hours / 24) / 3232 * 21600) + 2
+  const apogeeDayIndex = modulo(planetaryHorakhun - 1 - 621, 3232)
+  const lunarAnomaly = shiftedTime ? Math.floor((apogeeDayIndex * 86400 + shiftedTime.secondOfDay) / 12928) + 2 : meanLunarApogeeArcMinutes(apogeeDayIndex, timeMinutes)
   const moon = luminary(meanMoon, meanMoon - lunarAnomaly, MOON_TABLE)
   const marsMean = modulo(Math.trunc(epoch / 2) + Math.floor(epoch * 16 / 505) + 5420, 21600)
   const mercuryMean = modulo(Math.trunc(epoch * 7 / 46) + Math.floor(epoch * 4) + 10642, 21600)
@@ -286,7 +316,7 @@ export function calculateDetailedPositions(input: CalculationInput): DetailedCal
   const venusMean = modulo(Math.trunc(epoch * 5 / 3) - Math.floor(epoch * 10 / 243) + 10944, 21600)
   const saturnMean = modulo(Math.trunc(epoch / 30) + Math.floor(epoch * 6 / 10000) + 11944, 21600)
   const uranusMean = modulo(Math.trunc(epoch / 84) + Math.floor(epoch / 7224) + 16277, 21600)
-  const asc = ascendantLongitude(sun, hours * 60, localTimeCorrectionMinutes)
+  const asc = ascendantLongitude(sun, hours * 60, localTimeCorrectionMinutes, sunrise?.status === "rise" ? referenceTime : undefined)
   const arcs: Record<ChartPoint, number> = {
     ascendant: asc.longitude,
     sun,
@@ -299,7 +329,7 @@ export function calculateDetailedPositions(input: CalculationInput): DetailedCal
     uranus: correctedPlanet({ mean: uranusMean, primaryBase: uranusMean, anomalyOffset: 7440, denominator: 38640, scale: 3 / 7 }, meanRavi),
     rahu: modulo(15150 - modulo(Math.trunc(epoch / 20) + Math.floor(epoch / 265), 21600), 21600),
     // Thai Ketu has its own 679-day cycle; it is not Rahu + 180 degrees.
-    ketu: modulo(21600 - Math.trunc((modulo(horakhun - 1 - 344, 679) + hours / 24) * 21600 / 679), 21600),
+    ketu: modulo(21600 - (shiftedTime ? Math.floor((modulo(planetaryHorakhun - 1 - 344, 679) * 86400 + shiftedTime.secondOfDay) / 2716) : Math.trunc((modulo(horakhun - 1 - 344, 679) + hours / 24) * 21600 / 679)), 21600),
   }
   // Use the same boundary normalization for houses, rulers and the displayed ascendant.
   const ascSign = describeLongitude(asc.longitude).sign
@@ -342,12 +372,12 @@ export function calculateDetailedPositions(input: CalculationInput): DetailedCal
       elongationDegrees: elongation / 60,
       thaiLunarDate: calculateThaiLunarDate(horakhun, chulaSakarat, yearBe),
     },
-    ascendant: { method: "anto-birth-sun", localTimeCorrectionMinutes, referenceTimeMinutes: modulo(360 + localTimeCorrectionMinutes, 1440), signStartTimesMinutes: asc.starts },
+    ascendant: { method: "anto-birth-sun", localTimeCorrectionMinutes, referenceTimeMinutes: modulo(referenceTime, 1440), signStartTimesMinutes: asc.starts, ...(sunrise?.status === "rise" ? { sunrise } : {}) },
     relationships: calculateSignRelationships(positions),
     divisionalCharts: { navamsa: { positions: navamsa, channelOutputs: chartChannels(navamsa, tanuseth) }, drekkana: { positions: drekkana, channelOutputs: chartChannels(drekkana, tanuseth) } },
     tanusethDetails: { firstLord: SIGN_RULERS[ascSign], firstLordSign: firstSign, firstDistance, secondLord: SIGN_RULERS[firstSign], secondLordSign: positions[secondLord], secondDistance },
     taksa: { method: "weekday-0600", boriwan: taksaPlanet(0), ayu: taksaPlanet(1), det: taksaPlanet(2), si: taksaPlanet(3), mula: taksaPlanet(4), utsaha: taksaPlanet(5), montri: taksaPlanet(6), kalakini: taksaPlanet(7), center: 9 },
-    diagnostics: { meanSunArcMinutes: meanSun, meanRaviArcMinutes: meanRavi, planetaryEpochArcMinutes: epoch, solarCycleUnits },
+    diagnostics: { meanSunArcMinutes: meanSun, meanRaviArcMinutes: meanRavi, planetaryEpochArcMinutes: epoch, solarCycleUnits, ...(planetaryTime && normalized.planetaryTimeReference ? { planetaryTime: { ...planetaryTime, ...normalized.planetaryTimeReference } } : {}) },
   }
 }
 

@@ -1,22 +1,39 @@
 import { calculateDetailedPositions, calculateTransits } from "./engine/astro/suriyayatra"
 import type { ChartPoint, DetailedCalculationResult, DetailedPosition, PlanetKey, TransitCalculationResult } from "./engine/astro/suriyayatra"
-import type { CalculationInput, PlanetPositions } from "./engine/astro-calculation"
+import type { CalculationInput, PlanetaryTimeReference, PlanetPositions, SunriseReference } from "./engine/astro-calculation"
 import { normalizeCalculationInput } from "./engine/astro/input"
 import { modulo, PLANET_KEYS, PLANET_NUMBERS, SIGN_NAMES, SIGN_RULERS } from "./engine/astro/math"
 import { PROVINCE_TIME_OFFSETS } from "./engine/astro/provinces"
+import { PROVINCE_SEATS } from "./engine/astro/location-data"
+import { createSunriseReference } from "./engine/astro/locations"
+import { resolveCivilTimeOffset } from "./engine/astro/civil-time"
 
-/** Civil Gregorian date, with an explicit year era. No timezone conversion is implied. */
+export type HoroscopeReferenceMode = "auto" | "traditional"
+export type HoroscopeReferenceFallback = "missing-province" | "year-out-of-range" | "explicit-correction"
+
+/** Civil Gregorian date and local clock, with explicit era and selectable calculation references. */
 export interface HoroscopeInput {
   date: { year: number; era: "BE" | "CE"; month: number; day: number }
   time: { hour: number; minute: number }
   /** Omit for zero province correction. An explicit correction overrides the province. */
   location?: { province?: string; localTimeCorrectionMinutes?: number }
+  /** Auto selects provincial sunrise and a historical Bangkok frame when no references are supplied. */
+  referenceMode?: HoroscopeReferenceMode
+  /** Optional seasonal sunrise reference on the input civil clock. */
+  ascendantReference?: SunriseReference
+  /** Optional explicit offset frame for planetary cycles; calendar/timing stay civil. */
+  planetaryTimeReference?: PlanetaryTimeReference
 }
 
 export interface NormalizedHoroscopeInput {
   date: { yearBe: number; yearCe: number; month: number; day: number }
   time: { hour: number; minute: number; convention: "civil-local" }
   location: { province: string; localTimeCorrectionMinutes: number }
+  referenceMode: HoroscopeReferenceMode
+  referenceSelection: "auto" | "traditional" | "explicit"
+  referenceFallback?: HoroscopeReferenceFallback
+  ascendantReference?: SunriseReference
+  planetaryTimeReference?: PlanetaryTimeReference
 }
 
 export interface HoroscopeInputIssue {
@@ -51,6 +68,9 @@ export function validateHoroscopeInput(input: unknown): HoroscopeInputValidation
   if (!object(input.date)) issue("date", "required", "A civil date is required")
   if (!object(input.time)) issue("time", "required", "A local time is required")
   if (input.location !== undefined && !object(input.location)) issue("location", "type", "Expected an object")
+  if (input.referenceMode !== undefined && input.referenceMode !== "auto" && input.referenceMode !== "traditional") {
+    issue("referenceMode", "unknown", "Use auto or traditional")
+  }
   const integer = (value: unknown, field: string, min: number, max: number): void => {
     if (value === undefined) issue(field, "required", "Required")
     else if (typeof value !== "number" || !Number.isInteger(value)) issue(field, "type", "Expected a finite integer")
@@ -66,7 +86,35 @@ export function validateHoroscopeInput(input: unknown): HoroscopeInputValidation
   const correction = location.localTimeCorrectionMinutes
   if (correction !== undefined && (typeof correction !== "number" || !Number.isFinite(correction) || Math.abs(correction) > 1440)) issue("location.localTimeCorrectionMinutes", "range", "Expected finite minutes between -1440 and 1440")
   const province = location.province === undefined ? "ไม่ใช้จังหวัด" : location.province as string
-  if (typeof province === "string" && province.length && province !== "ไม่ระบุจังหวัด" && province !== "ไม่ใช้จังหวัด" && !Object.prototype.hasOwnProperty.call(PROVINCE_TIME_OFFSETS, province) && correction === undefined) {
+  if (input.planetaryTimeReference !== undefined) {
+    const reference = input.planetaryTimeReference
+    if (!object(reference)) issue("planetaryTimeReference", "type", "Expected an explicit planetary clock object")
+    else for (const name of ["civilUtcOffsetSeconds", "referenceUtcOffsetSeconds"] as const) {
+      integer(reference[name], `planetaryTimeReference.${name}`, -50400, 50400)
+    }
+  }
+  if (input.ascendantReference !== undefined) {
+    const reference = input.ascendantReference
+    if (!object(reference)) issue("ascendantReference", "type", "Expected a coordinate sunrise object")
+    else {
+      if (reference.method !== "sunrise") issue("ascendantReference.method", "unknown", "Use sunrise")
+      if (reference.timePrecision !== undefined && reference.timePrecision !== "continuous" && reference.timePrecision !== "minute") {
+        issue("ascendantReference.timePrecision", "unknown", "Use continuous or minute")
+      }
+      for (const [name, min, max] of [["latitude", -90, 90], ["longitude", -180, 180], ["utcOffsetHours", -14, 14]] as const) {
+        const number = reference[name]
+        if (number === undefined) issue(`ascendantReference.${name}`, "required", "Required")
+        else if (typeof number !== "number" || !Number.isFinite(number)) issue(`ascendantReference.${name}`, "type", "Expected a finite number")
+        else if (number < min || number > max) issue(`ascendantReference.${name}`, "range", `Must be between ${min} and ${max}`)
+      }
+    }
+    if (correction !== undefined && correction !== 0) issue("location.localTimeCorrectionMinutes", "range", "Coordinate sunrise already includes longitude and UTC offset; omit the correction")
+    if (typeof date.year === "number") {
+      const yearCe = date.era === "BE" ? date.year - 543 : date.year
+      if (yearCe < 1900 || yearCe > 2100) issue("date.year", "range", "Coordinate sunrise supports CE 1900..2100")
+    }
+  }
+  if (input.ascendantReference === undefined && typeof province === "string" && province.length && province !== "ไม่ระบุจังหวัด" && province !== "ไม่ใช้จังหวัด" && !Object.prototype.hasOwnProperty.call(PROVINCE_TIME_OFFSETS, province) && correction === undefined) {
     issue("location.province", "unknown", "Unknown province; provide an explicit local-time correction")
   }
   if (!issues.some(value => value.field === "date" || value.field.startsWith("date."))) {
@@ -82,20 +130,52 @@ export function validateHoroscopeInput(input: unknown): HoroscopeInputValidation
   }
   if (issues.length) return { valid: false, issues }
   const typed = input as unknown as HoroscopeInput
+  let errorField = "date.day"
   try {
+    const yearCe = typed.date.era === "BE" ? typed.date.year - 543 : typed.date.year
+    const referenceMode = typed.referenceMode ?? "auto"
+    let referenceFallback: HoroscopeReferenceFallback | undefined
+    let ascendantReference = typed.ascendantReference
+    let planetaryTimeReference = typed.planetaryTimeReference
+    let referenceSelection: NormalizedHoroscopeInput["referenceSelection"] = ascendantReference || planetaryTimeReference ? "explicit" : "traditional"
+    // Explicit settings retain their meaning, including deliberate sunrise-only calculations.
+    if (referenceMode === "auto" && ascendantReference === undefined && planetaryTimeReference === undefined) {
+      if (correction !== undefined) referenceFallback = "explicit-correction"
+      else if (yearCe < 1900 || yearCe > 2100) referenceFallback = "year-out-of-range"
+      else if (!PROVINCE_SEATS.some(row => row[0] === province)) referenceFallback = "missing-province"
+      else {
+        errorField = "time"
+        const { utcOffsetHours } = resolveCivilTimeOffset({ yearCe, month: typed.date.month, day: typed.date.day, hour: typed.time.hour, minute: typed.time.minute }, "Asia/Bangkok")
+        ascendantReference = createSunriseReference({ province, utcOffsetHours, timePrecision: "minute" })
+        // IANA's historical Bangkok civil offset is an explicit application frame, not a universal epoch.
+        // https://data.iana.org/time-zones/tzdb-2025b/asia
+        planetaryTimeReference = { civilUtcOffsetSeconds: Math.round(utcOffsetHours * 3600), referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4 }
+        referenceSelection = "auto"
+      }
+    }
+    errorField = "date.day"
     const normalized = normalizeCalculationInput({
       day: typed.date.day, monthTh: typed.date.month,
       ...(typed.date.era === "BE" ? { yearBe: typed.date.year } : { yearBc: typed.date.year }),
       hour: typed.time.hour, minute: typed.time.minute,
       province, localTimeCorrectionMinutes: correction as number | undefined,
+      ascendantReference,
+      planetaryTimeReference,
     })
     return { valid: true, value: {
       date: { yearBe: normalized.yearBe, yearCe: normalized.yearCe, month: normalized.month, day: normalized.day },
       time: { hour: normalized.hour, minute: normalized.minute, convention: "civil-local" },
       location: { province, localTimeCorrectionMinutes: normalized.localTimeCorrectionMinutes },
+      referenceMode,
+      referenceSelection,
+      ...(referenceFallback ? { referenceFallback } : {}),
+      ...(normalized.ascendantReference ? { ascendantReference: normalized.ascendantReference } : {}),
+      ...(normalized.planetaryTimeReference ? { planetaryTimeReference: normalized.planetaryTimeReference } : {}),
     } }
   } catch (error) {
-    return { valid: false, issues: [{ field: "date.day", code: "range", message: error instanceof Error ? error.message : "Invalid civil date" }] }
+    const message = error instanceof Error ? error.message : "Invalid civil date"
+    const field = /[Pp]lanetary/.test(message) ? "planetaryTimeReference" : errorField
+    return { valid: false, issues: [{ field, code: "range", message }] }
   }
 }
 
@@ -130,6 +210,8 @@ export interface ThaiHoroscope {
     houseSystem: "whole-sign"
     referenceYearRangeCe: [number, number]
     thaiLunarYearRangeBe: [number, number]
+    referenceMode: "auto" | "traditional" | "explicit"
+    referenceFallback?: HoroscopeReferenceFallback
   }
   input: NormalizedHoroscopeInput
   points: Record<ChartPoint, HoroscopePoint>
@@ -156,7 +238,7 @@ const POINT_NAMES: Record<ChartPoint, string> = {
 const HOUSE_NAMES = ["ตนุ", "กดุมภะ", "สหัชชะ", "พันธุ", "ปุตตะ", "อริ", "ปัตนิ", "มรณะ", "ศุภะ", "กัมมะ", "ลาภะ", "วินาศะ"]
 
 function calculationInput(input: NormalizedHoroscopeInput): CalculationInput {
-  return { day: input.date.day, monthTh: input.date.month, yearBe: input.date.yearBe, hour: input.time.hour, minute: input.time.minute, ...input.location, method: "suriyayatra" }
+  return { day: input.date.day, monthTh: input.date.month, yearBe: input.date.yearBe, hour: input.time.hour, minute: input.time.minute, ...input.location, method: "suriyayatra", ...(input.ascendantReference ? { ascendantReference: input.ascendantReference } : {}), ...(input.planetaryTimeReference ? { planetaryTimeReference: input.planetaryTimeReference } : {}) }
 }
 
 function requireInput(input: HoroscopeInput): NormalizedHoroscopeInput {
@@ -189,7 +271,11 @@ function horoscope(input: NormalizedHoroscopeInput, result: DetailedCalculationR
   const tanusethKey = PLANET_KEYS[result.tanuseth - 1]
   return {
     schemaVersion: "1.0",
-    profile: { method: "suriyayatra", ascendant: result.ascendant.method, houseSystem: "whole-sign", referenceYearRangeCe: [1900, 2100], thaiLunarYearRangeBe: [2125, 2619] },
+    profile: {
+      method: "suriyayatra", ascendant: result.ascendant.method, houseSystem: "whole-sign", referenceYearRangeCe: [1900, 2100], thaiLunarYearRangeBe: [2125, 2619],
+      referenceMode: input.referenceSelection,
+      ...(input.referenceFallback ? { referenceFallback: input.referenceFallback } : {}),
+    },
     input, points, houses,
     charts: {
       rasi: chart(result.positions, result.channelOutputs),

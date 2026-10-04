@@ -2,10 +2,19 @@
 import { normalizeCalculationInput } from "./astro/input"
 import { calculateDetailedPositions } from "./astro/suriyayatra"
 import type { DetailedCalculationResult } from "./astro/suriyayatra"
+import type { SunriseReference } from "./astro/sunrise"
 
 export { calculateDetailedPositions, calculateSignRelationships, calculateTransits, describeLongitude } from "./astro/suriyayatra"
 export type { ChartPoint, DetailedCalculationResult, DetailedPosition, PlanetKey, SignRelationships, ThaiLunarDate, TransitCalculationResult } from "./astro/suriyayatra"
 export type CalculationMethod = "legacy" | "suriyayatra"
+export { calculateSunrise } from "./astro/sunrise"
+export type { SunriseInput, SunriseLocation, SunriseReference, SunriseResult } from "./astro/sunrise"
+export { createSunriseReference, getThaiAstrologyProvinceLocations, getThaiAstrologyCountries } from "./astro/locations"
+export type { ThaiProvinceLocation, AstrologyCountry, SunriseReferenceSelection } from "./astro/locations"
+export { searchThaiAstrologyLocations, createSunriseReferenceForLocation } from "./astro/location-search"
+export type { AstrologyLocation, AstrologyLocationSearch, AstrologyLocationSearchResult, LocationSunriseSelection } from "./astro/location-search"
+export { resolveCivilTimeOffset } from "./astro/civil-time"
+export type { CivilDateTime, CivilTimeDisambiguation, CivilTimeOffset } from "./astro/civil-time"
 
 export interface PlanetPositions {
   ascendant: number
@@ -33,6 +42,18 @@ export interface CalculationInput {
   method?: CalculationMethod
   /** Override the province's correction to the 06:00 reference, in minutes. */
   localTimeCorrectionMinutes?: number
+  /** Optional coordinate sunrise for the classical ascendant; requires Suriyayatra. */
+  ascendantReference?: SunriseReference
+  /** Explicit civil-to-reference clock conversion for planetary cycles; Suriyayatra only. */
+  planetaryTimeReference?: PlanetaryTimeReference
+}
+
+/** Fixed-offset reference chosen by the caller; no historical meridian is inferred. */
+export interface PlanetaryTimeReference {
+  /** Civil UTC offset on the input date, including DST, in whole seconds. */
+  civilUtcOffsetSeconds: number
+  /** UTC offset of the calculation's declared reference clock, in whole seconds. */
+  referenceUtcOffsetSeconds: number
 }
 
 export interface CalculationResult {

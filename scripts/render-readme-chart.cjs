@@ -10,7 +10,9 @@ const horoscope = calculateThaiHoroscope({
   time: { hour: 6, minute: 54 },
   location: { province: 'กรุงเทพมหานคร' },
 })
-const signs = ['เมษ', 'พฤษภ', 'มิถุน', 'กรกฎ', 'สิงห์', 'กันย์', 'ตุล', 'พิจิก', 'ธนู', 'มกร', 'กุมภ์', 'มีน']
+// Houses start at the ascendant; chart channels start at Aries (sign index 0).
+const signs = [...horoscope.houses].sort((a, b) => a.sign - b.sign).map(house => house.signNameThai)
+const channels = horoscope.charts.rasi.channels.thai
 const center = { x: 480, y: 490 }
 const radius = 326
 const halfSquare = 59
@@ -44,15 +46,17 @@ const labels = signs.map((sign, index) => {
   let rotation = angle + 90
   while (rotation < -90) rotation += 180
   while (rotation > 90) rotation -= 180
-  return `<text class="sign" transform="translate(${number(x)} ${number(y)}) rotate(${rotation})">${sign}</text>`
+  // Keep Capricorn's right-hand label upright in the opposite reading direction.
+  if (index === 9) rotation += 180
+  return `<text class="sign" transform="translate(${number(x)} ${number(y)}) rotate(${rotation})">${escape(sign)}</text>`
 })
-const planets = horoscope.charts.rasi.channels.thai.map((channel, index) => {
+const planets = channels.map((channel, index) => {
   if (!channel) return ''
   const [x, y] = points[index]
   const colored = escape(channel)
     .replace('ลั', '<tspan fill="#e00000">ลั</tspan>')
     .replace('*', '<tspan fill="#e00000" font-size="21">*</tspan>')
-  return `<text class="planet" x="${x}" y="${y}" aria-label="${signs[index]} ${escape(channel)}">${colored}</text>`
+  return `<text class="planet" x="${x}" y="${y}" aria-label="${escape(signs[index])} ${escape(channel)}">${colored}</text>`
 })
 const ascendant = horoscope.points.ascendant
 const sun = horoscope.points.sun
@@ -65,7 +69,7 @@ const chartTranslation = {
 const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" role="img" aria-labelledby="title description">
   <title id="title">Thai Astrology: ตัวอย่างราศีจักรสุริยยาตร์และลัคนา</title>
-  <desc id="description">ดวงกำเนิด 21 เมษายน พ.ศ. 2325 เวลา 06:54 น. กรุงเทพมหานคร คำนวณด้วยสุริยยาตร์ ตัวเลขกลางวงคือองศาอาทิตย์กำเนิด ${sun.degrees} องศา ${sun.minutes} ลิปดา ลัคนา${ascendant.signName} ${ascendant.degrees} องศา ${ascendant.minutes} ลิปดา ${horoscope.charts.rasi.channels.thai.map((channel, index) => `${signs[index]}: ${channel || 'ไม่มีดาว'}`).join('; ')}</desc>
+  <desc id="description">ดวงกำเนิด 21 เมษายน พ.ศ. 2325 เวลา 06:54 น. กรุงเทพมหานคร คำนวณด้วยสุริยยาตร์ ตัวเลขกลางวงคือองศาอาทิตย์กำเนิด ${sun.degrees} องศา ${sun.minutes} ลิปดา ลัคนา${escape(ascendant.signName)} ${ascendant.degrees} องศา ${ascendant.minutes} ลิปดา ${escape(channels.map((channel, index) => `${signs[index]}: ${channel || 'ไม่มีดาว'}`).join('; '))}</desc>
   <style>
     text { font-family: 'Sarabun', 'Arial Unicode MS', Tahoma, Arial, sans-serif; font-weight: 400; text-anchor: middle; fill: #111; }
     .sign { font-size: 26px; fill: #003366; dominant-baseline: central; }

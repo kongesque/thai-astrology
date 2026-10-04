@@ -1,7 +1,7 @@
-<h1 align="center">Thai Astrology - JavaScript &amp; TypeScript Library</h1>
+<h1 align="center">Thai Astrology — Suriyayatra for JavaScript &amp; TypeScript</h1>
 
 <p align="center">
-  Calculate Thai natal charts, ascendants and planetary transits with Suriyayatra
+  Calculate Thai natal Rasi charts, ascendants, planetary positions and transits in JavaScript and TypeScript
 </p>
 
 <p align="center">
@@ -12,187 +12,142 @@
 </p>
 
 <p align="center">
+  <img src="assets/rasi-chart.svg" alt="Suriyayatra Thai natal chart showing twelve zodiac signs, Thai planetary numerals and an Aries ascendant" width="960" />
+  <br /><sub>Suriyayatra Rasi chart · 21 April 1782 (BE 2325), 06:54, Bangkok · Traditional ascendant reference 06:18</sub>
+</p>
+
+<p align="center">
   <a href="README.md">ภาษาไทย</a> &nbsp;|&nbsp;
-  <a href="#calculate-a-thai-natal-chart-and-ascendant">Quick start</a> &nbsp;|&nbsp;
-  <a href="#thai-astrology-api-reference">API</a> &nbsp;|&nbsp;
+  <a href="#quick-start">Quick start</a> &nbsp;|&nbsp;
+  <a href="docs/api-en.md">API guide</a> &nbsp;|&nbsp;
+  <a href="SOURCES.md">Sources</a> &nbsp;|&nbsp;
   <a href="https://github.com/kongesque/thai-astrology/issues">Report an issue</a>
 </p>
 
-`thai-astrology` is an **open source Thai astrology calculation library for JavaScript and TypeScript**. It uses classical Suriyayatra (สุริยยาตร์) to calculate natal birth charts, ascendants, planetary positions, transits, Taksa and Thai lunar calendar dates. Supply a civil date, local time and Thai province to get structured horoscope data through its API.
+**`thai-astrology` is an open-source Thai astrology library for JavaScript and TypeScript, using classical Suriyayatra (สุริยยาตร์) calculations.** Calculate natal Rasi charts (ราศีจักรสุริยยาตร์), the ascendant and positions of the ten Thai astrological planets from a birth date, local time and birthplace. Results include zodiac signs, degrees and arcminutes, with planetary transits compared against the natal chart.
 
-Build Thai horoscope websites, astrology apps or APIs with deterministic, JSON-serializable results and your own interpretation rules. Other uses include ascendant calculators, natal and transit comparison tools, Thai lunar calendars, and educational tools for exploring Suriyayatra calculations.
+Results cover twelve houses and their rulers, Tanulak, Tanuseth, Taksa, Rerk categories, lunar mansions and their quarters, and planetary dignities, along with Navamsa and Drekkana charts. The Thai lunar calendar reports waxing or waning days and lunar months. Use the API's structured results, Thai names and Thai or Arabic chart symbols to draw charts, display position tables or build interpretation rules.
 
-Supports **Node.js 16+**, ESM and CommonJS, includes TypeScript types, works in browsers through a bundler, and has no runtime dependencies.
+Start with a Buddhist Era or Common Era date, birth time and province. For recognized Thai provinces in CE 1900–2100, the API selects coordinates, resolves the birth date's UTC offset and calculates daily sunrise automatically. For a precise birthplace or a birth abroad, supply latitude, longitude and the date's UTC offset, including daylight saving time (DST).
 
-<p align="center">
-  <img src="assets/rasi-chart.svg" alt="Thai natal horoscope: Suriyayatra Rasi chart with Thai numerals and an Aries ascendant" width="100%" />
-</p>
+Install through **npm** and use with **Node.js 16+**, ESM, CommonJS or browsers through a bundler. There are no runtime dependencies, and chart results are JSON-serializable.
 
-<p align="center">
-  <sub><a href="https://github.com/kongesque/thai-astrology/blob/main/scripts/render-readme-chart.cjs">Example Suriyayatra Rasi chart</a> · 21 April 1782 (BE 2325), 06:54, Bangkok</sub><br />
-  <sub>Thai numerals identify planets; <code>ลั</code> marks the ascendant and <code>*</code> marks Tanuseth.</sub>
-</p>
+## What the library calculates
 
-## What it calculates
+| Astrological result | What you receive | API field |
+| --- | --- | --- |
+| Rasi chart — ราศีจักร | Signs of the ten planets and ascendant, with Thai or Arabic chart symbols | `charts.rasi` |
+| Planetary positions — สมผุส | Sign, degrees/minutes, total longitude and house for each point | `points` |
+| Navamsa and Drekkana | Divisional charts using nine and three subdivisions of each sign | `charts.navamsa`, `charts.drekkana` |
+| Houses and rulers — ภพและเจ้าเรือน | Twelve whole-sign houses, their rulers and occupants | `houses` |
+| Tanulak and Tanuseth — ตนุลัคน์/ตนุเศษ | Ascendant sign ruler, calculated Tanuseth and ascendant occupants | `factors` |
+| Rerk and dignities — ฤกษ์/มาตรฐานดาว | Position within the 27 lunar mansions, its quarter, one of nine Rerk categories and supported dignity labels | Fields within `points` |
+| Taksa — ทักษา | Eight categories, including Boriwan, Ayu and Kalakini | `taksa` |
+| Thai lunar date — วันจันทรคติ | Waxing/waning day, lunar month and intercalation type | `calendar.thaiLunarDate` |
+| Planetary transits — ดาวจร | Transit positions, natal houses and longitude differences | `calculateHoroscopeTransits()` |
 
-- **Natal horoscopes:** 10 planetary positions, ascendants, houses, rulers, Tanuseth, lunar mansions, nine Rerk categories and dignities.
-- **Chart data:** Rasi, navamsa and drekkana positions with Thai or Arabic numeral channels.
-- **Transits and calendars:** Natal comparisons, Taksa, geometric lunar phase and Thai lunar dates.
+**Tanulak** is the ruler of the ascendant's sign. **Tanuseth** is a planet selected by its own calculation; `*` marks it in the chart. Ascendant occupants are the planets sharing the ascendant sign. The API returns these separately so your interpretation rules can use the intended result.
 
-## Calculate a Thai natal chart and ascendant
+## Quick start
+
+Install the package:
 
 ```bash
 npm install thai-astrology
 ```
 
-This example calculates the horoscope shown in the chart above:
+### Before calculating a chart
+
+- **Date and time:** enter the birthplace's local clock time without converting it to UTC first. Match `era: "BE"` or `"CE"` to the supplied year. Input dates use the Gregorian calendar.
+- **Birth time:** use a birth certificate or another reliable record. Mark an estimated time as an assumption, since the ascendant and houses can change with birth time.
+- **Birthplace:** selecting a province uses its provincial-seat coordinates. For a known birthplace, supply that point's latitude and longitude through the [coordinate-based sunrise settings](docs/api-en.md#coordinate-based-sunrise).
+- **Timezone:** foreign births require the UTC offset at the birth date and time, including DST. [City helpers](docs/api-en.md#country-scoped-location-search-and-offsets) can resolve it for the supplied date through runtime IANA/Intl rules. Edited coordinates require a verified `timeZone` or an explicit UTC offset; coordinates alone do not identify a timezone.
+- **Applied method:** start with `auto`, the default for recognized Thai provinces in CE 1900–2100. After calculating, inspect `horoscope.profile.referenceMode` and `referenceFallback`, when present, to see what was used. When comparing results with another source, use the same date, time, coordinates, planetary time frame and ascendant method.
+
+Calculate the chart shown in the hero image: **21 April 1782 (BE 2325), 06:54, Bangkok**.
 
 ```ts
 import { calculateThaiHoroscope } from "thai-astrology"
 
 const horoscope = calculateThaiHoroscope({
-  date: { year: 2325, era: "BE", month: 4, day: 21 },
+  date: { year: 1782, era: "CE", month: 4, day: 21 },
   time: { hour: 6, minute: 54 },
   location: { province: "กรุงเทพมหานคร" },
 })
 
-console.log(horoscope.points.sun.degrees, horoscope.points.sun.minutes) // 10 42
-console.log(horoscope.points.ascendant.signName) // เมษ
-console.log(horoscope.charts.rasi.channels.thai[0]) // ลั๑*
+console.log(horoscope.points.ascendant.signName) // เมษ (Aries)
+console.log(horoscope.points.sun.signName) // เมษ (Aries)
+console.log(horoscope.calendar.thaiLunarDate?.label) // ข๑๐ด ๖ = waxing day 10, lunar month 6
 ```
 
-For CommonJS, replace the `import` line with `const { calculateThaiHoroscope } = require("thai-astrology")`.
+Edit `date`, `time` and `location.province` for another chart. This example can also use `year: 2325, era: "BE"` for the equivalent Buddhist Era date. Enter time as numbers: hour 0–23 and minute 0–59. Names and gender are not required.
 
-The 1782 CE example is outside the 1900-2100 sample-comparison interval and does not establish historical accuracy.
+**Automatic settings:** for a recognized Thai province in CE 1900–2100, `calculateThaiHoroscope()` fills provincial-seat coordinates, resolves the date’s UTC offset, uses daily sunrise rounded to the nearest minute and selects the historical Bangkok +06:42:04 planetary frame. Supply only `date`, `time` and `location.province`; users do not need to enter those calculation settings.
 
-### Birth date, local time and province
+This 1782 example is outside the supported sunrise range, so it uses the `traditional` method: the 06:00 base plus Bangkok's 18-minute province correction gives a 06:18 ascendant reference. To retain the earlier convention for supported dates, select `referenceMode: "traditional"`. See [automatic settings and explicit overrides](docs/api-en.md#sunrise-and-planetary-time-settings).
 
-| Field | What to provide |
-| --- | --- |
-| `date` | A civil Gregorian date; use `era: "BE"` for Buddhist Era or `"CE"` for Common Era. BE 2567 = CE 2024 |
-| `time` | Local civil time: hours 0-23, minutes 0-59. Birth time is required |
-| `location` (optional) | A Thai `province` name; `getThaiAstrologyProvinces()` lists all 77 provinces |
+For CommonJS, replace the import with `const { calculateThaiHoroscope } = require("thai-astrology")`.
 
-Supply valid dates and times as numbers. Omitting the location applies zero correction. Set `location.localTimeCorrectionMinutes` to override the province correction in minutes. Names and gender are not required for calculation.
+## Display a Rasi chart
 
-### Unknown birthplace or birth time
-
-- **Unknown birthplace:** omit `location` in `calculateThaiHoroscope`. Zero correction is applied, which can affect the ascendant and houses.
-- **Unknown birth time:** `time` is always required. There is no default time or date-only mode.
-- **When using an assumed time:** state the assumption clearly and omit ascendant-dependent results. Planetary positions are estimates, and Taksa can differ before or after 06:00.
-
-Lower-level Suriyayatra APIs use `province: "ไม่ระบุจังหวัด"` for zero correction (the previous name `"ไม่ใช้จังหวัด"` remains supported). Legacy uses 18 minutes for an unrecognized province without an explicit correction, preserving existing behavior rather than estimating the birthplace.
-
-### Planetary positions, ascendants and horoscope results
-
-| Result section | Available data |
-| --- | --- |
-| `points` | Planetary and ascendant positions, lunar mansion/Rerk data and planetary dignities; for example, `points.moon` |
-| `houses` | All 12 houses, their rulers and occupants |
-| `factors` | Ascendant ruler (`ascendantRuler`), Tanuseth and ascendant occupants (`ascendantOccupants`) |
-| `charts` | Positions and channels for Rasi (ราศีจักร), navamsa (นวางค์จักร) and drekkana (ตรียางค์จักร) charts |
-| `calendar` | Astrological weekday, geometric lunar phase and Thai lunar calendar date |
-| `taksa` | บริวาร, อายุ, เดช, ศรี, มูละ, อุตสาหะ, มนตรี and กาลกิณี |
-| `relationships` | Sign-based conjunctions, oppositions, trines, quadrangular groups (จตุโกณ) and sextiles |
-
-Zodiac indices start at Aries = 0; house numbers start at ตนุ = 1. Chart channels run from Aries to Pisces, while `houses` start from the ascendant. Absolute longitudes are available in degrees (`longitudeDegrees`) and arcminutes (`longitudeArcMinutes`).
-
-Read the ascendant, its ruler, Tanuseth, Taksa and Thai lunar date:
+The code above produces the same Rasi chart as the hero image. Read its twelve channels from `horoscope`:
 
 ```ts
-import { calculateThaiHoroscope } from "thai-astrology"
-
-const horoscope = calculateThaiHoroscope({
-  date: { year: 2567, era: "BE", month: 9, day: 15 },
-  time: { hour: 8, minute: 30 },
-  location: { province: "เชียงใหม่" },
-})
-
-console.log(horoscope.points.ascendant.signName) // กันย์ (Virgo)
-console.log(horoscope.points[horoscope.factors.ascendantRuler].nameThai) // พุธ (Mercury)
-console.log(horoscope.factors.tanuseth.nameThai) // พฤหัสบดี (Jupiter)
-console.log(horoscope.taksa.kalakini) // 6 = Venus
-console.log(horoscope.calendar.thaiLunarDate?.label) // ข๑๓ด๑๐
+console.log(horoscope.charts.rasi.channels.thai)
+// ["ลั๑*", "๓๙", "๐", "๒", "", "", "", "", "๕๗", "", "", "๔๖๘"]
 ```
 
-See the [API guide](https://github.com/kongesque/thai-astrology/blob/main/docs/api-en.md) for fields, units and further examples.
+The result contains 12 strings ordered Aries through Pisces. An empty string means no planets; `ลั` marks the ascendant and `*` marks Tanuseth. Use `channels.arabic` for Arabic numerals, or replace `rasi` with `navamsa` / `drekkana` for those divisional charts.
 
-### Read a Thai lunar date
+The library returns chart data so you can choose your own layout. See the [illustration script](scripts/render-readme-chart.cjs) for an SVG example.
 
-`calendar.thaiLunarDate` gives the waxing/waning day and lunar month. Read `phase`, `day` and `month`, or use `label` for abbreviated Thai text. The second eighth month has `month: 8` and `secondEighthMonth: true`.
+To display a planet's position, use its sign name and degrees/minutes within that sign. For angular calculations, use total `longitudeDegrees`. Sign indices run 0–11; houses run 1–12. The API guide documents units and the full result structure.
 
-```ts
-import { calculateThaiHoroscope } from "thai-astrology"
+For calendar dates, read `calendar.thaiLunarDate`. The separately returned `calendar.lunarDay` is calculated from the Moon–Sun angle and can differ from the calendar day. In this example, the calendar date is waxing day 10 of lunar month 6, while the angular lunar day is 8.
 
-const { calendar } = calculateThaiHoroscope({
-  date: { year: 2567, era: "BE", month: 9, day: 15 },
-  time: { hour: 12, minute: 0 },
-})
+## Continue with the API guide
 
-console.log(calendar.thaiLunarDate?.label) // ข๑๓ด๑๐ = waxing 13, month 10
-```
+The [English API guide](docs/api-en.md) covers fields, units, options and further examples. Choose the section for your task:
 
-Supports CE **1582–2076** (BE **2125–2619**); outside this range the value is `null`. Dates can differ from published calendars. `calendar.lunarDay` describes the Moon-Sun angle and can differ from the calendar day. See the [lunar calendar API guide](https://github.com/kongesque/thai-astrology/blob/main/docs/api-en.md#thai-lunar-calendar-calendarthailunardate) for an example and limits.
-
-## Compare planetary transits with a natal chart
-
-Supply natal and transit dates and times using the same input shape:
-
-```ts
-import { calculateHoroscopeTransits } from "thai-astrology"
-
-const result = calculateHoroscopeTransits({
-  date: { year: 2325, era: "BE", month: 4, day: 21 },
-  time: { hour: 6, minute: 54 },
-  location: { province: "กรุงเทพมหานคร" },
-}, {
-  date: { year: 2567, era: "BE", month: 9, day: 15 },
-  time: { hour: 8, minute: 30 },
-  location: { province: "เชียงใหม่" },
-})
-
-console.log(result.transit.points.sun.signName)
-console.log(result.comparison.sun.longitudeDifferenceDegrees)
-```
-
-The result contains `natal`, `transit` and `comparison`. Both dates and times are explicit; the API does not automatically use the current time.
-
-## Thai astrology API reference
-
-| API | Use it for |
-| --- | --- |
-| `calculateThaiHoroscope(input)` | A complete structured natal horoscope |
-| `calculateHoroscopeTransits(natalInput, transitInput)` | Natal/transit horoscopes and comparisons |
-| `validateHoroscopeInput(input)` | Validating form or API input; returns `valid` and `issues` for invalid input |
-| `getThaiAstrologyProvinces()` | Province selectors with local-time corrections |
-| `calculateDetailedPositions(input)` | Detailed Suriyayatra results using `CalculationInput` |
-| `generateThaiAstrologyChart(input)` | The earlier chart API, which defaults to `legacy` |
-
-`validateHoroscopeInput` reports invalid input without throwing. `calculateThaiHoroscope` and `calculateHoroscopeTransits` throw `HoroscopeInputError` with `issues`. See [HoroscopeInput / ThaiHoroscope](src/horoscope.ts) and [CalculationInput](src/engine/astro-calculation.ts) for full types.
-
-**Calculation method:** `calculateThaiHoroscope` and `calculateDetailedPositions` always use Suriyayatra. For `generateThaiAstrologyChart`, select `method: "suriyayatra"` to use the same method. In the earlier input shape, `yearBe` means Buddhist Era and `yearBc` means **Common Era**. Supply one year field.
+- [Coordinate sunrise and planetary time settings](docs/api-en.md#sunrise-and-planetary-time-settings)
+- [Province, country and foreign birthplace selection](docs/api-en.md#province-and-country-selection)
+- [City search and UTC offsets, including DST](docs/api-en.md#country-scoped-location-search-and-offsets)
+- [Validate form input](docs/api-en.md#validation-and-full-types)
+- [Compare transits with a natal chart](docs/api-en.md#transit-comparisons)
+- [Input types and the full function list](docs/api-en.md#function-and-input-reference)
 
 ## Calculation rules and limitations
 
-- **Classical Suriyayatra rules.** Results can differ from modern astronomical ephemerides or other astrological traditions. The library supplies interpretation data rather than finished predictions.
-- **Local civil time.** There is no automatic timezone or DST conversion. Province corrections shift the 06:00 reference; they are not UTC offsets. The ascendant uses fixed rising durations and holds the Sun at its birth-time position, without coordinate-based sunrise or latitude/longitude calculations.
-- **Bounded coverage and precision.** Civil dates accept CE 1-9999. Thai lunar dates support BE 2125-2619; outside that range, `calendar.thaiLunarDate` is `null`. Planetary positions use integer arcminutes; ascendant minutes may be fractional. Houses use the whole-sign system.
-- **Calendar conventions.** Taksa changes day at 06:00 without substituting Rahu for Wednesday-night Mercury. Thai lunar dates change at midnight and are separate from geometric lunar phase. Thai Ketu follows its own 679-day cycle.
-- **Position comparisons.** Relationships are sign-based. Degree aspects with orbs, instantaneous speeds, retrograde status and ingress searches are not implemented. Longitude differences are not instantaneous speeds, and sign-start schedules are not precise future ingress times.
+Planetary positions follow classical Suriyayatra formulas. The ascendant uses fixed classical rising durations (อันโตนาทีสามัญ), and houses use the whole-sign system. Relationships count zodiac signs. These conventions matter when comparing results with another school or implementing interpretation rules.
+
+Automatic selection applies only when neither reference nor a custom province correction is supplied. Explicit `ascendantReference` or `planetaryTimeReference` settings retain their existing meaning. The birthplace's UTC offset and the calculation frame are separate values. Low-level `calculateDetailedPositions()` and the earlier chart wrapper retain their existing defaults; see [calculation settings](docs/api-en.md#sunrise-and-planetary-time-settings).
+
+| Reference area | Basis used by the library |
+| --- | --- |
+| Classical calendar and lunar arithmetic | Public Thai calculation descriptions and J. C. Eade's calendar research |
+| Sunrise | NOAA/Meeus solar calculations and USNO rise/set definitions |
+| Birthplace and civil time | GeoNames coordinates and runtime IANA timezone rules |
+
+[SOURCES.md](SOURCES.md) lists the publications, open-source implementations and open data. These references document formulas and conventions; they do not certify every computed position.
+
+- **Foreign locations:** a country name alone cannot determine coordinates and UTC. Classical rising durations remain fixed for foreign charts.
+- **Location coverage:** the catalog contains 1,945 points in 243 countries/territories, including all 77 Thai provincial seats. Every point has latitude, longitude and a timezone name. It does not cover every city or timezone; seven of the 250 country/territory entries have no catalog locations.
+- **Date range:** coordinate sunrise and civil-offset helpers support CE 1900–2100. Thai lunar dates support CE 1582–2076 and return `null` outside that range; they can differ from published calendars.
+- **Sunrise model:** uses a sea-level horizon without terrain, elevation or weather corrections. Dates with no sunrise require handling; the selected sunrise horoscope throws `RangeError`.
+
+`calculateThaiHoroscope()` always uses Suriyayatra. The earlier `generateThaiAstrologyChart()` API defaults to `legacy`; select `method: "suriyayatra"` explicitly for Suriyayatra.
 
 ## Development and contributions
 
-Use Node.js 24 for development and check changes before submitting:
+The [public test suite](test/run.cjs) covers calendar rules, zodiac boundaries, timezones and published-release regression cases. Package checks also verify installed CommonJS, ESM, TypeScript and browser consumers. See the [CI workflow](.github/workflows/ci.yml).
+
+Use Node.js 24 for development:
 
 ```bash
-git clone https://github.com/kongesque/thai-astrology.git
-cd thai-astrology
 npm ci
 npm run check
 ```
 
-`npm run check` validates TypeScript, runs behavior tests and verifies installed-package consumers. Optional local comparisons run when supplementary resources are available; otherwise, that step is skipped. CI tests Node.js 16, 22 and 24. Edit code in `src/`; regenerate the chart illustration with `npm run docs:chart`.
+Edit code in `src/` and regenerate the illustration with `npm run docs:chart`. Report issues through [GitHub Issues](https://github.com/kongesque/thai-astrology/issues), including the date, local time, location and calculation method without personal details.
 
-Report bugs or suggest improvements through [GitHub Issues](https://github.com/kongesque/thai-astrology/issues). For calculation differences, include the date, local time, province, method and expected result, without names or personal details.
-
-Released under the [MIT License](LICENSE).
+Released under the [MIT License](LICENSE). Location data from [GeoNames](https://www.geonames.org/) uses [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). See [SOURCES.md](SOURCES.md) for formula and data references.
