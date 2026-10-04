@@ -11,6 +11,47 @@ const civilTimeCases = [1900, 1920, 2000, 2024, 2076].flatMap(yearBc =>
     Array.from({ length: 24 }, (_, hour) => ({ ...input, yearBc, monthTh, day, hour, minute: [0, 1, 59][hour % 3] }))))
 
 module.exports = [
+  ['Day-based solar division feeds Moon consistently across annual boundaries', () => {
+    // Source-supported convention, rather than an algebraic identity:
+    // https://thanan4astro.blogspot.com/2015/02/blog-post_11.html. Synthetic dates do not use external chart records.
+    const mod = (a, b) => (a % b + b) % b
+    const table = [0n, 77n, 148n, 209n, 256n, 286n, 296n]
+    let wrapped = 0, changedDivision = 0
+    for (const yearBc of [1900, 1920, 2000, 2031, 2076]) {
+      for (let day = 10; day <= 20; day++) {
+        for (let hour = 0; hour < 24; hour++) {
+          for (const delta of [0, -1076, 19800]) {
+            const planetaryTimeReference = { civilUtcOffsetSeconds: 25200, referenceUtcOffsetSeconds: 25200 + delta }
+            const actual = api.calculateDetailedPositions({ yearBc, monthTh: 4, day, hour, minute: 59, province: 'ไม่ใช้จังหวัด', planetaryTimeReference })
+            const time = actual.diagnostics.planetaryTime
+            const h = BigInt(time.horakhun - 1), seconds = BigInt(time.secondOfDay)
+            // Separate annual kammacubala and elapsed whole days as in the source's
+            // annual/day/time construction. No second year reduction before division.
+            const raw = h * 800n - 373n, annualCycle = (raw - mod(raw, 292207n)) / 292207n
+            const annualDay = (annualCycle * 292207n + 373n + 799n) / 800n
+            const annualRemainder = annualDay * 800n - 373n - annualCycle * 292207n
+            const units = (h - annualDay) * 800n + annualRemainder + seconds * 800n / 86400n
+            const staged = units => mod(units / 24350n * 1800n + units % 24350n / 811n * 60n + units % 24350n % 811n / 14n - 3n, 21600n)
+            const meanSun = staged(units)
+            assert.equal(actual.diagnostics.meanSunArcMinutes, Number(meanSun))
+            assert.equal(actual.diagnostics.solarCycleUnits, Number(mod(raw + seconds * 800n / 86400n, 292207n)))
+            if (units >= 292207n) wrapped++
+            if (meanSun !== staged(mod(units, 292207n))) changedDivision++
+            const cycle = mod(h * 703n + 650n + seconds * 703n / 86400n, 20760n), r = cycle % 692n
+            const meanMoon = mod(cycle / 692n * 720n + r + r / 25n - 40n + meanSun, 21600n)
+            const apogee = (mod(h - 621n, 3232n) * 86400n + seconds) * 21600n / (3232n * 86400n) + 2n
+            const angle = mod(meanMoon - apogee, 21600n), quadrant = angle / 5400n
+            const folded = quadrant === 0n ? angle : quadrant === 1n ? 10800n - angle : quadrant === 2n ? angle - 10800n : 21600n - angle
+            const segment = Math.min(Number(folded / 900n), 5), distance = folded - BigInt(segment) * 900n
+            const correction = (table[segment] * (900n - distance) + table[segment + 1] * distance) / 900n
+            assert.equal(actual.longitudes.moon.longitudeArcMinutes, Number(mod(meanMoon + (quadrant < 2n ? -correction : correction), 21600n)))
+          }
+        }
+      }
+    }
+    assert.ok(wrapped > 0, 'Exercise intraday solar-year crossings')
+    assert.ok(changedDivision > 0, 'Exercise the seven-unit division-phase difference')
+  }],
   ['Explicit planetary clocks preserve the instant across offsets and date boundaries', () => {
     const referenceUtcOffsetSeconds = 6 * 3600 + 42 * 60 + 4
     for (const [a, b] of [

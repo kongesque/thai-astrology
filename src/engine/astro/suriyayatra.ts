@@ -291,8 +291,13 @@ export function calculateDetailedPositions(input: CalculationInput): DetailedCal
   // Explicit frame uses integral seconds; the omitted-option path preserves published arithmetic.
   const solarUnits = shiftedTime ? Math.floor(shiftedTime.secondOfDay * 800 / 86400) : solarIntradayUnits(timeMinutes)
   const solarCycleUnits = modulo((planetaryHorakhun - 1) * 800 + solarUnits - 373, 292207)
-  const remainder = modulo(solarCycleUnits, 24350)
-  const meanSun = modulo(Math.trunc(solarCycleUnits / 24350) * 1800 + Math.trunc(remainder / 811) * 60 + Math.trunc(modulo(remainder, 811) / 14) - 3, 21600)
+  // Add birth-time units to the day's reduced base before staged longitude division.
+  // The 292207-unit year and 12 * 24350-unit sign scale differ by seven units;
+  // reducing the sum by the year period would change the intraday division phase.
+  // Source convention and its limits: https://thanan4astro.blogspot.com/2015/02/blog-post_11.html.
+  const solarLongitudeUnits = modulo((planetaryHorakhun - 1) * 800 - 373, 292207) + solarUnits
+  const remainder = modulo(solarLongitudeUnits, 24350)
+  const meanSun = modulo(Math.trunc(solarLongitudeUnits / 24350) * 1800 + Math.trunc(remainder / 811) * 60 + Math.trunc(modulo(remainder, 811) / 14) - 3, 21600)
   const meanRavi = modulo(meanSun - 23, 21600)
   const epoch = (planetaryChulaSakarat - (solarCycleUnits >= 364 ? 610 : 611)) * 21600 + meanRavi
   const sun = luminary(meanSun, meanSun - 4800, SUN_TABLE)
