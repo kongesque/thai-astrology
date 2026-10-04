@@ -28,9 +28,26 @@ export const LUNAR_NEW_YEAR_DAY_OFFSETS: readonly number[] = [
   11, 23, 34, 15, 27, 8, 19, 29, 11, 22, 32, 13, 25, 6, 17, 28,
   10, 20, 31, 12, 23, 34, 15, 26, 8, 18, 29, 10, 22, 32, 13, 24,
   6, 17, 28, 10, 20, 31, 12, 24, 34, 15, 26, 8, 19, 29, 10, 22,
-  33, 14, 25, 7, 18, 28, 9, 21, 32, 13, 24, 35, 16, 26, 8, 19,
-  30, 11, 23, 33, 14, 25, 7, 18, 28, 9, 21, 32, 13, 24, 35, 16,
-  26, 7, 19, 30, 11, 22, 33, 14, 25, 35, 17, 28, 39, 21, 32, 13,
+  // จ.ศ. 1398 (ค.ศ. 2036): วันอ้างอิงคือวันที่ 20 ของเดือน 5; index = 1398 - 943.
+  // Pinned source: tithi 20, no one-day adjustment; calculate_year0(1398).offset_days = 20.
+  // https://github.com/hmmbug/pythaidate/blob/f526c4d9d9ee2a854bf790aaf6d6ee6db90f3f25/pythaidate/csdate.py
+  // จ.ศ. 1399–1403 (ค.ศ. 2037–2041): offsets 31, 12, 23, 34, 15 เป็นชุดต่อเนื่อง.
+  // Same pinned source: finalized cycles C/A/B/C/A; isolated offsets leave a year-boundary gap.
+  33, 14, 25, 7, 18, 28, 9, 20, 31, 12, 23, 34, 15, 26, 8, 19,
+  // จ.ศ. 1409 (ค.ศ. 2047): ปีปกติและ offset 22 หลังอธิกวารปี 2046.
+  // Pinned source: calculate_year0(1409).offset_days = 22; index = 1409 - 943.
+  // https://github.com/hmmbug/pythaidate/blob/f526c4d9d9ee2a854bf790aaf6d6ee6db90f3f25/pythaidate/csdate.py
+  // จ.ศ. 1418–1420 (ค.ศ. 2056–2058): offsets 31, 12, 23 หลังย้ายอธิกวารไปปี 2055.
+  // Same pinned source: calculate_year0(y).offset_days; indices 475–477.
+  30, 11, 22, 33, 14, 25, 7, 18, 28, 9, 21, 31, 12, 23, 35, 16,
+  // จ.ศ. 1432 (ค.ศ. 2070): วันอ้างอิงเป็นขึ้น 6 ค่ำ เดือน 5; index = 1432 - 943.
+  // Pinned source: CsDate.calculate_year0(1432).offset_days = 6, not month-6 offset 35.
+  // https://github.com/hmmbug/pythaidate/blob/f526c4d9d9ee2a854bf790aaf6d6ee6db90f3f25/pythaidate/csdate.py
+  // จ.ศ. 1435 (ค.ศ. 2073): ขึ้น 9 ค่ำ เดือน 5; ไม่ใช่ offset 39 ที่เลยไปเดือน 6.
+  // Same pinned source: CsDate.calculate_year0(1435).offset_days = 9.
+  // จ.ศ. 1433 (ค.ศ. 2071): offset 18 ใช้คู่กับอธิกวาร; index = 1433 - 943.
+  // Same pinned source: calculate_year0(1433).offset_days = 18.
+  26, 7, 19, 30, 11, 22, 33, 14, 25, 6, 18, 28, 9, 21, 32, 13,
 ]
 
 // 0 = ปีปกติ, 1 = เพิ่มเดือนแปด, 2 = เพิ่มวันในเดือนเจ็ด
@@ -61,9 +78,29 @@ export const LUNAR_INTERCALATIONS: readonly number[] = [
   2, 1, 0, 2, 1, 0, 0, 1, 2, 1, 0, 0, 1, 0, 2, 1,
   0, 1, 0, 0, 1, 2, 0, 1, 2, 0, 1, 0, 1, 0, 2, 1,
   0, 0, 1, 0, 1, 0, 2, 1, 0, 2, 1, 0, 1, 0, 0, 1,
-  2, 0, 2, 2, 0, 1, 0, 1, 2, 0, 1, 0, 2, 1, 0, 1,
+  // จ.ศ. 1361 (ค.ศ. 1999): อธิกมาส ไม่ใช่อธิกวาร; index = 1361 - 943.
+  // Independent classification: CsDate(1361, 1, 24).leap_month = true.
+  // https://github.com/hmmbug/pythaidate/blob/f526c4d9d9ee2a854bf790aaf6d6ee6db90f3f25/README.md
+  2, 0, 1, 2, 0, 1, 0, 1, 2, 0, 1, 0, 2, 1, 0, 1,
   0, 0, 1, 2, 0, 1, 0, 2, 1, 0, 1, 0, 2, 1, 0, 0,
-  1, 0, 1, 0, 2, 1, 0, 0, 1, 0, 2, 1, 2, 1, 0, 0,
-  1, 0, 2, 1, 0, 1, 0, 2, 1, 0, 0, 1, 0, 2, 1, 2,
-  1, 0, 0, 1, 0, 2, 1, 0, 2, 1, 0, 0, 1, 0, 1, 2,
+  // จ.ศ. 1397 (ค.ศ. 2035): อธิกวาร 355 วัน; index = 1397 - 943.
+  // Pinned rule: tithi 9, kammacapon 48 <= 207, avoman 83 <= 126 => extra day.
+  // https://github.com/hmmbug/pythaidate/blob/f526c4d9d9ee2a854bf790aaf6d6ee6db90f3f25/pythaidate/lsyear.py
+  // จ.ศ. 1403 (ค.ศ. 2041): ปีปกติ; อธิกวารของชุดนี้อยู่ใน 2039 ไม่ใช่ 2041.
+  // Same pinned csdate.py finalization moves the 1402 day/month collision into 1401.
+  1, 0, 1, 0, 2, 1, 2, 0, 1, 0, 2, 1, 0, 1, 0, 0,
+  // จ.ศ. 1408/1409 (ค.ศ. 2046/2047): อธิกวาร 355 วัน ตามด้วยปีปกติ 354 วัน.
+  // Pinned source resolves the 1407 day/month collision into an extra day in 1408.
+  // https://github.com/hmmbug/pythaidate/blob/f526c4d9d9ee2a854bf790aaf6d6ee6db90f3f25/pythaidate/csdate.py
+  // จ.ศ. 1417/1420 (ค.ศ. 2055/2058): อธิกวารใน 2055; 2058 เป็นปีปกติ.
+  // Same pinned source resolves the 1418 day/month collision into an extra day in 1417.
+  1, 2, 0, 1, 0, 1, 0, 2, 1, 0, 2, 1, 0, 0, 1, 2,
+  // จ.ศ. 1431/1432 (ค.ศ. 2069/2070): อธิกมาส 384 วัน ตามด้วยปีปกติ 354 วัน.
+  // Pinned source: tithi 25 then 6; extra-month placement uses indices 488/489.
+  // https://github.com/hmmbug/pythaidate/blob/f526c4d9d9ee2a854bf790aaf6d6ee6db90f3f25/pythaidate/lsyear.py
+  // จ.ศ. 1434/1435 (ค.ศ. 2072/2073): อธิกมาส 384 วัน ตามด้วยปีปกติ 354 วัน.
+  // Same pinned source: tithi 28 then 9; classifications use indices 491/492.
+  // จ.ศ. 1433 (ค.ศ. 2071): อธิกวาร; tithi 18, kammacapon 596, avoman 105 <= 137.
+  // Correct both the extra-day flag and its offset; changing only the flag is incomplete.
+  1, 0, 0, 1, 0, 2, 1, 0, 1, 0, 2, 1, 0, 0, 1, 2,
 ]
