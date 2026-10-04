@@ -1,79 +1,35 @@
-export const PROVINCE_TIME_OFFSETS: Record<string, number> = {
-  กระบี่: 24,
-  กรุงเทพมหานคร: 18,
-  กาญจนบุรี: 22,
-  กาฬสินธุ์: 6,
-  กำแพงเพชร: 22,
-  ขอนแก่น: 9,
-  จันทบุรี: 12,
-  ฉะเชิงเทรา: 16,
-  ชลบุรี: 16,
-  ชัยนาท: 19,
-  ชัยภูมิ: 12,
-  ชุมพร: 23,
-  เชียงราย: 21,
-  เชียงใหม่: 24,
-  ตรัง: 22,
-  ตราด: 10,
-  ตาก: 23,
-  นครนายก: 15,
-  นครปฐม: 20,
-  นครพนม: 1,
-  นครราชสีมา: 12,
-  นครศรีธรรมราช: 20,
-  นครสวรรค์: 20,
-  นนทบุรี: 18,
-  นราธิวาส: 13,
-  น่าน: 17,
-  บึงกาฬ: 5,
-  บุรีรัมย์: 8,
-  ปทุมธานี: 18,
-  ประจวบคีรีขันธ์: 21,
-  ปราจีนบุรี: 15,
-  ปัตตานี: 15,
-  พระนครศรีอยุธยา: 18,
-  พะเยา: 20,
-  พังงา: 26,
-  พัทลุง: 20,
-  พิจิตร: 19,
-  พิษณุโลก: 19,
-  เพชรบุรี: 20,
-  เพชรบูรณ์: 15,
-  แพร่: 19,
-  ภูเก็ต: 27,
-  มหาสารคาม: 7,
-  มุกดาหาร: 1,
-  แม่ฮ่องสอน: 28,
-  ยโสธร: 3,
-  ยะลา: 15,
-  ร้อยเอ็ด: 5,
-  ระนอง: 26,
-  ระยอง: 15,
-  ราชบุรี: 21,
-  ลพบุรี: 17,
-  ลำปาง: 22,
-  ลำพูน: 24,
-  เลย: 13,
-  ศรีสะเกษ: 3,
-  สกลนคร: 3,
-  สงขลา: 18,
-  สตูล: 20,
-  สมุทรปราการ: 18,
-  สมุทรสงคราม: 20,
-  สมุทรสาคร: 19,
-  สระแก้ว: 12,
-  สระบุรี: 16,
-  สิงห์บุรี: 18,
-  สุโขทัย: 21,
-  สุพรรณบุรี: 20,
-  สุราษฎร์ธานี: 23,
-  สุรินทร์: 6,
-  หนองคาย: 9,
-  หนองบัวลำภู: 10,
-  อ่างทอง: 18,
-  อำนาจเจริญ: 1,
-  อุดรธานี: 9,
-  อุตรดิตถ์: 20,
-  อุทัยธานี: 20,
-  อุบลราชธานี: 1,
+import { PROVINCE_SEATS } from "./location-data"
+
+export interface MeanSolarTimeCorrectionInput {
+  /** Longitude in degrees east of Greenwich; west is negative. */
+  longitude: number
+  /** Civil offset at the input date and time, including DST; fractional hours are allowed. */
+  utcOffsetHours: number
+}
+
+/**
+ * Civil clock minus local mean solar clock, in minutes; positive means the civil clock is ahead.
+ * NOAA: true solar time = civil time + equation of time + 4 * longitude - 60 * offset.
+ * Removing the equation of time gives the mean-solar relation used here.
+ * https://gml.noaa.gov/grad/solcalc/solareqns.PDF
+ * No rounding, date wrapping, timezone lookup or seasonal sunrise correction is applied.
+ */
+export function calculateMeanSolarTimeCorrection(input: MeanSolarTimeCorrectionInput): number {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) {
+    throw new TypeError("Mean solar correction input must be an object")
+  }
+  const { longitude, utcOffsetHours } = input
+  if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+    throw new RangeError("longitude must be finite and between -180 and 180")
+  }
+  if (!Number.isFinite(utcOffsetHours) || utcOffsetHours < -14 || utcOffsetHours > 14) {
+    throw new RangeError("utcOffsetHours must be finite and between -14 and 14")
+  }
+  return 60 * utcOffsetHours - 4 * longitude
+}
+
+/** Traditional UTC+7 reference convention, rounded to whole minutes; not a dated civil offset. */
+export function getProvinceTimeCorrectionMinutes(province: string): number | undefined {
+  const seat = PROVINCE_SEATS.find(row => row[0] === province)
+  return seat ? Math.round(calculateMeanSolarTimeCorrection({ longitude: seat[2], utcOffsetHours: 7 })) : undefined
 }
