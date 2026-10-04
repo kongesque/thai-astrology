@@ -1,6 +1,6 @@
 import { calculateDetailedPositions, calculateTransits } from "./engine/astro/suriyayatra"
 import type { ChartPoint, DetailedCalculationResult, DetailedPosition, PlanetKey, TransitCalculationResult } from "./engine/astro/suriyayatra"
-import type { CalculationInput, PlanetPositions, SunriseReference } from "./engine/astro-calculation"
+import type { CalculationInput, PlanetaryTimeReference, PlanetPositions, SunriseReference } from "./engine/astro-calculation"
 import { normalizeCalculationInput } from "./engine/astro/input"
 import { modulo, PLANET_KEYS, PLANET_NUMBERS, SIGN_NAMES, SIGN_RULERS } from "./engine/astro/math"
 import { PROVINCE_TIME_OFFSETS } from "./engine/astro/provinces"
@@ -11,8 +11,10 @@ export interface HoroscopeInput {
   time: { hour: number; minute: number }
   /** Omit for zero province correction. An explicit correction overrides the province. */
   location?: { province?: string; localTimeCorrectionMinutes?: number }
-  /** Optional seasonal sunrise reference; classical planetary time remains civil-local. */
+  /** Optional seasonal sunrise reference on the input civil clock. */
   ascendantReference?: SunriseReference
+  /** Optional explicit offset frame for planetary cycles; calendar/timing stay civil. */
+  planetaryTimeReference?: PlanetaryTimeReference
 }
 
 export interface NormalizedHoroscopeInput {
@@ -20,6 +22,7 @@ export interface NormalizedHoroscopeInput {
   time: { hour: number; minute: number; convention: "civil-local" }
   location: { province: string; localTimeCorrectionMinutes: number }
   ascendantReference?: SunriseReference
+  planetaryTimeReference?: PlanetaryTimeReference
 }
 
 export interface HoroscopeInputIssue {
@@ -69,6 +72,13 @@ export function validateHoroscopeInput(input: unknown): HoroscopeInputValidation
   const correction = location.localTimeCorrectionMinutes
   if (correction !== undefined && (typeof correction !== "number" || !Number.isFinite(correction) || Math.abs(correction) > 1440)) issue("location.localTimeCorrectionMinutes", "range", "Expected finite minutes between -1440 and 1440")
   const province = location.province === undefined ? "ไม่ใช้จังหวัด" : location.province as string
+  if (input.planetaryTimeReference !== undefined) {
+    const reference = input.planetaryTimeReference
+    if (!object(reference)) issue("planetaryTimeReference", "type", "Expected an explicit planetary clock object")
+    else for (const name of ["civilUtcOffsetSeconds", "referenceUtcOffsetSeconds"] as const) {
+      integer(reference[name], `planetaryTimeReference.${name}`, -50400, 50400)
+    }
+  }
   if (input.ascendantReference !== undefined) {
     const reference = input.ascendantReference
     if (!object(reference)) issue("ascendantReference", "type", "Expected a coordinate sunrise object")
@@ -110,15 +120,19 @@ export function validateHoroscopeInput(input: unknown): HoroscopeInputValidation
       hour: typed.time.hour, minute: typed.time.minute,
       province, localTimeCorrectionMinutes: correction as number | undefined,
       ascendantReference: typed.ascendantReference,
+      planetaryTimeReference: typed.planetaryTimeReference,
     })
     return { valid: true, value: {
       date: { yearBe: normalized.yearBe, yearCe: normalized.yearCe, month: normalized.month, day: normalized.day },
       time: { hour: normalized.hour, minute: normalized.minute, convention: "civil-local" },
       location: { province, localTimeCorrectionMinutes: normalized.localTimeCorrectionMinutes },
       ...(normalized.ascendantReference ? { ascendantReference: normalized.ascendantReference } : {}),
+      ...(normalized.planetaryTimeReference ? { planetaryTimeReference: normalized.planetaryTimeReference } : {}),
     } }
   } catch (error) {
-    return { valid: false, issues: [{ field: "date.day", code: "range", message: error instanceof Error ? error.message : "Invalid civil date" }] }
+    const message = error instanceof Error ? error.message : "Invalid civil date"
+    const field = /[Pp]lanetary/.test(message) ? "planetaryTimeReference" : "date.day"
+    return { valid: false, issues: [{ field, code: "range", message }] }
   }
 }
 
@@ -179,7 +193,7 @@ const POINT_NAMES: Record<ChartPoint, string> = {
 const HOUSE_NAMES = ["ตนุ", "กดุมภะ", "สหัชชะ", "พันธุ", "ปุตตะ", "อริ", "ปัตนิ", "มรณะ", "ศุภะ", "กัมมะ", "ลาภะ", "วินาศะ"]
 
 function calculationInput(input: NormalizedHoroscopeInput): CalculationInput {
-  return { day: input.date.day, monthTh: input.date.month, yearBe: input.date.yearBe, hour: input.time.hour, minute: input.time.minute, ...input.location, method: "suriyayatra", ...(input.ascendantReference ? { ascendantReference: input.ascendantReference } : {}) }
+  return { day: input.date.day, monthTh: input.date.month, yearBe: input.date.yearBe, hour: input.time.hour, minute: input.time.minute, ...input.location, method: "suriyayatra", ...(input.ascendantReference ? { ascendantReference: input.ascendantReference } : {}), ...(input.planetaryTimeReference ? { planetaryTimeReference: input.planetaryTimeReference } : {}) }
 }
 
 function requireInput(input: HoroscopeInput): NormalizedHoroscopeInput {

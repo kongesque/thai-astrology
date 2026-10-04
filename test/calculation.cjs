@@ -11,6 +11,108 @@ const civilTimeCases = [1900, 1920, 2000, 2024, 2076].flatMap(yearBc =>
     Array.from({ length: 24 }, (_, hour) => ({ ...input, yearBc, monthTh, day, hour, minute: [0, 1, 59][hour % 3] }))))
 
 module.exports = [
+  ['Explicit planetary clocks preserve the instant across offsets and date boundaries', () => {
+    const referenceUtcOffsetSeconds = 6 * 3600 + 42 * 60 + 4
+    for (const [a, b] of [
+      [[2024, 6, 21, 12, 0, -4 * 3600], [2024, 6, 21, 23, 0, 7 * 3600]],
+      [[2024, 12, 31, 17, 30, -5 * 3600], [2025, 1, 1, 5, 30, 7 * 3600]],
+      [[2024, 2, 29, 22, 0, -4 * 3600], [2024, 3, 1, 9, 0, 7 * 3600]],
+      [[2024, 4, 16, 23, 30, -4 * 3600], [2024, 4, 17, 10, 30, 7 * 3600]],
+    ]) {
+      const calculate = ([yearBc, monthTh, day, hour, minute, civilUtcOffsetSeconds]) => api.calculateDetailedPositions({ yearBc, monthTh, day, hour, minute, province: 'ไม่ใช้จังหวัด', planetaryTimeReference: { civilUtcOffsetSeconds, referenceUtcOffsetSeconds } })
+      const first = calculate(a), second = calculate(b)
+      for (const key of Object.keys(first.longitudes)) {
+        if (key !== 'ascendant') assert.equal(first.longitudes[key].longitudeArcMinutes, second.longitudes[key].longitudeArcMinutes)
+      }
+      assert.equal(first.diagnostics.planetaryEpochArcMinutes, second.diagnostics.planetaryEpochArcMinutes)
+      assert.equal(first.diagnostics.planetaryTime.horakhun, second.diagnostics.planetaryTime.horakhun)
+      assert.equal(first.diagnostics.planetaryTime.secondOfDay, second.diagnostics.planetaryTime.secondOfDay)
+    }
+  }],
+  ['Reference-clock day carry and second arithmetic follow exact fractions', () => {
+    const { dirname, join } = require('node:path')
+    const { normalizeCalculationInput, resolvePlanetaryTime } = require(join(dirname(require.resolve('thai-astrology')), 'engine/astro/input.js'))
+    // Independent integer offset conversion and rational unit checks, including ±28-hour shifts.
+    for (const delta of [-100800, -86400, -1082, -1076, 0, 19800, 86400, 100800]) {
+      for (let second = 0; second < 86400; second += 60) {
+        const civilUtcOffsetSeconds = delta < 0 ? 50400 : -50400
+        const value = { yearBc: 2024, monthTh: 1, day: 1, hour: Math.floor(second / 3600), minute: second % 3600 / 60, province: 'ไม่ใช้จังหวัด', planetaryTimeReference: { civilUtcOffsetSeconds, referenceUtcOffsetSeconds: civilUtcOffsetSeconds + delta } }
+        const input = normalizeCalculationInput(value)
+        const actual = api.calculateDetailedPositions(value)
+        const total = BigInt(second + delta), remainder = (total % 86400n + 86400n) % 86400n
+        const dayOffset = Number((total - remainder) / 86400n)
+        const time = resolvePlanetaryTime(input, actual.calendar.horakhun)
+        assert.equal(time.dayOffset, dayOffset)
+        assert.equal(time.secondOfDay, Number(remainder))
+        assert.equal(time.horakhun, actual.calendar.horakhun + dayOffset)
+        const solarUnits = Number(remainder * 800n / 86400n)
+        const solar = (BigInt(time.horakhun - 1) * 800n + BigInt(solarUnits) - 373n) % 292207n
+        assert.equal(actual.diagnostics.solarCycleUnits, Number((solar + 292207n) % 292207n))
+        assert.deepEqual(actual.diagnostics.planetaryTime, { ...time, ...value.planetaryTimeReference })
+        const positiveMod = (a, b) => (a % b + b) % b
+        const h = BigInt(time.horakhun - 1)
+        const cycle = positiveMod(h * 703n + 650n + remainder * 703n / 86400n, 20760n)
+        const r = cycle % 692n
+        const meanMoon = positiveMod(BigInt(actual.diagnostics.meanSunArcMinutes) + cycle / 692n * 720n + r + r / 25n - 40n, 21600n)
+        const apogeeDay = positiveMod(h - 621n, 3232n)
+        const apogee = (apogeeDay * 86400n + remainder) * 21600n / (3232n * 86400n) + 2n
+        const anomaly = positiveMod(meanMoon - apogee, 21600n), quadrant = Number(anomaly / 5400n)
+        const arc = [anomaly, 10800n - anomaly, anomaly - 10800n, 21600n - anomaly][quadrant]
+        const segment = Math.min(Number(arc / 900n), 5), distance = arc - BigInt(segment) * 900n
+        const table = [0n, 77n, 148n, 209n, 256n, 286n, 296n]
+        const correction = (table[segment] * (900n - distance) + table[segment + 1] * distance) / 900n
+        const moon = positiveMod(meanMoon + (quadrant < 2 ? -correction : correction), 21600n)
+        assert.equal(actual.longitudes.moon.longitudeArcMinutes, Number(moon))
+        if (delta !== 0) {
+          const ketuDay = positiveMod(h - 344n, 679n)
+          const ketu = positiveMod(21600n - (ketuDay * 86400n + remainder) * 21600n / (679n * 86400n), 21600n)
+          assert.equal(actual.longitudes.ketu.longitudeArcMinutes, Number(ketu))
+        }
+      }
+    }
+  }],
+  ['Planetary reference clocks keep civil calendars, sunrise frames and API behavior explicit', () => {
+    const planetaryTimeReference = { civilUtcOffsetSeconds: 7 * 3600, referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4 }
+    const value = { yearBc: 2024, monthTh: 1, day: 1, hour: 0, minute: 0, province: 'ไม่ใช้จังหวัด' }
+    const base = api.calculateDetailedPositions(value)
+    const detailed = api.calculateDetailedPositions({ ...value, planetaryTimeReference })
+    assert.deepEqual(detailed.calendar.thaiLunarDate, base.calendar.thaiLunarDate)
+    for (const key of ['chulaSakarat', 'julianDayNumber', 'horakhun', 'civilWeekday', 'astrologicalWeekday']) assert.equal(detailed.calendar[key], base.calendar[key])
+    assert.deepEqual(detailed.taksa, base.taksa)
+    assert.equal(detailed.ascendant.referenceTimeMinutes, base.ascendant.referenceTimeMinutes)
+    assert.equal(detailed.diagnostics.planetaryTime.dayOffset, -1)
+    assert.equal(detailed.diagnostics.planetaryTime.secondOfDay, 85324)
+    assert.equal(api.generateThaiAstrologyChart({ ...value, method: 'suriyayatra', planetaryTimeReference }).longitudes.moon.longitudeArcMinutes, detailed.longitudes.moon.longitudeArcMinutes)
+    const web = { date: { year: 2024, era: 'CE', month: 1, day: 1 }, time: { hour: 0, minute: 0 }, planetaryTimeReference }
+    const validated = api.validateHoroscopeInput(web)
+    assert.equal(validated.valid, true)
+    assert.deepEqual(validated.value.planetaryTimeReference, planetaryTimeReference)
+    assert.equal(api.calculateThaiHoroscope(web).points.moon.longitudeArcMinutes, detailed.longitudes.moon.longitudeArcMinutes)
+    assert.equal(api.calculateHoroscopeTransits(web, web).comparison.moon.longitudeDifferenceDegrees, 0)
+    const sunrise = { method: 'sunrise', latitude: 13.7563, longitude: 100.5018, utcOffsetHours: 7 }
+    const withSunrise = api.calculateDetailedPositions({ ...value, ascendantReference: sunrise, planetaryTimeReference })
+    assert.deepEqual(withSunrise.ascendant.sunrise, api.calculateDetailedPositions({ ...value, ascendantReference: sunrise }).ascendant.sunrise)
+    for (const civil of civilTimeCases) {
+      const previous = api.calculateDetailedPositions(civil)
+      const identity = api.calculateDetailedPositions({ ...civil, planetaryTimeReference: { civilUtcOffsetSeconds: 25200, referenceUtcOffsetSeconds: 25200 } })
+      delete identity.diagnostics.planetaryTime
+      assert.deepEqual(identity, previous)
+    }
+  }],
+  ['Planetary clock validation refuses invalid offsets, legacy selection and date overflow', () => {
+    const value = { yearBc: 2024, monthTh: 1, day: 1, hour: 12, minute: 0, province: 'ไม่ใช้จังหวัด' }
+    for (const reference of [null, [], {}, { civilUtcOffsetSeconds: '25200', referenceUtcOffsetSeconds: 24124 }, { civilUtcOffsetSeconds: 25200.5, referenceUtcOffsetSeconds: 24124 }, { civilUtcOffsetSeconds: 50401, referenceUtcOffsetSeconds: 24124 }, { civilUtcOffsetSeconds: 25200, referenceUtcOffsetSeconds: NaN }]) {
+      assert.throws(() => api.calculateDetailedPositions({ ...value, planetaryTimeReference: reference }), /planetaryTimeReference/)
+      assert.equal(api.validateHoroscopeInput({ date: { year: 2024, era: 'CE', month: 1, day: 1 }, time: { hour: 12, minute: 0 }, planetaryTimeReference: reference }).valid, false)
+    }
+    const reference = { civilUtcOffsetSeconds: 25200, referenceUtcOffsetSeconds: 24124 }
+    assert.throws(() => api.generateThaiAstrologyChart({ ...value, planetaryTimeReference: reference }), /suriyayatra/)
+    assert.throws(() => api.calculateDetailedPositions({ ...value, method: 'legacy', planetaryTimeReference: reference }), /suriyayatra/)
+    assert.throws(() => api.calculateDetailedPositions({ ...value, planetaryTimeReference: reference, ascendantReference: { method: 'sunrise', latitude: 13.7563, longitude: 100.5018, utcOffsetHours: 6 } }), /same civil UTC offset/)
+    for (const [yearBc, monthTh, day, hour, offsets] of [[1, 1, 1, 0, [50400, -50400]], [9999, 12, 31, 23, [-50400, 50400]]]) {
+      assert.throws(() => api.calculateDetailedPositions({ ...value, yearBc, monthTh, day, hour, planetaryTimeReference: { civilUtcOffsetSeconds: offsets[0], referenceUtcOffsetSeconds: offsets[1] } }), /reference date/)
+    }
+  }],
   ['Solar intraday units and lunar apogee agree with exact integer division across their complete domains', () => {
     const { dirname, join } = require('node:path')
     const { solarIntradayUnits, meanLunarApogeeArcMinutes } = require(join(dirname(require.resolve('thai-astrology')), 'engine/astro/math.js'))

@@ -44,6 +44,16 @@ export interface CalculationInput {
   localTimeCorrectionMinutes?: number
   /** Optional coordinate sunrise for the classical ascendant; requires Suriyayatra. */
   ascendantReference?: SunriseReference
+  /** Explicit civil-to-reference clock conversion for planetary cycles; Suriyayatra only. */
+  planetaryTimeReference?: PlanetaryTimeReference
+}
+
+/** Fixed-offset reference chosen by the caller; no historical meridian is inferred. */
+export interface PlanetaryTimeReference {
+  /** Civil UTC offset on the input date, including DST, in whole seconds. */
+  civilUtcOffsetSeconds: number
+  /** UTC offset of the calculation's declared reference clock, in whole seconds. */
+  referenceUtcOffsetSeconds: number
 }
 
 export interface CalculationResult {

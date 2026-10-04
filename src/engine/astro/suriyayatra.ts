@@ -1,5 +1,5 @@
 import type { CalculationInput, CalculationResult, PlanetPositions } from "../astro-calculation"
-import { civilJulianDay, normalizeCalculationInput } from "./input"
+import { civilJulianDay, normalizeCalculationInput, resolvePlanetaryTime } from "./input"
 import { interpolateTableFloor, meanLunarApogeeArcMinutes, modulo, PLANET_KEYS, PLANET_NUMBERS, SIGN_DURATIONS, SIGN_NAMES, SIGN_RULERS, solarIntradayUnits } from "./math"
 import { planetDignities } from "./dignities"
 import { subdivisionLabels } from "./divisions"
@@ -116,6 +116,8 @@ export interface DetailedCalculationResult extends CalculationResult {
     meanRaviArcMinutes: number
     planetaryEpochArcMinutes: number
     solarCycleUnits: number
+    /** Present only for an explicitly selected planetary clock; calendar/timing stay civil. */
+    planetaryTime?: { horakhun: number; secondOfDay: number; dayOffset: number; civilUtcOffsetSeconds: number; referenceUtcOffsetSeconds: number }
   }
 }
 
@@ -275,21 +277,30 @@ export function calculateDetailedPositions(input: CalculationInput): DetailedCal
   const horakhun = julianDayNumber - 1954167
   const hours = hour + minute / 60
   const timeMinutes = hour * 60 + minute
+  const planetaryTime = normalized.planetaryTimeReference ? resolvePlanetaryTime(normalized, horakhun) : undefined
+  const shiftedTime = normalized.planetaryTimeReference?.civilUtcOffsetSeconds !== normalized.planetaryTimeReference?.referenceUtcOffsetSeconds ? planetaryTime : undefined
+  const planetaryHorakhun = planetaryTime?.horakhun ?? horakhun
+  const planetaryHours = shiftedTime ? shiftedTime.secondOfDay / 3600 : hours
   const cs = yearBe - 1181
   const thaloeng = Math.ceil((292207 * cs + 373) / 800)
   const equation = cs * 0.25875 + Math.trunc(cs / 100 + 0.38) - Math.trunc(cs / 4 + 0.5) - Math.trunc(cs / 400 + 0.595) - 5.53375
   // เทียบเวลาจุดเปลี่ยนปีด้วยหน่วยนาทีเดียวกัน รวมส่วนวินาทีของจุดเปลี่ยนด้วย
   const thaloengTime = (equation - Math.trunc(equation)) * 1440
   const chulaSakarat = horakhun < thaloeng || (horakhun === thaloeng && hours * 60 <= thaloengTime) ? cs - 1 : cs
-  const solarCycleUnits = modulo((horakhun - 1) * 800 + solarIntradayUnits(timeMinutes) - 373, 292207)
+  const planetaryChulaSakarat = planetaryHorakhun < thaloeng || (planetaryHorakhun === thaloeng && planetaryHours * 60 <= thaloengTime) ? cs - 1 : cs
+  // Explicit frame uses integral seconds; the omitted-option path preserves published arithmetic.
+  const solarUnits = shiftedTime ? Math.floor(shiftedTime.secondOfDay * 800 / 86400) : solarIntradayUnits(timeMinutes)
+  const solarCycleUnits = modulo((planetaryHorakhun - 1) * 800 + solarUnits - 373, 292207)
   const remainder = modulo(solarCycleUnits, 24350)
   const meanSun = modulo(Math.trunc(solarCycleUnits / 24350) * 1800 + Math.trunc(remainder / 811) * 60 + Math.trunc(modulo(remainder, 811) / 14) - 3, 21600)
   const meanRavi = modulo(meanSun - 23, 21600)
-  const epoch = (chulaSakarat - (solarCycleUnits >= 364 ? 610 : 611)) * 21600 + meanRavi
+  const epoch = (planetaryChulaSakarat - (solarCycleUnits >= 364 ? 610 : 611)) * 21600 + meanRavi
   const sun = luminary(meanSun, meanSun - 4800, SUN_TABLE)
-  const lunarCycle = modulo((horakhun - 1) * 703 + 650 + Math.trunc(hours * 703 / 24), 20760)
+  const lunarUnits = shiftedTime ? Math.floor(shiftedTime.secondOfDay * 703 / 86400) : Math.trunc(hours * 703 / 24)
+  const lunarCycle = modulo((planetaryHorakhun - 1) * 703 + 650 + lunarUnits, 20760)
   const meanMoon = modulo(Math.floor(lunarCycle / 692) * 720 + Math.trunc(1.04 * modulo(lunarCycle, 692)) - 40 + meanSun, 21600)
-  const lunarAnomaly = meanLunarApogeeArcMinutes(modulo(horakhun - 1 - 621, 3232), timeMinutes)
+  const apogeeDayIndex = modulo(planetaryHorakhun - 1 - 621, 3232)
+  const lunarAnomaly = shiftedTime ? Math.floor((apogeeDayIndex * 86400 + shiftedTime.secondOfDay) / 12928) + 2 : meanLunarApogeeArcMinutes(apogeeDayIndex, timeMinutes)
   const moon = luminary(meanMoon, meanMoon - lunarAnomaly, MOON_TABLE)
   const marsMean = modulo(Math.trunc(epoch / 2) + Math.floor(epoch * 16 / 505) + 5420, 21600)
   const mercuryMean = modulo(Math.trunc(epoch * 7 / 46) + Math.floor(epoch * 4) + 10642, 21600)
@@ -310,7 +321,7 @@ export function calculateDetailedPositions(input: CalculationInput): DetailedCal
     uranus: correctedPlanet({ mean: uranusMean, primaryBase: uranusMean, anomalyOffset: 7440, denominator: 38640, scale: 3 / 7 }, meanRavi),
     rahu: modulo(15150 - modulo(Math.trunc(epoch / 20) + Math.floor(epoch / 265), 21600), 21600),
     // Thai Ketu has its own 679-day cycle; it is not Rahu + 180 degrees.
-    ketu: modulo(21600 - Math.trunc((modulo(horakhun - 1 - 344, 679) + hours / 24) * 21600 / 679), 21600),
+    ketu: modulo(21600 - (shiftedTime ? Math.floor((modulo(planetaryHorakhun - 1 - 344, 679) * 86400 + shiftedTime.secondOfDay) / 2716) : Math.trunc((modulo(horakhun - 1 - 344, 679) + hours / 24) * 21600 / 679)), 21600),
   }
   // Use the same boundary normalization for houses, rulers and the displayed ascendant.
   const ascSign = describeLongitude(asc.longitude).sign
@@ -358,7 +369,7 @@ export function calculateDetailedPositions(input: CalculationInput): DetailedCal
     divisionalCharts: { navamsa: { positions: navamsa, channelOutputs: chartChannels(navamsa, tanuseth) }, drekkana: { positions: drekkana, channelOutputs: chartChannels(drekkana, tanuseth) } },
     tanusethDetails: { firstLord: SIGN_RULERS[ascSign], firstLordSign: firstSign, firstDistance, secondLord: SIGN_RULERS[firstSign], secondLordSign: positions[secondLord], secondDistance },
     taksa: { method: "weekday-0600", boriwan: taksaPlanet(0), ayu: taksaPlanet(1), det: taksaPlanet(2), si: taksaPlanet(3), mula: taksaPlanet(4), utsaha: taksaPlanet(5), montri: taksaPlanet(6), kalakini: taksaPlanet(7), center: 9 },
-    diagnostics: { meanSunArcMinutes: meanSun, meanRaviArcMinutes: meanRavi, planetaryEpochArcMinutes: epoch, solarCycleUnits },
+    diagnostics: { meanSunArcMinutes: meanSun, meanRaviArcMinutes: meanRavi, planetaryEpochArcMinutes: epoch, solarCycleUnits, ...(planetaryTime && normalized.planetaryTimeReference ? { planetaryTime: { ...planetaryTime, ...normalized.planetaryTimeReference } } : {}) },
   }
 }
 

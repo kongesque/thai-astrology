@@ -66,6 +66,9 @@ assert.equal(formatChannelOutputs(chart)[8], 'ลั')
 assert.equal(calculateSun(9, 2566, 15, 14, 45), chart.positions.sun)
 const details = calculateDetailedPositions({ day: 15, monthTh: 9, yearBe: 2567, hour: 8, minute: 30, province: 'เชียงใหม่' })
 assert.ok(details.longitudes.mercury.longitudeArcMinutes >= 0 && details.longitudes.mercury.longitudeArcMinutes < 21600)
+const framed = calculateDetailedPositions({ day: 15, monthTh: 9, yearBe: 2567, hour: 8, minute: 30, province: 'เชียงใหม่', planetaryTimeReference: { civilUtcOffsetSeconds: 25200, referenceUtcOffsetSeconds: 24124 } })
+assert.equal(framed.diagnostics.planetaryTime.secondOfDay, 29524)
+assert.deepEqual(framed.calendar.thaiLunarDate, details.calendar.thaiLunarDate)
 assert.equal(describeLongitude(61).sign, 0)
 const webInput = { date: { year: 2567, era: 'BE', month: 9, day: 15 }, time: { hour: 8, minute: 30 }, location: { province: 'เชียงใหม่' } }
 assert.equal(calculateThaiHoroscope(webInput).points.mercury.longitudeArcMinutes, details.longitudes.mercury.longitudeArcMinutes)
@@ -115,6 +118,8 @@ assert.equal(resolveCivilTimeOffset(civilTime, 'Asia/Kathmandu').utcOffsetHours,
   assert.equal(browserApi.validateHoroscopeInput(browserInput).valid, true)
   const coordinateInput = { ...browserInput, ascendantReference: { method: 'sunrise', latitude: 13.7563, longitude: 100.5018, utcOffsetHours: 7 } }
   assert.deepEqual(JSON.parse(JSON.stringify(browserApi.calculateThaiHoroscope(coordinateInput))), require(installed).calculateThaiHoroscope(coordinateInput))
+  const clockInput = { ...coordinateInput, planetaryTimeReference: { civilUtcOffsetSeconds: 25200, referenceUtcOffsetSeconds: 24124 } }
+  assert.deepEqual(JSON.parse(JSON.stringify(browserApi.calculateThaiHoroscope(clockInput))), require(installed).calculateThaiHoroscope(clockInput))
   assert.equal(browserApi.calculateSunrise({ yearCe: 2024, month: 6, day: 21, latitude: 13.7563, longitude: 100.5018, utcOffsetHours: 7 }).roundedTimeMinutes, 352)
   assert.deepEqual(JSON.parse(JSON.stringify(browserApi.getThaiAstrologyProvinceLocations())), require(installed).getThaiAstrologyProvinceLocations())
   assert.deepEqual(JSON.parse(JSON.stringify(browserApi.getThaiAstrologyCountries())), require(installed).getThaiAstrologyCountries())
@@ -127,12 +132,16 @@ assert.equal(resolveCivilTimeOffset(civilTime, 'Asia/Kathmandu').utcOffsetHours,
 
   const types = `
 import { generateThaiAstrologyChart, formatChannelOutputs, calculateDetailedPositions, calculateTransits, calculateThaiHoroscope, calculateHoroscopeTransits, validateHoroscopeInput, calculateSunrise, createSunriseReference, getThaiAstrologyProvinceLocations, getThaiAstrologyCountries, searchThaiAstrologyLocations, createSunriseReferenceForLocation, resolveCivilTimeOffset } from 'thai-astrology'
-import type { CalculationInput, ThaiAstrologyChart, DetailedCalculationResult, DetailedThaiAstrologyChart, ThaiLunarDate, TransitCalculationResult, HoroscopeInput, ThaiHoroscope, HoroscopeTransitResult, SunriseReference, SunriseResult, ThaiProvinceLocation, AstrologyCountry, SunriseReferenceSelection, CivilDateTime, CivilTimeOffset, AstrologyLocationSearchResult, LocationSunriseSelection } from 'thai-astrology'
+import type { CalculationInput, PlanetaryTimeReference, ThaiAstrologyChart, DetailedCalculationResult, DetailedThaiAstrologyChart, ThaiLunarDate, TransitCalculationResult, HoroscopeInput, ThaiHoroscope, HoroscopeTransitResult, SunriseReference, SunriseResult, ThaiProvinceLocation, AstrologyCountry, SunriseReferenceSelection, CivilDateTime, CivilTimeOffset, AstrologyLocationSearchResult, LocationSunriseSelection } from 'thai-astrology'
 const input: CalculationInput = { day: 15, monthTh: 9, yearBe: 2566, hour: 14, minute: 45, province: 'กรุงเทพมหานคร' }
 const chart: ThaiAstrologyChart = generateThaiAstrologyChart(input)
 const channels: string[] = formatChannelOutputs(chart, { numerals: 'thai' })
 void channels
 const detailed: DetailedCalculationResult = calculateDetailedPositions(input)
+const clock: PlanetaryTimeReference = { civilUtcOffsetSeconds: 25200, referenceUtcOffsetSeconds: 24124 }
+const framed: DetailedCalculationResult = calculateDetailedPositions({ ...input, planetaryTimeReference: clock })
+const frameSeconds: number | undefined = framed.diagnostics.planetaryTime?.secondOfDay
+void frameSeconds
 const richer: DetailedThaiAstrologyChart = generateThaiAstrologyChart({ ...input, method: 'suriyayatra' })
 const lunarDate: ThaiLunarDate | null = richer.calendar.thaiLunarDate
 const transits: TransitCalculationResult = calculateTransits(input, input)
