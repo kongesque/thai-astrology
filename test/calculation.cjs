@@ -5,7 +5,90 @@ const api = require('thai-astrology')
 
 const input = { yearBc: 2024, monthTh: 9, day: 15, hour: 8, minute: 30, province: 'เชียงใหม่' }
 
+// Public synthetic contract cases, independent of any external chart records.
+const civilTimeCases = [1900, 1920, 2000, 2024, 2076].flatMap(yearBc =>
+  [[1, 1], [2, 28], [3, 1], [4, 15], [4, 16], [4, 17], [6, 30], [7, 1], [12, 30], [12, 31]].flatMap(([monthTh, day]) =>
+    Array.from({ length: 24 }, (_, hour) => ({ ...input, yearBc, monthTh, day, hour, minute: [0, 1, 59][hour % 3] }))))
+
 module.exports = [
+  ['Civil date boundaries and the fixed 06:00 weekday use separate clocks', () => {
+    // USNO's J2000.0 is JD 2451545.0 at 2000-01-01 noon UT.
+    // The API exposes a civil-date JDN, not the instant's fractional UT Julian date.
+    // https://aa.usno.navy.mil/faq/sun_approx
+    const noon = api.calculateDetailedPositions({ ...input, yearBc: 2000, monthTh: 1, day: 1, hour: 12, minute: 0 })
+    assert.equal(noon.calendar.julianDayNumber, 2451545)
+    // https://aa.usno.navy.mil/faq/JD_formula gives this civil-date example.
+    assert.equal(api.calculateDetailedPositions({ ...input, yearBc: 1970, monthTh: 1, day: 1 }).calendar.julianDayNumber, 2440588)
+    for (const [before, after] of [
+      [[1999, 12, 31], [2000, 1, 1]],
+      [[1900, 2, 28], [1900, 3, 1]],
+      [[2000, 2, 28], [2000, 2, 29]],
+      [[2000, 2, 29], [2000, 3, 1]],
+      [[2100, 2, 28], [2100, 3, 1]],
+    ]) {
+      const calculate = ([yearBc, monthTh, day], hour, minute) => api.calculateDetailedPositions({ ...input, yearBc, monthTh, day, hour, minute })
+      const last = calculate(before, 23, 59).calendar
+      const first = calculate(after, 0, 0).calendar
+      assert.equal(first.julianDayNumber, last.julianDayNumber + 1)
+      assert.equal(first.civilWeekday, last.civilWeekday % 7 + 1)
+      assert.equal(first.astrologicalWeekday, last.civilWeekday)
+      const early = calculate(after, 5, 59).calendar
+      const six = calculate(after, 6, 0).calendar
+      assert.equal(early.astrologicalWeekday, last.civilWeekday)
+      assert.equal(six.astrologicalWeekday, first.civilWeekday)
+      assert.deepEqual(early.thaiLunarDate, first.thaiLunarDate)
+      assert.deepEqual(six.thaiLunarDate, first.thaiLunarDate)
+    }
+  }],
+  ['Province corrections do not change planetary clocks or civil calendars across 1200 cases', () => {
+    const provinces = api.getThaiAstrologyProvinces()
+    const corrections = [-1440, -720, -345.5, -18, 0, 18, 345.5, 720, 1440]
+    assert.equal(civilTimeCases.length, 1200)
+    for (const [index, value] of civilTimeCases.entries()) {
+      const base = api.calculateDetailedPositions({ ...value, province: 'ไม่ใช้จังหวัด' })
+      const { yearBc, ...other } = value
+      assert.deepEqual(api.calculateDetailedPositions({ ...other, province: 'ไม่ใช้จังหวัด', yearBe: yearBc + 543 }), base)
+      const correction = corrections[index % corrections.length]
+      const province = provinces[index % provinces.length]
+      for (const location of [{ province: province.province }, { province: 'custom', localTimeCorrectionMinutes: correction }]) {
+        const chart = api.calculateDetailedPositions({ ...value, ...location })
+        assert.deepEqual(chart.calendar, base.calendar)
+        assert.deepEqual(chart.diagnostics, base.diagnostics)
+        assert.deepEqual(chart.taksa, base.taksa)
+        for (const [key, point] of Object.entries(base.longitudes)) {
+          if (key !== 'ascendant') assert.equal(chart.longitudes[key].longitudeArcMinutes, point.longitudeArcMinutes)
+        }
+        const expected = location.localTimeCorrectionMinutes === undefined ? province.localTimeCorrectionMinutes : correction
+        assert.equal(chart.ascendant.localTimeCorrectionMinutes, expected)
+        assert.equal(chart.ascendant.referenceTimeMinutes, ((360 + expected) % 1440 + 1440) % 1440)
+      }
+      // A whole-day reference shift is periodic; it must not roll the input date.
+      if (Math.abs(correction) === 1440) {
+        const shifted = api.calculateDetailedPositions({ ...value, localTimeCorrectionMinutes: correction })
+        assert.ok(Math.abs(shifted.longitudes.ascendant.longitudeArcMinutes - base.longitudes.ascendant.longitudeArcMinutes) < 1e-7)
+      }
+    }
+  }],
+  ['The same 1200 civil inputs are independent of the host timezone', () => {
+    const { execFileSync } = require('node:child_process')
+    const { createHash } = require('node:crypto')
+    const expected = createHash('sha256')
+    for (const value of civilTimeCases) expected.update(JSON.stringify(api.calculateDetailedPositions(value)) + '\n')
+    const digest = expected.digest('hex')
+    const script = `
+      const api = require(process.argv[1])
+      const values = JSON.parse(require('node:fs').readFileSync(0, 'utf8'))
+      const hash = require('node:crypto').createHash('sha256')
+      for (const value of values) hash.update(JSON.stringify(api.calculateDetailedPositions(value)) + '\\n')
+      process.stdout.write(hash.digest('hex'))
+    `
+    for (const TZ of ['UTC', 'Asia/Bangkok', 'America/New_York', 'Pacific/Apia']) {
+      const actual = execFileSync(process.execPath, ['-e', script, require.resolve('thai-astrology')], {
+        input: JSON.stringify(civilTimeCases), encoding: 'utf8', env: { ...process.env, TZ },
+      })
+      assert.equal(actual, digest, `Civil calculation changed under TZ=${TZ}`)
+    }
+  }],
   ['The 1999 lunar cycle includes an extra eighth month rather than an extra day', () => {
     // The open-source example identifies Julian day 2451545 (2000-01-01)
     // as CS 1361 with an extra month. Only its year classification is asserted.

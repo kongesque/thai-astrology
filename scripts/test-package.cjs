@@ -48,13 +48,15 @@ try {
   copyFileSync(join(root, 'test/run.cjs'), join(consumer, 'test/run.cjs'))
   copyFileSync(join(root, 'test/calculation.cjs'), join(consumer, 'test/calculation.cjs'))
   copyFileSync(join(root, 'test/horoscope.cjs'), join(consumer, 'test/horoscope.cjs'))
+  copyFileSync(join(root, 'test/sunrise.cjs'), join(consumer, 'test/sunrise.cjs'))
+  copyFileSync(join(root, 'test/fixtures/sunrise-events.json'), join(consumer, 'test/fixtures/sunrise-events.json'))
   copyFileSync(join(root, 'test/fixtures/release-0.1.7.json'), join(consumer, 'test/fixtures/release-0.1.7.json'))
   execFileSync(process.execPath, ['test/run.cjs'], { cwd: consumer, stdio: 'inherit' })
   require('./local-validation.cjs').runLocalValidation(installed, 'installed')
 
   writeFileSync(join(consumer, 'esm.mjs'), `
 import assert from 'node:assert/strict'
-import { generateThaiAstrologyChart, formatChannelOutputs, calculateSun, calculateDetailedPositions, calculateTransits, describeLongitude, calculateThaiHoroscope, calculateHoroscopeTransits, validateHoroscopeInput, getThaiAstrologyProvinces, HoroscopeInputError } from 'thai-astrology'
+import { generateThaiAstrologyChart, formatChannelOutputs, calculateSun, calculateDetailedPositions, calculateTransits, describeLongitude, calculateThaiHoroscope, calculateHoroscopeTransits, validateHoroscopeInput, getThaiAstrologyProvinces, HoroscopeInputError, calculateSunrise } from 'thai-astrology'
 const chart = generateThaiAstrologyChart({ day: 15, monthTh: 9, yearBe: 2566, hour: 14, minute: 45, province: 'กรุงเทพมหานคร' })
 assert.deepEqual(chart.sunPosition, [27, 29])
 assert.equal(formatChannelOutputs(chart)[8], 'ลั')
@@ -69,6 +71,9 @@ assert.equal(validateHoroscopeInput(webInput).valid, true)
 assert.equal(getThaiAstrologyProvinces().length, 77)
 assert.throws(() => calculateThaiHoroscope({}), HoroscopeInputError)
 assert.equal(calculateTransits({ day: 15, monthTh: 9, yearBe: 2567, hour: 8, minute: 30, province: 'เชียงใหม่' }, { day: 15, monthTh: 9, yearBe: 2567, hour: 8, minute: 30, province: 'เชียงใหม่' }).comparison.sun.longitudeDifferenceDegrees, 0)
+const sunrise = calculateSunrise({ yearCe: 2024, month: 6, day: 21, latitude: 13.7563, longitude: 100.5018, utcOffsetHours: 7 })
+assert.equal(sunrise.status, 'rise')
+assert.equal(sunrise.roundedTimeMinutes, 352)
 `)
   execFileSync(process.execPath, ['esm.mjs'], { cwd: consumer, stdio: 'inherit' })
 
@@ -97,10 +102,13 @@ assert.equal(calculateTransits({ day: 15, monthTh: 9, yearBe: 2567, hour: 8, min
   assert.deepEqual(browserChart, nodeChart)
   assert.equal(browserApi.calculateHoroscopeTransits(browserInput, browserInput).comparison.sun.longitudeDifferenceDegrees, 0)
   assert.equal(browserApi.validateHoroscopeInput(browserInput).valid, true)
+  const coordinateInput = { ...browserInput, ascendantReference: { method: 'sunrise', latitude: 13.7563, longitude: 100.5018, utcOffsetHours: 7 } }
+  assert.deepEqual(JSON.parse(JSON.stringify(browserApi.calculateThaiHoroscope(coordinateInput))), require(installed).calculateThaiHoroscope(coordinateInput))
+  assert.equal(browserApi.calculateSunrise({ yearCe: 2024, month: 6, day: 21, latitude: 13.7563, longitude: 100.5018, utcOffsetHours: 7 }).roundedTimeMinutes, 352)
 
   const types = `
-import { generateThaiAstrologyChart, formatChannelOutputs, calculateDetailedPositions, calculateTransits, calculateThaiHoroscope, calculateHoroscopeTransits, validateHoroscopeInput } from 'thai-astrology'
-import type { CalculationInput, ThaiAstrologyChart, DetailedCalculationResult, DetailedThaiAstrologyChart, ThaiLunarDate, TransitCalculationResult, HoroscopeInput, ThaiHoroscope, HoroscopeTransitResult } from 'thai-astrology'
+import { generateThaiAstrologyChart, formatChannelOutputs, calculateDetailedPositions, calculateTransits, calculateThaiHoroscope, calculateHoroscopeTransits, validateHoroscopeInput, calculateSunrise } from 'thai-astrology'
+import type { CalculationInput, ThaiAstrologyChart, DetailedCalculationResult, DetailedThaiAstrologyChart, ThaiLunarDate, TransitCalculationResult, HoroscopeInput, ThaiHoroscope, HoroscopeTransitResult, SunriseReference, SunriseResult } from 'thai-astrology'
 const input: CalculationInput = { day: 15, monthTh: 9, yearBe: 2566, hour: 14, minute: 45, province: 'กรุงเทพมหานคร' }
 const chart: ThaiAstrologyChart = generateThaiAstrologyChart(input)
 const channels: string[] = formatChannelOutputs(chart, { numerals: 'thai' })
@@ -117,6 +125,12 @@ const validation = validateHoroscopeInput(webInput)
 if (validation.valid) { const ceYear: number = validation.value.date.yearCe; void ceYear }
 else { const field: string = validation.issues[0].field; void field }
 void [webChart, webTransit]
+const coordinateReference: SunriseReference = { method: 'sunrise', latitude: 13.7563, longitude: 100.5018, utcOffsetHours: 7 }
+const sunrise: SunriseResult = calculateSunrise({ yearCe: 2024, month: 6, day: 21, ...coordinateReference })
+if (sunrise.status === 'rise') { const minutes: number = sunrise.timeMinutes; void minutes }
+const seasonal = calculateThaiHoroscope({ ...webInput, ascendantReference: coordinateReference })
+const coordinateDetailed = calculateDetailedPositions({ ...input, ascendantReference: coordinateReference })
+void [seasonal, coordinateDetailed]
 `
   writeFileSync(join(consumer, 'types.cts'), types)
   writeFileSync(join(consumer, 'types.mts'), types)

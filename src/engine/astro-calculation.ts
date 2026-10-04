@@ -2,10 +2,13 @@
 import { normalizeCalculationInput } from "./astro/input"
 import { calculateDetailedPositions } from "./astro/suriyayatra"
 import type { DetailedCalculationResult } from "./astro/suriyayatra"
+import type { SunriseReference } from "./astro/sunrise"
 
 export { calculateDetailedPositions, calculateSignRelationships, calculateTransits, describeLongitude } from "./astro/suriyayatra"
 export type { ChartPoint, DetailedCalculationResult, DetailedPosition, PlanetKey, SignRelationships, ThaiLunarDate, TransitCalculationResult } from "./astro/suriyayatra"
 export type CalculationMethod = "legacy" | "suriyayatra"
+export { calculateSunrise } from "./astro/sunrise"
+export type { SunriseInput, SunriseLocation, SunriseReference, SunriseResult } from "./astro/sunrise"
 
 export interface PlanetPositions {
   ascendant: number
@@ -33,6 +36,8 @@ export interface CalculationInput {
   method?: CalculationMethod
   /** Override the province's correction to the 06:00 reference, in minutes. */
   localTimeCorrectionMinutes?: number
+  /** Optional coordinate sunrise for the classical ascendant; requires Suriyayatra. */
+  ascendantReference?: SunriseReference
 }
 
 export interface CalculationResult {

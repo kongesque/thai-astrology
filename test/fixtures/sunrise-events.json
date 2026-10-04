@@ -1,0 +1,439 @@
+{
+  "source": "https://aa.usno.navy.mil/api/rstt/oneday",
+  "apiVersion": "4.0.1",
+  "retrievedDate": "2026-10-04",
+  "cases": [
+    {
+      "yearCe": 2024,
+      "month": 6,
+      "day": 21,
+      "latitude": 13.7563,
+      "longitude": 100.5018,
+      "utcOffsetHours": 7,
+      "expectedSunriseMinutes": 352
+    },
+    {
+      "yearCe": 2024,
+      "month": 12,
+      "day": 21,
+      "latitude": 13.7563,
+      "longitude": 100.5018,
+      "utcOffsetHours": 7,
+      "expectedSunriseMinutes": 397
+    },
+    {
+      "yearCe": 2024,
+      "month": 6,
+      "day": 21,
+      "latitude": 40.7128,
+      "longitude": -74.006,
+      "utcOffsetHours": -4,
+      "expectedSunriseMinutes": 325
+    },
+    {
+      "yearCe": 2024,
+      "month": 12,
+      "day": 21,
+      "latitude": 40.7128,
+      "longitude": -74.006,
+      "utcOffsetHours": -5,
+      "expectedSunriseMinutes": 437
+    },
+    {
+      "yearCe": 2024,
+      "month": 6,
+      "day": 21,
+      "latitude": -33.8688,
+      "longitude": 151.2093,
+      "utcOffsetHours": 10,
+      "expectedSunriseMinutes": 420
+    },
+    {
+      "yearCe": 2024,
+      "month": 12,
+      "day": 21,
+      "latitude": -33.8688,
+      "longitude": 151.2093,
+      "utcOffsetHours": 11,
+      "expectedSunriseMinutes": 341
+    },
+    {
+      "yearCe": 2024,
+      "month": 6,
+      "day": 21,
+      "latitude": 27.7172,
+      "longitude": 85.324,
+      "utcOffsetHours": 5.75,
+      "expectedSunriseMinutes": 309
+    },
+    {
+      "yearCe": 2024,
+      "month": 12,
+      "day": 21,
+      "latitude": 27.7172,
+      "longitude": 85.324,
+      "utcOffsetHours": 5.75,
+      "expectedSunriseMinutes": 410
+    },
+    {
+      "yearCe": 2024,
+      "month": 6,
+      "day": 21,
+      "latitude": 51.5074,
+      "longitude": -0.1278,
+      "utcOffsetHours": 1,
+      "expectedSunriseMinutes": 283
+    },
+    {
+      "yearCe": 2024,
+      "month": 12,
+      "day": 21,
+      "latitude": 51.5074,
+      "longitude": -0.1278,
+      "utcOffsetHours": 0,
+      "expectedSunriseMinutes": 484
+    },
+    {
+      "yearCe": 2024,
+      "month": 6,
+      "day": 21,
+      "latitude": -13.8333,
+      "longitude": -171.75,
+      "utcOffsetHours": 13,
+      "expectedSunriseMinutes": 410
+    },
+    {
+      "yearCe": 2024,
+      "month": 12,
+      "day": 21,
+      "latitude": -13.8333,
+      "longitude": -171.75,
+      "utcOffsetHours": 13,
+      "expectedSunriseMinutes": 357
+    },
+    {
+      "yearCe": 2024,
+      "month": 6,
+      "day": 21,
+      "latitude": 69.6492,
+      "longitude": 18.9553,
+      "utcOffsetHours": 2,
+      "expectedSunriseMinutes": null
+    },
+    {
+      "yearCe": 2024,
+      "month": 12,
+      "day": 21,
+      "latitude": 69.6492,
+      "longitude": 18.9553,
+      "utcOffsetHours": 1,
+      "expectedSunriseMinutes": null
+    },
+    {
+      "yearCe": 1900,
+      "month": 6,
+      "day": 21,
+      "latitude": 13.7563,
+      "longitude": 100.5018,
+      "utcOffsetHours": 7,
+      "expectedSunriseMinutes": 351
+    },
+    {
+      "yearCe": 2057,
+      "month": 6,
+      "day": 21,
+      "latitude": 13.7563,
+      "longitude": 100.5018,
+      "utcOffsetHours": 7,
+      "expectedSunriseMinutes": 352
+    },
+    {
+      "yearCe": 2024,
+      "month": 3,
+      "day": 20,
+      "latitude": 0,
+      "longitude": 179,
+      "utcOffsetHours": 14,
+      "expectedSunriseMinutes": 488
+    },
+    {
+      "yearCe": 2024,
+      "month": 6,
+      "day": 21,
+      "latitude": 0,
+      "longitude": 179,
+      "utcOffsetHours": 14,
+      "expectedSunriseMinutes": 482
+    },
+    {
+      "yearCe": 2024,
+      "month": 9,
+      "day": 22,
+      "latitude": 0,
+      "longitude": 179,
+      "utcOffsetHours": 14,
+      "expectedSunriseMinutes": 473
+    },
+    {
+      "yearCe": 2024,
+      "month": 12,
+      "day": 21,
+      "latitude": 0,
+      "longitude": 179,
+      "utcOffsetHours": 14,
+      "expectedSunriseMinutes": 478
+    },
+    {
+      "yearCe": 2024,
+      "month": 3,
+      "day": 20,
+      "latitude": 0,
+      "longitude": -179,
+      "utcOffsetHours": -12,
+      "expectedSunriseMinutes": 360
+    },
+    {
+      "yearCe": 2024,
+      "month": 6,
+      "day": 21,
+      "latitude": 0,
+      "longitude": -179,
+      "utcOffsetHours": -12,
+      "expectedSunriseMinutes": 354
+    },
+    {
+      "yearCe": 2024,
+      "month": 9,
+      "day": 22,
+      "latitude": 0,
+      "longitude": -179,
+      "utcOffsetHours": -12,
+      "expectedSunriseMinutes": 345
+    },
+    {
+      "yearCe": 2024,
+      "month": 12,
+      "day": 21,
+      "latitude": 0,
+      "longitude": -179,
+      "utcOffsetHours": -12,
+      "expectedSunriseMinutes": 351
+    },
+    {
+      "yearCe": 2024,
+      "month": 3,
+      "day": 20,
+      "latitude": 27.7172,
+      "longitude": 85.324,
+      "utcOffsetHours": 5.75,
+      "expectedSunriseMinutes": 367
+    },
+    {
+      "yearCe": 2024,
+      "month": 6,
+      "day": 21,
+      "latitude": 27.7172,
+      "longitude": 85.324,
+      "utcOffsetHours": 5.75,
+      "expectedSunriseMinutes": 309
+    },
+    {
+      "yearCe": 2024,
+      "month": 9,
+      "day": 22,
+      "latitude": 27.7172,
+      "longitude": 85.324,
+      "utcOffsetHours": 5.75,
+      "expectedSunriseMinutes": 352
+    },
+    {
+      "yearCe": 2024,
+      "month": 12,
+      "day": 21,
+      "latitude": 27.7172,
+      "longitude": 85.324,
+      "utcOffsetHours": 5.75,
+      "expectedSunriseMinutes": 410
+    },
+    {
+      "yearCe": 2024,
+      "month": 3,
+      "day": 20,
+      "latitude": 51.5074,
+      "longitude": -0.1278,
+      "utcOffsetHours": 0,
+      "expectedSunriseMinutes": 362
+    },
+    {
+      "yearCe": 2024,
+      "month": 6,
+      "day": 21,
+      "latitude": 51.5074,
+      "longitude": -0.1278,
+      "utcOffsetHours": 0,
+      "expectedSunriseMinutes": 223
+    },
+    {
+      "yearCe": 2024,
+      "month": 9,
+      "day": 22,
+      "latitude": 51.5074,
+      "longitude": -0.1278,
+      "utcOffsetHours": 0,
+      "expectedSunriseMinutes": 347
+    },
+    {
+      "yearCe": 2024,
+      "month": 12,
+      "day": 21,
+      "latitude": 51.5074,
+      "longitude": -0.1278,
+      "utcOffsetHours": 0,
+      "expectedSunriseMinutes": 484
+    },
+    {
+      "yearCe": 2024,
+      "month": 3,
+      "day": 20,
+      "latitude": -33.8688,
+      "longitude": 151.2093,
+      "utcOffsetHours": 10,
+      "expectedSunriseMinutes": 358
+    },
+    {
+      "yearCe": 2024,
+      "month": 6,
+      "day": 21,
+      "latitude": -33.8688,
+      "longitude": 151.2093,
+      "utcOffsetHours": 10,
+      "expectedSunriseMinutes": 420
+    },
+    {
+      "yearCe": 2024,
+      "month": 9,
+      "day": 22,
+      "latitude": -33.8688,
+      "longitude": 151.2093,
+      "utcOffsetHours": 10,
+      "expectedSunriseMinutes": 345
+    },
+    {
+      "yearCe": 2024,
+      "month": 12,
+      "day": 21,
+      "latitude": -33.8688,
+      "longitude": 151.2093,
+      "utcOffsetHours": 10,
+      "expectedSunriseMinutes": 281
+    },
+    {
+      "yearCe": 2024,
+      "month": 3,
+      "day": 20,
+      "latitude": -13.8333,
+      "longitude": -171.75,
+      "utcOffsetHours": 13,
+      "expectedSunriseMinutes": 391
+    },
+    {
+      "yearCe": 2024,
+      "month": 6,
+      "day": 21,
+      "latitude": -13.8333,
+      "longitude": -171.75,
+      "utcOffsetHours": 13,
+      "expectedSunriseMinutes": 410
+    },
+    {
+      "yearCe": 2024,
+      "month": 9,
+      "day": 22,
+      "latitude": -13.8333,
+      "longitude": -171.75,
+      "utcOffsetHours": 13,
+      "expectedSunriseMinutes": 377
+    },
+    {
+      "yearCe": 2024,
+      "month": 12,
+      "day": 21,
+      "latitude": -13.8333,
+      "longitude": -171.75,
+      "utcOffsetHours": 13,
+      "expectedSunriseMinutes": 357
+    },
+    {
+      "yearCe": 2024,
+      "month": 3,
+      "day": 20,
+      "latitude": 67.4,
+      "longitude": 20,
+      "utcOffsetHours": 1,
+      "expectedSunriseMinutes": 339
+    },
+    {
+      "yearCe": 2024,
+      "month": 6,
+      "day": 21,
+      "latitude": 67.4,
+      "longitude": 20,
+      "utcOffsetHours": 1,
+      "expectedSunriseMinutes": null
+    },
+    {
+      "yearCe": 2024,
+      "month": 9,
+      "day": 22,
+      "latitude": 67.4,
+      "longitude": 20,
+      "utcOffsetHours": 1,
+      "expectedSunriseMinutes": 323
+    },
+    {
+      "yearCe": 2024,
+      "month": 12,
+      "day": 21,
+      "latitude": 67.4,
+      "longitude": 20,
+      "utcOffsetHours": 1,
+      "expectedSunriseMinutes": null
+    },
+    {
+      "yearCe": 2024,
+      "month": 3,
+      "day": 20,
+      "latitude": 69.6492,
+      "longitude": 18.9553,
+      "utcOffsetHours": 1,
+      "expectedSunriseMinutes": 342
+    },
+    {
+      "yearCe": 2024,
+      "month": 6,
+      "day": 21,
+      "latitude": 69.6492,
+      "longitude": 18.9553,
+      "utcOffsetHours": 1,
+      "expectedSunriseMinutes": null
+    },
+    {
+      "yearCe": 2024,
+      "month": 9,
+      "day": 22,
+      "latitude": 69.6492,
+      "longitude": 18.9553,
+      "utcOffsetHours": 1,
+      "expectedSunriseMinutes": 326
+    },
+    {
+      "yearCe": 2024,
+      "month": 12,
+      "day": 21,
+      "latitude": 69.6492,
+      "longitude": 18.9553,
+      "utcOffsetHours": 1,
+      "expectedSunriseMinutes": null
+    }
+  ]
+}

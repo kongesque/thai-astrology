@@ -5,6 +5,8 @@ import { planetDignities } from "./dignities"
 import { subdivisionLabels } from "./divisions"
 import { calculateThaiLunarDate } from "./lunar-calendar"
 import type { ThaiLunarDate } from "./lunar-calendar"
+import { calculateSunrise } from "./sunrise"
+import type { SunriseResult } from "./sunrise"
 
 export type { ThaiLunarDate } from "./lunar-calendar"
 
@@ -80,6 +82,8 @@ export interface DetailedCalculationResult extends CalculationResult {
     localTimeCorrectionMinutes: number
     referenceTimeMinutes: number
     signStartTimesMinutes: number[]
+    /** Present only when coordinate sunrise is explicitly selected. */
+    sunrise?: SunriseResult & { status: "rise" }
   }
   relationships: SignRelationships[]
   divisionalCharts: {
@@ -238,16 +242,18 @@ export function calculateSignRelationships(positions: PlanetPositions): SignRela
   })
 }
 
-function ascendantLongitude(sun: number, timeMinutes: number, correction: number): { longitude: number; starts: number[] } {
+function ascendantLongitude(sun: number, timeMinutes: number, correction: number, sunriseTime?: number): { longitude: number; starts: number[] } {
   const sunSign = Math.floor(sun / 1800)
   const elapsedSun = SIGN_DURATIONS.slice(0, sunSign).reduce((sum: number, duration) => sum + duration, 0)
     + SIGN_DURATIONS[sunSign] * modulo(sun, 1800) / 1800
-  const progression = modulo(elapsedSun + timeMinutes - 360 - correction, 1440)
+  const referenceTime = sunriseTime ?? 360 + correction
+  // Preserve the original arithmetic order for the traditional correction, including fractions.
+  const progression = modulo(sunriseTime === undefined ? elapsedSun + timeMinutes - 360 - correction : elapsedSun + timeMinutes - sunriseTime, 1440)
   let cumulative = 0
   let longitude = 0
   const starts: number[] = []
   for (const [sign, duration] of SIGN_DURATIONS.entries()) {
-    starts.push(modulo(360 + correction - elapsedSun + cumulative, 1440))
+    starts.push(modulo(referenceTime - elapsedSun + cumulative, 1440))
     if (progression >= cumulative && progression < cumulative + duration) {
       longitude = sign * 1800 + (progression - cumulative) * 1800 / duration
     }
@@ -260,6 +266,10 @@ function ascendantLongitude(sun: number, timeMinutes: number, correction: number
 export function calculateDetailedPositions(input: CalculationInput): DetailedCalculationResult {
   const normalized = normalizeCalculationInput(input)
   const { day, month, yearCe, yearBe, hour, minute, localTimeCorrectionMinutes } = normalized
+  const sunrise = normalized.ascendantReference
+    ? calculateSunrise({ yearCe, month, day, ...normalized.ascendantReference }) : undefined
+  if (sunrise?.status === "no-rise") throw new RangeError("No sunrise on the requested civil date; use the traditional ascendant reference")
+  const referenceTime = sunrise?.status === "rise" ? sunrise.timeMinutes : 360 + localTimeCorrectionMinutes
   const julianDayNumber = civilJulianDay(yearCe, month, day)
   // ใช้วันสากลเป็นฐาน เพื่อไม่ให้ timezone ของเครื่องเปลี่ยนวันคำนวณ
   const horakhun = julianDayNumber - 1954167
@@ -286,7 +296,7 @@ export function calculateDetailedPositions(input: CalculationInput): DetailedCal
   const venusMean = modulo(Math.trunc(epoch * 5 / 3) - Math.floor(epoch * 10 / 243) + 10944, 21600)
   const saturnMean = modulo(Math.trunc(epoch / 30) + Math.floor(epoch * 6 / 10000) + 11944, 21600)
   const uranusMean = modulo(Math.trunc(epoch / 84) + Math.floor(epoch / 7224) + 16277, 21600)
-  const asc = ascendantLongitude(sun, hours * 60, localTimeCorrectionMinutes)
+  const asc = ascendantLongitude(sun, hours * 60, localTimeCorrectionMinutes, sunrise?.status === "rise" ? sunrise.timeMinutes : undefined)
   const arcs: Record<ChartPoint, number> = {
     ascendant: asc.longitude,
     sun,
@@ -342,7 +352,7 @@ export function calculateDetailedPositions(input: CalculationInput): DetailedCal
       elongationDegrees: elongation / 60,
       thaiLunarDate: calculateThaiLunarDate(horakhun, chulaSakarat, yearBe),
     },
-    ascendant: { method: "anto-birth-sun", localTimeCorrectionMinutes, referenceTimeMinutes: modulo(360 + localTimeCorrectionMinutes, 1440), signStartTimesMinutes: asc.starts },
+    ascendant: { method: "anto-birth-sun", localTimeCorrectionMinutes, referenceTimeMinutes: modulo(referenceTime, 1440), signStartTimesMinutes: asc.starts, ...(sunrise?.status === "rise" ? { sunrise } : {}) },
     relationships: calculateSignRelationships(positions),
     divisionalCharts: { navamsa: { positions: navamsa, channelOutputs: chartChannels(navamsa, tanuseth) }, drekkana: { positions: drekkana, channelOutputs: chartChannels(drekkana, tanuseth) } },
     tanusethDetails: { firstLord: SIGN_RULERS[ascSign], firstLordSign: firstSign, firstDistance, secondLord: SIGN_RULERS[firstSign], secondLordSign: positions[secondLord], secondDistance },

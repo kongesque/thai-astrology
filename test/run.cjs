@@ -7,6 +7,7 @@ const fixtures = require('./fixtures/release-0.1.7.json')
 const tests = [
   ...require('./calculation.cjs'),
   ...require('./horoscope.cjs'),
+  ...require('./sunrise.cjs'),
   ...fixtures.map(({ input, expected }, index) => [
     `release 0.1.7 chart fixture ${index + 1}`,
     () => assert.deepEqual(api.generateThaiAstrologyChart(input), expected),
