@@ -8,7 +8,7 @@ Choose a task: [Thai birthplace](#input-and-main-apis) · [city search and DST](
 
 ## Input and main APIs
 
-For a Thai birthplace, supply a date, local time and province. The API selects daily sunrise, date-aware UTC and the planetary frame automatically for CE 1900–2100.
+Start with `auto`, the default mode; no mode setting is required. For a Thai birthplace, supply a date, local time and province. The API selects daily sunrise, date-aware UTC and the planetary frame automatically for CE 1900–2100.
 
 ```ts
 import { calculateThaiHoroscope } from "thai-astrology"
@@ -251,6 +251,8 @@ Each point has these fields. `points.ascendant.number` is `null`.
 
 Lunar mansion/Rerk and divisional data are available on the same point:
 
+The zodiac is divided into 27 lunar mansions, each with four quarters (บาทฤกษ์). `rerk` identifies one of nine Rerk categories, such as มหันธโนฤกษ์ or ภูมิปาโลฤกษ์, separately from the mansion index in `nakshatraIndex`.
+
 | Field | Data |
 | --- | --- |
 | `rerk` | Rerk name for the position, such as `"ภูมิปาโลฤกษ์"`; read the Moon's Rerk from `points.moon.rerk` |
@@ -400,6 +402,19 @@ console.log(result.comparison.sun.longitudeDifferenceDegrees)
 ## Traditional calculations
 
 Set `referenceMode: "traditional"` and omit both references to retain the civil-local planetary clock and the 06:00 ascendant reference with province correction. Both modes use the current lunar calendar. This selects calculation conventions, not a library version.
+
+```ts
+import { calculateThaiHoroscope } from "thai-astrology"
+
+const horoscope = calculateThaiHoroscope({
+  date: { year: 2024, era: "CE", month: 9, day: 15 },
+  time: { hour: 8, minute: 30 },
+  location: { province: "เชียงใหม่" },
+  referenceMode: "traditional",
+})
+
+console.log(horoscope.profile.referenceMode) // traditional
+```
 
 ## Function and input reference
 
