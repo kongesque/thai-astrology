@@ -6,13 +6,27 @@
 
 ## ข้อมูลนำเข้าและ API หลัก
 
+แนวทางหลักสำหรับผูกดวงคือ ใช้วันเวลาเกิดตามนาฬิกาท้องถิ่น หา UTC offset ตามวันเกิด แล้วส่งทั้งกรอบสมผุสดาว (`planetaryTimeReference`) และอาทิตย์ขึ้นตามพิกัด (`ascendantReference`) แอปเติมพิกัดจากจังหวัด/เมืองและหา offset ให้ได้ ผู้ใช้ไม่ต้องกรอกค่ากรอบดาวเอง
+
+ตัวอย่างนี้กำหนดกรอบดาว +06:42:04 ในแอป โดยอ้างอิงกรอบกรุงเทพฯ จากข้อมูล IANA ไม่ใช่กรอบบังคับของทุกตำรา ทั้งสองฟิลด์ต้องส่งอย่างชัดเจน API ไม่เปิดให้เองเมื่อเว้นค่า ดู [วิธี traditional](#วิธี-traditional) สำหรับการเรียกแบบเดิม
+
 ```ts
-import { calculateThaiHoroscope, type HoroscopeInput } from "thai-astrology"
+import { calculateThaiHoroscope, createSunriseReference, resolveCivilTimeOffset } from "thai-astrology"
+import type { HoroscopeInput } from "thai-astrology"
+
+const civilTime = { yearCe: 2024, month: 9, day: 15, hour: 8, minute: 30 }
+const { utcOffsetHours } = resolveCivilTimeOffset(civilTime, "Asia/Bangkok")
+const ascendantReference = createSunriseReference({ province: "เชียงใหม่", utcOffsetHours })
+const planetaryTimeReference = {
+  civilUtcOffsetSeconds: Math.round(utcOffsetHours * 3600),
+  referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4,
+}
 
 const input: HoroscopeInput = {
-  date: { year: 2567, era: "BE", month: 9, day: 15 },
-  time: { hour: 8, minute: 30 },
-  location: { province: "เชียงใหม่" },
+  date: { year: civilTime.yearCe, era: "CE", month: civilTime.month, day: civilTime.day },
+  time: { hour: civilTime.hour, minute: civilTime.minute },
+  ascendantReference,
+  planetaryTimeReference,
 }
 const horoscope = calculateThaiHoroscope(input)
 
@@ -27,8 +41,10 @@ console.log(horoscope.calendar.thaiLunarDate?.label) // ข๑๓ด๑๐
 | `time.hour`, `time.minute` | เวลาเกิดตามเวลาท้องถิ่น ชั่วโมง 0-23 นาที 0-59 เป็นจำนวนเต็ม |
 | `location.province` | ไม่บังคับ ใช้ชื่อจังหวัดภาษาไทยจาก `getThaiAstrologyProvinces()` |
 | `location.localTimeCorrectionMinutes` | ไม่บังคับ จำนวนนาทีตั้งแต่ -1440 ถึง 1440 ใช้แทนค่าแก้เวลาของจังหวัด |
+| `planetaryTimeReference` | ไม่บังคับ ระบุ `civilUtcOffsetSeconds` และ `referenceUtcOffsetSeconds` เป็นวินาทีจำนวนเต็ม ช่วง ±50,400 |
+| `ascendantReference` | ไม่บังคับ เลือก `method: "sunrise"` พร้อม `latitude` (-90..90), `longitude` (-180..180) และ `utcOffsetHours` (-14..14) ที่รวม DST แล้ว |
 
-ถ้าไม่ระบุจังหวัดหรือค่าแก้เวลา จะใช้ค่าแก้เวลาเป็นศูนย์ ชื่อจังหวัดที่ไม่อยู่ในรายการต้องระบุค่าแก้เวลาเอง ค่านี้ปรับจุดอ้างอิง 06:00 ของการหาลัคนา ไม่ใช่เขตเวลาหรือ UTC offset ต้องจัดการเขตเวลาและ DST ก่อนส่งข้อมูล
+เมื่อใช้จุดอ้างอิงเดิม หากไม่ระบุจังหวัดหรือค่าแก้เวลา จะใช้ค่าแก้เวลาเป็นศูนย์ ชื่อจังหวัดที่ไม่อยู่ในรายการต้องระบุค่าแก้เวลาเอง ค่านี้ปรับจุดอ้างอิง 06:00 ของการหาลัคนา ไม่ใช่เขตเวลาหรือ UTC offset ต้องจัดการเขตเวลาและ DST ก่อนส่งข้อมูล
 
 | API | ผลลัพธ์ |
 | --- | --- |
@@ -36,10 +52,172 @@ console.log(horoscope.calendar.thaiLunarDate?.label) // ข๑๓ด๑๐
 | `calculateHoroscopeTransits(natalInput, transitInput)` | ดวงกำเนิด ดวงจร และผลเปรียบเทียบ |
 | `validateHoroscopeInput(input)` | `{ valid: true, value }` หรือ `{ valid: false, issues }` โดยไม่ throw เมื่อข้อมูลผิด |
 | `getThaiAstrologyProvinces()` | รายการ 77 จังหวัด แต่ละรายการมี `province` และ `localTimeCorrectionMinutes` |
+| `getThaiAstrologyProvinceLocations()` | 77 จังหวัดพร้อมพิกัดเมืองศูนย์กลางสำหรับอาทิตย์ขึ้น |
+| `getThaiAstrologyCountries()` | ชื่อภาษาอังกฤษและรหัสประเทศ/ดินแดนสำหรับรายการเลือก |
+| `createSunriseReference(selection)` | ใช้พิกัดจังหวัดหรือพิกัดจริง สร้างตัวเลือกอาทิตย์ขึ้น |
+| `searchThaiAstrologyLocations(input)` | ค้นหาสถานที่ตามประเทศและชื่อ คืนพิกัด เขตเวลา จำนวนทั้งหมด และหน้าผลลัพธ์ |
+| `createSunriseReferenceForLocation(input)` | สร้าง reference จากสถานที่ พร้อม offset ตามวันเกิดหรือ UTC ที่ระบุเอง |
+| `resolveCivilTimeOffset(input, timeZone)` | หา offset ของเวลา civil ตามกฎเขตเวลา และตรวจเวลาซ้ำ/เวลาขาด |
+| `calculateSunrise(input)` | เวลาอาทิตย์ขึ้นตามวัน พิกัด และ UTC offset หรือผล `status: "no-rise"` |
 | `calculateDetailedPositions(input)` | สมผุสและข้อมูลประกอบแบบละเอียด ใช้สุริยยาตร์ รับ `CalculationInput` |
 | `generateThaiAstrologyChart(input)` | ช่องดวงแบบเดิม ค่าเริ่มต้นเป็น `legacy`; เลือก `method: "suriyayatra"` ได้ |
 
 API แบบเดิมใช้ `day`, `monthTh`, `hour`, `minute`, `province` และปีอย่างใดอย่างหนึ่ง: `yearBe` คือ พ.ศ. ส่วน `yearBc` คือ **ค.ศ.** แม้ชื่อฟิลด์จะเป็น `yearBc` ตัวอย่าง `yearBe: 2567` เท่ากับ `yearBc: 2024`
+
+## วิธี traditional
+
+เว้น `planetaryTimeReference` และ `ascendantReference` เพื่อคงนาฬิกาดาว civil-local และจุดอ้างอิงลัคนา 06:00 พร้อมค่าแก้เวลาจังหวัด API ยังรับรูปแบบนี้สำหรับการเรียกเดิม ส่วนวันจันทรคติใช้สูตรปัจจุบันเหมือนกัน นี่เป็นการเลือกวิธีคำนวณ ไม่ใช่การเลือกเวอร์ชันไลบรารี
+
+## เวลาอาทิตย์ขึ้นตามพิกัด
+
+```ts
+import { calculateSunrise, calculateThaiHoroscope } from "thai-astrology"
+
+const reference = {
+  method: "sunrise" as const, latitude: 13.7563, longitude: 100.5018, utcOffsetHours: 7,
+  timePrecision: "minute" as const,
+}
+const event = calculateSunrise({ yearCe: 2024, month: 6, day: 21, ...reference })
+if (event.status === "rise") console.log(event.roundedTimeMinutes) // 352 = 05:52
+
+const chart = calculateThaiHoroscope({
+  date: { year: 2024, era: "CE", month: 6, day: 21 },
+  time: { hour: 8, minute: 30 },
+  ascendantReference: reference,
+  planetaryTimeReference: {
+    civilUtcOffsetSeconds: Math.round(reference.utcOffsetHours * 3600),
+    referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4,
+  },
+})
+console.log(chart.timing.sunrise?.timeMinutes) // นาทีตั้งแต่เที่ยงคืน ก่อนปัดค่า
+```
+
+รองรับวันที่ ค.ศ. 1900–2100 ทั้งในและนอกประเทศไทย ใช้โมเดล NOAA/Meeus กับขอบฟ้าระดับทะเลที่ศูนย์กลางอาทิตย์ต่ำกว่าขอบฟ้า 50′ ไม่ชดเชยภูเขา ความสูง หรืออากาศจริง ต้องส่ง UTC offset ที่ใช้ในวันนั้นเอง พิกัดไม่กำหนดเขตเวลาและไม่มีการค้น DST อัตโนมัติ
+
+`calculateSunrise()` คืน `status: "rise"` พร้อม `timeMinutes` ก่อนปัดค่า (0 ถึงน้อยกว่า 1440), `roundedTimeMinutes` สำหรับแสดงผลหรือใช้กับความละเอียดระดับนาที (อาจเป็น 1440 หรือ 24:00) และ `altitudeResidualDegrees` ซึ่งเป็นเศษเชิงตัวเลข ไม่ใช่ความแม่นยำทางกายภาพ หากวันนั้นไม่มีอาทิตย์ขึ้น คืน `status: "no-rise"` การใช้ตัวเลือกนี้กับดวงที่ไม่มีอาทิตย์ขึ้นจะ throw `RangeError`; ถ้าต้องการวิธีเดิมให้ไม่ระบุ `ascendantReference`
+
+`timePrecision: "minute"` ใช้เวลาอาทิตย์ขึ้นที่ปัดเป็นนาทีใกล้ที่สุดกับลัคนาและเวลาเริ่มทั้ง 12 ราศี ไม่ระบุหรือใช้ `"continuous"` จะใช้เวลาก่อนปัดและคงผลเดิม ค่านี้ส่งผ่าน `createSunriseReference` และ `createSunriseReferenceForLocation` ได้ด้วย ไม่เปลี่ยนเวลาอาทิตย์ขึ้นดิบ สมผุสดาวหรือวันจันทรคติ ถ้าปัดได้ 24:00 จะใช้ 00:00 ในวงรอบลัคนา ไม่เลื่อนวันที่
+
+ค่าแก้เวลาจังหวัดเป็นศูนย์ หากส่ง `localTimeCorrectionMinutes` ที่ไม่ใช่ศูนย์ร่วมกันจะถูกปฏิเสธ เลือกตัวเลือกเดียวกันได้ใน `CalculationInput`; `generateThaiAstrologyChart` ต้องระบุ `method: "suriyayatra"`
+
+`ascendantReference` เปลี่ยนจุดอ้างอิงลัคนา อันโตนาทียังคงที่และอาทิตย์คงตำแหน่งเวลาเกิด หากไม่เลือก `planetaryTimeReference` สมผุสดาวยังใช้นาฬิกา civil-local แบบ traditional; offset ใน sunrise ไม่เลื่อนสมผุสดาว จึงยังไม่ใช่การคำนวณลัคนาเรขาคณิตหรือสมผุสดาราศาสตร์ทั่วโลก
+
+## เลือกจังหวัดและประเทศ
+
+เลือกจังหวัดเพื่อเติมพิกัด แล้วเอนจินหาอาทิตย์ขึ้นจากวันที่ในดวงให้อัตโนมัติ:
+
+```ts
+import { calculateThaiHoroscope, createSunriseReference, getThaiAstrologyProvinceLocations, getThaiAstrologyCountries } from "thai-astrology"
+
+const provinceOptions = getThaiAstrologyProvinceLocations() // 77 จังหวัด พร้อมพิกัดที่แก้ไขได้
+const countryOptions = getThaiAstrologyCountries() // 250 ประเทศ/ดินแดน ชื่อภาษาอังกฤษ
+const reference = createSunriseReference({ province: "กรุงเทพมหานคร", utcOffsetHours: 7 })
+const provincial = calculateThaiHoroscope({
+  date: { year: 2024, era: "CE", month: 6, day: 21 },
+  time: { hour: 8, minute: 30 },
+  ascendantReference: reference,
+  planetaryTimeReference: {
+    civilUtcOffsetSeconds: Math.round(reference.utcOffsetHours * 3600),
+    referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4,
+  },
+})
+console.log(provincial.timing.sunrise?.roundedTimeMinutes) // 352 = 05:52
+```
+
+```ts
+import { calculateThaiHoroscope, createSunriseReference } from "thai-astrology"
+
+// นิวยอร์กใช้ EDT (UTC−4) ในวันที่ตัวอย่าง ประเทศเป็นข้อมูลเลือกใส่
+const foreign = createSunriseReference({
+  countryCode: "US", latitude: 40.7128, longitude: -74.006, utcOffsetHours: -4,
+})
+const foreignChart = calculateThaiHoroscope({
+  date: { year: 2024, era: "CE", month: 6, day: 21 },
+  time: { hour: 8, minute: 30 },
+  ascendantReference: foreign,
+  planetaryTimeReference: {
+    civilUtcOffsetSeconds: Math.round(foreign.utcOffsetHours * 3600),
+    referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4,
+  },
+})
+console.log(foreignChart.timing.sunrise?.roundedTimeMinutes) // 325 = 05:25
+```
+
+`getThaiAstrologyProvinceLocations()` คืนรายการใหม่ทุกครั้ง มี `province`, `countryCode: "TH"`, `latitude`, `longitude`, `timeZone: "Asia/Bangkok"`, `coordinateKind: "province-seat"` และ `geonameId` ที่เปิดตรวจจุดต้นทางได้ พิกัด WGS84 เป็นเมืองศูนย์กลางจังหวัด ไม่ใช่ขอบเขตจังหวัดหรือสถานที่เกิดของทุกคน `timeZone` เป็นข้อมูลประกอบ; เอนจินไม่มีการค้น offset จากชื่อนี้ รายการจังหวัดเดิม `getThaiAstrologyProvinces()` ยังคงคืนค่าแก้เวลาแบบเดิม
+
+`createSunriseReference()` รับ `province` หรือพิกัดทั้งคู่ พร้อม `utcOffsetHours` เสมอ หากระบุจังหวัดและพิกัดทั้งคู่จะใช้พิกัดที่ระบุ ไม่ผสมค่าข้างหนึ่งกับพิกัดจังหวัด ส่งผลลัพธ์เข้า `ascendantReference` ของดวงกำเนิด/ดวงจรได้โดยตรง วันที่ของแต่ละดวงกำหนดอาทิตย์ขึ้นใหม่ ไม่เก็บเวลาอาทิตย์ขึ้นคงที่ประจำจังหวัด
+
+`getThaiAstrologyCountries()` คืนชื่ออังกฤษและรหัสสองตัว 250 ประเทศ/ดินแดน รวม `XK` ตาม GeoNames และไม่รวม `AN`/`CS` ที่ยุบแล้ว `countryCode` เลือกใส่ในตัวช่วยได้ ใช้รหัสตัวพิมพ์ใหญ่จากรายการ ประเทศเพียงอย่างเดียวยังไม่พอ ต้องระบุพิกัดและ offset; ไม่ตรวจพรมแดนและไม่เดา DST ประเทศอื่นใช้ร่วมกับชื่อจังหวัดไทยไม่ได้ หากเปลี่ยนประเทศในฟอร์มให้ล้างจังหวัดและค่าพิกัดเดิมก่อนรับสถานที่ใหม่
+
+ข้อมูลสถานที่จาก [GeoNames](https://www.geonames.org/) ดึง 4 ตุลาคม 2026 ภายใต้ [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) โดยลดรูปเป็นข้อมูลที่จำเป็นต่อรายการเลือก ใช้ชื่อจังหวัดเดิมของไลบรารี ดู [แหล่งอ้างอิงและสัญญาอนุญาต](../SOURCES.md)
+
+## ค้นหาสถานที่ตามประเทศและหา offset
+
+```ts
+import { calculateThaiHoroscope, searchThaiAstrologyLocations, createSunriseReferenceForLocation } from "thai-astrology"
+
+const civilTime = { yearCe: 2024, month: 6, day: 21, hour: 8, minute: 30 }
+const result = searchThaiAstrologyLocations({ countryCode: "US", query: "New York" })
+const city = result.items[0]
+if (!city) throw new Error("Location not found")
+const reference = createSunriseReferenceForLocation({ locationId: city.id, civilTime })
+console.log(reference.utcOffsetHours) // -4 (EDT)
+const chart = calculateThaiHoroscope({
+  date: { year: civilTime.yearCe, era: "CE", month: civilTime.month, day: civilTime.day },
+  time: { hour: civilTime.hour, minute: civilTime.minute },
+  ascendantReference: reference,
+  planetaryTimeReference: {
+    civilUtcOffsetSeconds: Math.round(reference.utcOffsetHours * 3600),
+    referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4,
+  },
+})
+console.log(chart.timing.sunrise?.roundedTimeMinutes) // 325 = 05:25
+```
+
+`searchThaiAstrologyLocations({ countryCode, query?, limit?, offset? })` กำหนดประเทศด้วยรหัสจาก `getThaiAstrologyCountries()` แล้วค้นชื่อเมืองภาษาอังกฤษหรือชื่อจังหวัดภาษาไทย การค้นไม่แยกตัวพิมพ์และรองรับอักษรละตินที่มีเครื่องหมายกำกับ คืน `{ items, total }` โดย `total` นับก่อนแบ่งหน้า `limit` เริ่มต้น 50 สูงสุด 100; `offset` เป็นจำนวนเต็มไม่ติดลบ แต่ละจุดมี `id`, `countryCode`, `nameEnglish`, พิกัด, `timeZone`, `coordinateKind` และ `geonameId`; จังหวัดไทยมี `nameThai` และ `province` ด้วย รายการผลลัพธ์เป็นสำเนาใหม่ทุกครั้ง ลำดับคงที่ตาม snapshot
+
+รายการเริ่มต้นมีเมืองหลวง เมืองใหญ่สิบอันดับจากข้อมูลต้นทางต่อประเทศ เมืองใหญ่ที่สุดที่มีข้อมูลต่อเขตเวลา และจังหวัดไทยครบ 77 จุด รวม 1,945 จุดใน 243 ประเทศ/ดินแดน ไม่ใช่ทุกเมืองหรือทุกเขตเวลาทั่วโลก ประเทศที่ไม่มีรายการจะได้ `items: []`; ไม่แทนด้วยเมืองจากประเทศอื่น ใช้พิกัดเองได้ ข้อมูล GeoNames ภายใต้ CC BY 4.0 ถูกลดรูปโดยไม่เปลี่ยนค่าพิกัดหรือชื่อเขตเวลา
+
+`createSunriseReferenceForLocation()` รับ `locationId` จากผลค้น หรือพิกัดทั้งคู่ `countryCode` เลือกใส่ได้และต้องตรงกับประเทศของ ID ที่เลือก หากส่ง `utcOffsetHours` จะใช้ค่านั้นและไม่เรียก `Intl` หากไม่ส่ง ต้องมี `civilTime: { yearCe, month, day, hour, minute }` และใช้เขตเวลาของสถานที่หรือ `timeZone` ที่ระบุเอง เพื่อหา offset ตามวันเวลาเกิด รองรับ ค.ศ. 1900–2100
+
+แก้พิกัดทั้งคู่แทนจุดเริ่มต้นได้ แต่โหมดอัตโนมัติต้องระบุ `timeZone` ที่ตรวจแล้วด้วย หรือส่ง UTC offset เอง ไม่เดาเขตเวลาจากพิกัดที่แก้ เพราะอาจข้ามพรมแดนเขตเวลา หากเปลี่ยนประเทศในฟอร์มให้ล้างสถานที่ พิกัด และเขตเวลาเดิมก่อนเลือกใหม่
+
+`resolveCivilTimeOffset(civilTime, timeZone, disambiguation?)` คืน `timeZone`, `utcOffsetHours`, `utcEpochMilliseconds` และ `ambiguous` ใช้กฎ IANA ผ่าน `Intl.DateTimeFormat` ของ runtime โดยไม่อ่านเขตเวลาหรือเวลาปัจจุบันของเครื่อง ค่าเริ่มต้น `disambiguation: "reject"` ปฏิเสธเวลาซ้ำ หากต้องการให้เลือก `"earlier"` หรือ `"later"` อย่างชัดเจน เวลาที่ไม่มีจริงช่วงเลื่อนนาฬิกาหรือวันที่ข้ามจะถูกปฏิเสธเสมอ ไม่เลื่อนเวลาเกิดให้เอง
+
+ตัวช่วยนี้เป็น adapter สำหรับรับข้อมูล แกนคำนวณเดิมยังรับ offset ตัวเลขและให้ผลคงที่เมื่อข้อมูลเหมือนกัน กฎของ `Intl` อาจต่างตามเวอร์ชันฐานข้อมูลเวลา สำหรับงานที่ต้องทำซ้ำเหมือนเดิมให้เก็บ offset ที่ resolve แล้วและเวอร์ชัน runtime หรือระบุ UTC เอง หาก runtime ไม่รองรับชื่อเขตเวลา ให้ระบุ offset ที่ตรวจสอบแล้ว
+
+Offset อัตโนมัติอ้างอิงเวลาที่กรอก โมเดลอาทิตย์ขึ้นเดิมยังใช้ offset เดียวตลอดวัน หากวันนั้นเปลี่ยน DST เวลาอาทิตย์ขึ้นที่แสดงใช้กรอบ offset ที่เลือก; ยังไม่ได้จำลองนาฬิกา civil ที่เปลี่ยนภายในวัน และไม่ได้เพิ่มลัคนาเรขาคณิตหรือเลื่อนสมผุสดาวเป็นนาฬิกา UTC
+
+## กรอบเวลาสมผุสดาว
+
+เลือก `planetaryTimeReference` ใน `calculateThaiHoroscope`, `calculateDetailedPositions` หรือ chart wrapper ที่ระบุ `method: "suriyayatra"` ทั้งดวงกำเนิดและดาวจรเลือกแยกกันได้ ไม่รองรับ legacy
+
+```ts
+import { calculateThaiHoroscope, resolveCivilTimeOffset } from "thai-astrology"
+
+const civil = { yearCe: 2024, month: 1, day: 1, hour: 0, minute: 0 }
+const offset = resolveCivilTimeOffset(civil, "Asia/Bangkok")
+const chart = calculateThaiHoroscope({
+  date: { year: civil.yearCe, era: "CE", month: civil.month, day: civil.day },
+  time: { hour: civil.hour, minute: civil.minute },
+  planetaryTimeReference: {
+    civilUtcOffsetSeconds: Math.round(offset.utcOffsetHours * 3600),
+    referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4,
+  },
+})
+console.log(chart.diagnostics.planetaryTime?.dayOffset) // -1
+console.log(chart.diagnostics.planetaryTime?.secondOfDay) // 85324
+```
+
+ทั้งสอง offset ต้องเป็นวินาทีจำนวนเต็มตั้งแต่ -50,400 ถึง 50,400 โดย civil รวม DST ของเวลาเกิด และ reference เป็นกรอบที่ผู้ใช้เลือกเอง สูตรคือ `เวลา reference = เวลา civil − offset civil + offset reference` ทดวันได้รวมถึงข้ามปี/วันอธิกสุรทิน; ถ้าวัน reference หลุด ค.ศ. 1–9999 จะปฏิเสธ ไม่มีการปัดกรอบเป็นนาทีหรือทำ 23:59 ให้เป็น 24:00
+
+ตัวอย่าง +06:42:04 มาจากข้อมูลเวลาพลเรือน IANA ไม่รับรองว่าเป็นเมริเดียนของทุกสูตรสุริยยาตร์ ประเทศ/พิกัดไม่เลือกรอบดาวอัตโนมัติ สำหรับต่างประเทศให้ resolve offset ของสถานที่และวันเวลานั้น แล้วใช้กรอบดาวที่ได้ตรวจหลักฐานแล้ว `Math.round` ข้างบนเพียงคืน offset IANA ที่มีหน่วยวินาทีจากการแทนเป็นชั่วโมง ไม่ใช่การจูนสมผุสดาว
+
+ไม่ระบุตัวเลือกให้ผลเดิม ระบุ offset เท่ากันก็ให้ค่าคำนวณเดิมพร้อม diagnostics เพิ่ม เมื่อกรอบต่างกัน ขั้นเวลาในรอบอาทิตย์/จันทร์/เกตุใช้เศษส่วนวินาทีแบบจำนวนเต็มก่อนหาร จึงรักษาวินาทีของกรอบอ้างอิง วัน civil, `calendar.chulaSakarat`, วันจันทรคติ และทักษาคงเดิม แต่ดิถีเชิงมุมจันทร์–อาทิตย์อิงสมผุสที่เปลี่ยน เวลาและอาทิตย์ขึ้นของลัคนาอยู่ในกรอบ civil; ตำแหน่งอาทิตย์ใหม่อาจทำให้ลัคนาและเรือนเปลี่ยน หากใช้ sunrise ร่วมกัน offset civil ทั้งสองตัวเลือกต้องตรงกัน
+
+`diagnostics.planetaryTime` เพิ่มเฉพาะเมื่อเลือก มี `horakhun`, `secondOfDay`, `dayOffset` และ offset ทั้งสอง จ.ศ. สำหรับ epoch ดาวใช้กรอบที่เลือก ขณะที่ จ.ศ. ปฏิทินยังอิง civil โมเดลนี้เป็นการแปลงกรอบคำนวณแบบ fixed offset ไม่ใช่การแปลง UT1/TT หรือจำลอง leap seconds
+
+ในขั้นมัธยมอาทิตย์ สูตรปัจจุบันลดรอบปีที่ฐานวันก่อนบวกหน่วยเวลา ส่วน `diagnostics.solarCycleUnits` ยังลดรอบผลรวมตามเดิมเพื่อใช้กับการเลือกปี epoch จึงไม่ควรนำค่านี้ไปหารเป็นมัธยมอาทิตย์โดยตรงใกล้รอยต่อปี
 
 ## สมผุสดาวและลัคนา: `points`
 

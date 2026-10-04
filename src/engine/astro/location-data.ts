@@ -6,7 +6,7 @@
 // Reduced to province-seat WGS84 points (PPLA/PPLC) and current country/territory names.
 // Coordinates are unchanged; province names are aligned with the library's existing list.
 // The country list includes GeoNames XK and excludes dissolved AN/CS; no timezone inference.
-// Public location data attribution and licensing are listed above.
+// Data attribution and licensing: SOURCES.md.
 
 export const PROVINCE_SEATS: readonly (readonly [string, number, number, number])[] = [
   ["กระบี่", 8.07257, 98.91052, 1152633],

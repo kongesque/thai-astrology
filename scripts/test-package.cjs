@@ -22,10 +22,10 @@ try {
   // Exercise prepare so the archive always contains a fresh build.
   const [packed] = JSON.parse(npm(['pack', '--json', '--pack-destination', temp], root))
   const paths = packed.files.map(({ path }) => path)
-  for (const required of ['dist/index.js', 'dist/index.d.ts', 'src/index.ts', 'README.md', 'README-en.md', 'assets/rasi-chart.svg', 'LICENSE']) {
+  for (const required of ['dist/index.js', 'dist/index.d.ts', 'src/index.ts', 'README.md', 'README-en.md', 'SOURCES.md', 'assets/rasi-chart.svg', 'LICENSE']) {
     assert.ok(paths.includes(required), `Archive is missing ${required}`)
   }
-  assert.ok(paths.every(path => /^(dist\/|src\/|assets\/rasi-chart\.svg$|package\.json$|README(?:-en)?\.md$|LICENSE$)/.test(path)), 'Unexpected development files in archive')
+  assert.ok(paths.every(path => /^(dist\/|src\/|assets\/rasi-chart\.svg$|package\.json$|README(?:-en)?\.md$|SOURCES\.md$|LICENSE$)/.test(path)), 'Unexpected development files in archive')
   assert.ok(paths.every(path => !path.endsWith('.tsbuildinfo')), 'Build cache must not be published')
 
   const consumer = join(temp, 'consumer')
@@ -33,6 +33,7 @@ try {
   writeFileSync(join(consumer, 'package.json'), JSON.stringify({ private: true }))
   npm(['install', join(temp, packed.filename), '--ignore-scripts', '--no-audit', '--no-fund', '--offline'], consumer)
   const installed = join(consumer, 'node_modules', 'thai-astrology')
+  assert.equal(readFileSync(join(installed, 'SOURCES.md'), 'utf8'), readFileSync(join(root, 'SOURCES.md'), 'utf8'), 'Installed references must match the source document')
   for (const readme of ['README.md', 'README-en.md']) {
     const text = readFileSync(join(installed, readme), 'utf8')
     for (const [, image] of text.matchAll(/(?:!\[[^\]]*\]\(|<img\s+src=")(assets\/[^)"]+)(?:\)|")/g)) {

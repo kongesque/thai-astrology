@@ -61,7 +61,7 @@ module.exports = [
   }],
   ['Day-based solar division feeds Moon consistently across annual boundaries', () => {
     // Source-supported convention, rather than an algebraic identity:
-    // https://thanan4astro.blogspot.com/2015/02/blog-post_11.html. Synthetic dates do not use external chart records.
+    // SOURCES.md. These synthetic dates check integer arithmetic.
     const mod = (a, b) => (a % b + b) % b
     const table = [0n, 77n, 148n, 209n, 256n, 286n, 296n]
     let wrapped = 0, changedDivision = 0
@@ -206,7 +206,7 @@ module.exports = [
     const { dirname, join } = require('node:path')
     const { solarIntradayUnits, meanLunarApogeeArcMinutes } = require(join(dirname(require.resolve('thai-astrology')), 'engine/astro/math.js'))
     // Independent rational evaluation of the inherited formula; not observed ephemerides.
-    // See https://thesiamsociety.org/wp-content/uploads/2000/03/JSS_088_0r_Eade_RulesForInterpolationInThaiCalendar.pdf for units, source evidence and rounding boundaries.
+    // See SOURCES.md for the public formula and numerical references.
     for (let minuteOfDay = 0; minuteOfDay < 1440; minuteOfDay++) {
       assert.equal(solarIntradayUnits(minuteOfDay), Number(BigInt(minuteOfDay) * 800n / 1440n))
       const chart = api.calculateDetailedPositions({ yearBc: 2024, monthTh: 1, day: 3, hour: Math.floor(minuteOfDay / 60), minute: minuteOfDay % 60, province: 'ไม่ใช้จังหวัด' })
@@ -258,7 +258,7 @@ module.exports = [
   ['Exact interpolation corrections reach detailed and structured planetary positions', () => {
     // Synthetic civil inputs; expected outputs follow exact rational evaluation of the existing
     // classical formulas, not an external ephemeris or a captured chart. Derivations in
-    // https://dlmf.nist.gov/3.3#i distinguish numerical correctness from sky accuracy.
+    // SOURCES.md document linear interpolation and binary64 arithmetic.
     for (const [monthTh, day, hour, planet, expected] of [
       [1, 14, 1, 'mars', 15197],
       [3, 25, 3, 'venus', 19170],

@@ -25,6 +25,7 @@
     "dist",
     "src",
     "README-en.md",
+    "SOURCES.md",
     "assets/rasi-chart.svg"
   ],
   "scripts": {

@@ -272,7 +272,7 @@ export function calculateDetailedPositions(input: CalculationInput): DetailedCal
     ? calculateSunrise({ yearCe, month, day, ...normalized.ascendantReference }) : undefined
   if (sunrise?.status === "no-rise") throw new RangeError("No sunrise on the requested civil date; use the traditional ascendant reference")
   // Published minute tables are a distinct time convention, not a more precise event model.
-  // Keep the raw event and the omitted-option calculation intact; see https://aa.usno.navy.mil/data/RS_OneYear.
+  // Keep the raw event and the omitted-option calculation intact.
   const referenceTime = sunrise?.status === "rise"
     ? normalized.ascendantReference?.timePrecision === "minute" ? sunrise.roundedTimeMinutes : sunrise.timeMinutes
     : 360 + localTimeCorrectionMinutes
@@ -297,7 +297,7 @@ export function calculateDetailedPositions(input: CalculationInput): DetailedCal
   // Add birth-time units to the day's reduced base before staged longitude division.
   // The 292207-unit year and 12 * 24350-unit sign scale differ by seven units;
   // reducing the sum by the year period would change the intraday division phase.
-  // Source convention and its limits: https://thanan4astro.blogspot.com/2015/02/blog-post_11.html.
+  // Public formula references: SOURCES.md.
   const solarLongitudeUnits = modulo((planetaryHorakhun - 1) * 800 - 373, 292207) + solarUnits
   const remainder = modulo(solarLongitudeUnits, 24350)
   const meanSun = modulo(Math.trunc(solarLongitudeUnits / 24350) * 1800 + Math.trunc(remainder / 811) * 60 + Math.trunc(modulo(remainder, 811) / 14) - 3, 21600)

@@ -5,7 +5,7 @@
 // Source data is provided as is, without warranty of accuracy, timeliness or completeness.
 // A starter catalog: capitals, ten largest source cities per country and a largest city per timezone.
 // Preserve source coordinates/timezone identifiers; existing provincial seats are stored separately.
-// Public location data attribution and licensing are listed above.
+// Data attribution and licensing: SOURCES.md.
 
 export const CITY_LOCATIONS: readonly (readonly [number, string, string, number, number, string])[] = [
   [3041563, "AD", "Andorra la Vella", 42.50779, 1.52109, "Europe/Andorra"],
