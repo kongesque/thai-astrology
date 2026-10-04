@@ -13,7 +13,7 @@
 
 <p align="center">
   <img src="assets/rasi-chart.svg" alt="Suriyayatra Thai natal chart showing twelve zodiac signs, Thai planetary numerals and an Aries ascendant" width="960" />
-  <br /><sub>Suriyayatra Rasi chart · 21 April 1782 (BE 2325), 06:54, Bangkok · Traditional ascendant reference 06:18</sub>
+  <br /><sub>Suriyayatra Rasi chart · 21 April 1782 (BE 2325), 06:54, Bangkok · Ascendant reference 06:18</sub>
 </p>
 
 <p align="center">
@@ -62,7 +62,7 @@ npm install thai-astrology
 - **Birth time:** use a birth certificate or another reliable record. Mark an estimated time as an assumption, since the ascendant and houses can change with birth time.
 - **Birthplace:** selecting a province uses its provincial-seat coordinates. For a known birthplace, supply that point's latitude and longitude through the [coordinate-based sunrise settings](docs/api-en.md#coordinate-based-sunrise).
 - **Timezone:** foreign births require the UTC offset at the birth date and time, including DST. [City helpers](docs/api-en.md#country-scoped-location-search-and-offsets) can resolve it for the supplied date through runtime IANA/Intl rules. Edited coordinates require a verified `timeZone` or an explicit UTC offset; coordinates alone do not identify a timezone.
-- **Applied method:** start with `auto`, the default for recognized Thai provinces in CE 1900–2100. After calculating, inspect `horoscope.profile.referenceMode` and `referenceFallback`, when present, to see what was used. When comparing results with another source, use the same date, time, coordinates, planetary time frame and ascendant method.
+- **Time reference:** the main example uses daily location-based sunrise for recognized Thai provinces in CE 1900–2100. If your source specifies 06:00 or your date falls outside this range, read [when to use the 06:00 reference](docs/api-en.md#0600-reference). When comparing results, use the same date, time, coordinates and time-reference convention.
 
 Calculate an example chart: **15 September 2024 (BE 2567), 08:30, Chiang Mai**.
 
@@ -116,11 +116,11 @@ The [English API guide](docs/api-en.md) covers fields, units, options and furthe
 
 ## Calculation rules and limitations
 
-The hero illustration uses 21 April 1782 (BE 2325), 06:54, Bangkok, outside the supported sunrise range. Its rendering script explicitly selects `referenceMode: "traditional"`: the 06:00 base plus an 18-minute longitude correction gives a 06:18 ascendant reference. See [advanced reference settings](docs/api-en.md#sunrise-and-planetary-time-settings).
+The hero illustration uses 21 April 1782 (BE 2325), 06:54, Bangkok, outside the supported sunrise range. Its rendering script uses the 06:00 base plus an 18-minute longitude correction, giving a 06:18 ascendant reference. See [advanced reference settings](docs/api-en.md#sunrise-and-planetary-time-settings).
 
 Planetary positions follow classical Suriyayatra formulas. The ascendant uses fixed classical rising durations (อันโตนาทีสามัญ), and houses use the whole-sign system. Relationships count zodiac signs. These conventions matter when comparing results with another school or implementing interpretation rules.
 
-The `traditional` province correction is derived from provincial-seat longitude in the UTC+7 reference frame and rounded to minutes, replacing fixed minute values. Use the [coordinate-based mean solar correction helper](docs/api-en.md#coordinate-based-mean-solar-correction) for other coordinates or offsets; `auto` uses daily sunrise and date-aware UTC.
+The province correction for the 06:00 reference is derived from provincial-seat longitude in the UTC+7 reference frame and rounded to minutes, replacing fixed minute values. Use the [coordinate-based mean solar correction helper](docs/api-en.md#coordinate-based-mean-solar-correction) for other coordinates or offsets; the main usage example uses daily sunrise and date-aware UTC.
 
 Automatic selection applies only when neither reference nor a custom province correction is supplied. Explicit `ascendantReference` or `planetaryTimeReference` settings retain their existing meaning. The birthplace's UTC offset and the calculation frame are separate values. Low-level `calculateDetailedPositions()` and the earlier chart wrapper retain their existing defaults; see [calculation settings](docs/api-en.md#sunrise-and-planetary-time-settings).
 
