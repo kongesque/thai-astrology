@@ -30,7 +30,7 @@
   <text class="sign" transform="translate(480.00 795.00) rotate(0)">ตุลย์</text>
   <text class="sign" transform="translate(632.50 754.14) rotate(-30)">พิจิก</text>
   <text class="sign" transform="translate(744.14 642.50) rotate(-60)">ธนู</text>
-  <text class="sign" transform="translate(785.00 490.00) rotate(-90)">มังกร</text>
+  <text class="sign" transform="translate(785.00 490.00) rotate(90)">มังกร</text>
   <text class="sign" transform="translate(744.14 337.50) rotate(60)">กุมภ์</text>
   <text class="sign" transform="translate(632.50 225.86) rotate(30)">มีน</text>
   <text class="planet" x="480" y="292" aria-label="เมษ ลั๑*"><tspan fill="#e00000">ลั</tspan>๑<tspan fill="#e00000" font-size="21">*</tspan></text>

@@ -46,6 +46,8 @@ const labels = signs.map((sign, index) => {
   let rotation = angle + 90
   while (rotation < -90) rotation += 180
   while (rotation > 90) rotation -= 180
+  // Keep Capricorn's right-hand label upright in the opposite reading direction.
+  if (index === 9) rotation += 180
   return `<text class="sign" transform="translate(${number(x)} ${number(y)}) rotate(${rotation})">${escape(sign)}</text>`
 })
 const planets = channels.map((channel, index) => {
