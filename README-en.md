@@ -1,4 +1,4 @@
-<h1 align="center">Thai Astrology - JavaScript &amp; TypeScript Library</h1>
+<h1 align="center">Thai Astrology — Suriyayatra for JavaScript &amp; TypeScript</h1>
 
 <p align="center">
   Calculate Thai natal charts, ascendants and planetary transits with Suriyayatra
@@ -12,15 +12,39 @@
 </p>
 
 <p align="center">
+  <img src="assets/rasi-chart.svg" alt="Suriyayatra Thai natal chart showing twelve zodiac signs, Thai planetary numerals and an Aries ascendant" width="960" />
+  <br /><sub>Suriyayatra Rasi chart · 21 April 1782 (BE 2325), 06:54, Bangkok · 06:00 ascendant reference</sub>
+</p>
+
+<p align="center">
   <a href="README.md">ภาษาไทย</a> &nbsp;|&nbsp;
   <a href="#quick-start">Quick start</a> &nbsp;|&nbsp;
-  <a href="docs/api-en.md">API</a> &nbsp;|&nbsp;
+  <a href="docs/api-en.md">API guide</a> &nbsp;|&nbsp;
+  <a href="SOURCES.md">Sources</a> &nbsp;|&nbsp;
   <a href="https://github.com/kongesque/thai-astrology/issues">Report an issue</a>
 </p>
 
-`thai-astrology` calculates Thai natal charts, ascendants, planetary positions and transits using Suriyayatra, with Taksa and Thai lunar dates. Supply a birth date, local time and province, then use the results in your website, app or API.
+**`thai-astrology` is an open-source Thai astrology library for JavaScript and TypeScript.** It calculates natal charts, ascendants and planetary positions using **Suriyayatra (สุริยยาตร์)**, together with divisional charts, Taksa, Thai lunar dates and planetary transits.
 
-Supports **Node.js 16+**, JavaScript and TypeScript, ESM and CommonJS, and browsers through a bundler. No runtime dependencies.
+For Thai astrologers, the results include familiar chart symbols, sign and house names, rulers and dignities. For developers, the same results are structured data for chart displays, interpretation rules and APIs. Your app supplies the reading and prediction text.
+
+Supports **Node.js 16+**, ESM, CommonJS and browsers through a bundler, with no runtime dependencies. Chart results are JSON-serializable; planet, sign, house and Rerk names are returned in Thai.
+
+## What the library calculates
+
+| Astrological result | What you receive | API field |
+| --- | --- | --- |
+| Rasi chart — ราศีจักร | Signs of the ten planets and ascendant, with Thai or Arabic chart symbols | `charts.rasi` |
+| Planetary positions — สมผุส | Sign, degrees/minutes, total longitude and house for each point | `points` |
+| Navamsa and Drekkana | Divisional charts using nine and three subdivisions of each sign | `charts.navamsa`, `charts.drekkana` |
+| Houses and rulers — ภพและเจ้าเรือน | Twelve whole-sign houses, their rulers and occupants | `houses` |
+| Tanulak and Tanuseth — ตนุลัคน์/ตนุเศษ | Ascendant sign ruler, calculated Tanuseth and ascendant occupants | `factors` |
+| Rerk and dignities — ฤกษ์/มาตรฐานดาว | Lunar mansion, quarter and supported dignity labels | Fields within `points` |
+| Taksa — ทักษา | Eight categories, including Boriwan, Ayu and Kalakini | `taksa` |
+| Thai lunar date — วันจันทรคติ | Waxing/waning day, lunar month and intercalation type | `calendar.thaiLunarDate` |
+| Planetary transits — ดาวจร | Transit positions, natal houses and longitude differences | `calculateHoroscopeTransits()` |
+
+**Tanulak** is the ruler of the ascendant's sign. **Tanuseth** is a planet selected by its own calculation; `*` marks it in the chart. Ascendant occupants are the planets sharing the ascendant sign. The API returns these separately so your interpretation rules can use the intended result.
 
 ## Quick start
 
@@ -71,7 +95,7 @@ Continue with [foreign locations, precise coordinates and form input](docs/api-e
 
 ## Display a Rasi chart
 
-Read the chart symbols from the `horoscope` above:
+The hero image is a historical chart using the 06:00 reference. The code above calculates a different chart for 2024 using coordinate sunrise. Read its symbols from `horoscope`:
 
 ```ts
 console.log(horoscope.charts.rasi.channels.thai)
@@ -80,25 +104,11 @@ console.log(horoscope.charts.rasi.channels.thai)
 
 The result contains 12 strings ordered Aries through Pisces. An empty string means no planets; `ลั` marks the ascendant and `*` marks Tanuseth. Use `channels.arabic` for Arabic numerals, or replace `rasi` with `navamsa` / `drekkana` for those divisional charts.
 
-<p align="center">
-  <img src="assets/rasi-chart.svg" alt="Thai natal horoscope: Suriyayatra Rasi chart with Thai numerals and an Aries ascendant" width="100%" />
-  <br /><sub>Illustration: 21 April 1782 (BE 2325), 06:54, Bangkok. This is a different chart from the code example.</sub>
-</p>
-
 The library returns chart data so you can choose your own layout. See the [illustration script](scripts/render-readme-chart.cjs) for an SVG example.
 
-## Read other results
+To display a planet's position, use its sign name and degrees/minutes within that sign. For angular calculations, use total `longitudeDegrees`. Sign indices run 0–11; houses run 1–12. The API guide documents units and the full result structure.
 
-| What you need | Field |
-| --- | --- |
-| Planetary and ascendant positions, including degrees/minutes | `points.sun`, `points.moon`, `points.ascendant` |
-| Twelve houses, their rulers and occupants | `houses` |
-| Ascendant ruler, Tanuseth and ascendant occupants | `factors` |
-| Lunar mansion/Rerk and planetary dignities | Fields within each planet's `points` entry |
-| Thai lunar date | `calendar.thaiLunarDate` |
-| Eight Taksa categories | `taksa` |
-
-Results are JSON-serializable and repeatable for identical inputs. Your app supplies interpretation rules and prediction text.
+For calendar dates, read `calendar.thaiLunarDate`. The separately returned `calendar.lunarDay` is calculated from the Moon–Sun angle and can differ from the calendar day. In this example, the calendar day is waxing 13, while the angular lunar day is 12.
 
 ## Continue with the API guide
 
@@ -109,18 +119,32 @@ The [English API guide](docs/api-en.md) covers fields, units, options and furthe
 - [City search and UTC offsets, including DST](docs/api-en.md#country-scoped-location-search-and-offsets)
 - [Validate form input](docs/api-en.md#validation-and-full-types)
 - [Compare transits with a natal chart](docs/api-en.md#transit-comparisons)
-- [Earlier input shapes and the full function list](docs/api-en.md#input-and-main-apis)
+- [Input types and the full function list](docs/api-en.md#function-and-input-reference)
 
 ## Calculation rules and limitations
 
-- Birth time and a birthplace are needed for this example. An assumed time or provincial-seat location can change the ascendant and houses; use precise coordinates when available.
-- The sunrise/offset workflow supports CE 1900–2100. The example explicitly supplies its calculation settings; a bare `date`/`time`/`location` call uses different defaults.
-- The ascendant uses fixed classical rising durations rather than a modern geometric model. Relationships use zodiac signs; the API guide describes the calculation conventions.
-- Thai lunar dates support CE 1582–2076, return `null` outside that range and can differ from published calendars.
+Planetary positions follow classical Suriyayatra formulas. The ascendant uses fixed classical rising durations (อันโตนาทีสามัญ), and houses use the whole-sign system. Relationships count zodiac signs. These conventions matter when comparing results with another school or implementing interpretation rules.
 
-`calculateThaiHoroscope()` always uses Suriyayatra. The earlier `generateThaiAstrologyChart()` API defaults to `legacy`; select `method: "suriyayatra"` to use the same method.
+The quick start explicitly selects coordinate sunrise rounded to the nearest minute and the historical Bangkok +06:42:04 planetary time frame. The frame is a calculation convention; the birthplace's civil UTC offset is resolved separately. A bare `date`/`time`/`location` call retains the 06:00 province reference and civil-local planetary clock. See [calculation settings](docs/api-en.md#sunrise-and-planetary-time-settings).
+
+| Reference area | Basis used by the library |
+| --- | --- |
+| Classical calendar and lunar arithmetic | Public Thai calculation descriptions and J. C. Eade's calendar research |
+| Sunrise | NOAA/Meeus solar calculations and USNO rise/set definitions |
+| Birthplace and civil time | GeoNames coordinates and runtime IANA timezone rules |
+
+[SOURCES.md](SOURCES.md) lists the publications, open-source implementations, open data and licensing, with each reference's scope. These references document formulas and conventions; they do not certify every computed position.
+
+- **Birth details:** time is required. A guessed time or provincial-seat location can change the ascendant and houses; use the actual coordinates when known.
+- **Foreign locations:** choose a catalog city or provide latitude, longitude and the birth date's UTC offset, including DST. A country name alone cannot determine these. Classical rising durations remain fixed for foreign charts.
+- **Date range:** coordinate sunrise and civil-offset helpers support CE 1900–2100. Thai lunar dates support CE 1582–2076 and return `null` outside that range; they can differ from published calendars.
+- **Sunrise model:** uses a sea-level horizon without terrain, elevation or weather corrections. Dates with no sunrise require handling; the selected sunrise horoscope throws `RangeError`.
+
+`calculateThaiHoroscope()` always uses Suriyayatra. The earlier `generateThaiAstrologyChart()` API defaults to `legacy`; select `method: "suriyayatra"` explicitly for Suriyayatra.
 
 ## Development and contributions
+
+The [public test suite](test/run.cjs) covers calendar rules, zodiac boundaries, timezones and published-release regression cases. Package checks also verify installed CommonJS, ESM, TypeScript and browser consumers. See the [CI workflow](.github/workflows/ci.yml).
 
 Use Node.js 24 for development:
 
