@@ -11,6 +11,10 @@ export { calculateSunrise } from "./astro/sunrise"
 export type { SunriseInput, SunriseLocation, SunriseReference, SunriseResult } from "./astro/sunrise"
 export { createSunriseReference, getThaiAstrologyProvinceLocations, getThaiAstrologyCountries } from "./astro/locations"
 export type { ThaiProvinceLocation, AstrologyCountry, SunriseReferenceSelection } from "./astro/locations"
+export { searchThaiAstrologyLocations, createSunriseReferenceForLocation } from "./astro/location-search"
+export type { AstrologyLocation, AstrologyLocationSearch, AstrologyLocationSearchResult, LocationSunriseSelection } from "./astro/location-search"
+export { resolveCivilTimeOffset } from "./astro/civil-time"
+export type { CivilDateTime, CivilTimeDisambiguation, CivilTimeOffset } from "./astro/civil-time"
 
 export interface PlanetPositions {
   ascendant: number

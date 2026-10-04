@@ -9,6 +9,7 @@ const tests = [
   ...require('./horoscope.cjs'),
   ...require('./sunrise.cjs'),
   ...require('./locations.cjs'),
+  ...require('./location-search.cjs'),
   ...fixtures.map(({ input, expected }, index) => [
     `release 0.1.7 chart fixture ${index + 1}`,
     () => assert.deepEqual(api.generateThaiAstrologyChart(input), expected),
