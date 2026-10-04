@@ -8,7 +8,7 @@ Choose a task: [Thai birthplace](#input-and-main-apis) · [city search and DST](
 
 ## Input and main APIs
 
-Start with `auto`, the default mode; no mode setting is required. For a Thai birthplace, supply a date, local time and province. The API selects daily sunrise, date-aware UTC and the planetary frame automatically for CE 1900–2100.
+For a Thai birthplace, supply a date, local time and province. The API selects daily sunrise, date-aware UTC and the planetary frame automatically for CE 1900–2100. No calculation-mode or time-correction setting is required.
 
 ```ts
 import { calculateThaiHoroscope } from "thai-astrology"
@@ -22,32 +22,7 @@ const horoscope = calculateThaiHoroscope({
 console.log(horoscope.points.ascendant.signName) // กันย์ (Virgo)
 console.log(horoscope.points.sun.signName) // สิงห์ (Leo)
 console.log(horoscope.calendar.thaiLunarDate?.label) // ข๑๓ด๑๐ = waxing day 13, lunar month 10
-console.log(horoscope.profile.referenceMode) // auto
 ```
-
-## Sunrise and planetary time settings
-
-With the default `referenceMode: "auto"`, the API performs three steps:
-
-1. `resolveCivilTimeOffset` finds the birthplace's UTC offset at the birth date and time.
-2. `createSunriseReference` uses the province's coordinates. The horoscope calculates sunrise for its own date and uses the nearest minute.
-3. `planetaryTimeReference` converts planetary calculation time to the selected +06:42:04 frame.
-
-Keep `referenceUtcOffsetSeconds` fixed for this convention, including foreign births. Only `civilUtcOffsetSeconds` follows the birthplace's timezone. The historical Bangkok frame is an application convention, not a universal Suriyayatra epoch. See [sources](../SOURCES.md) for the independent formula and time references.
-
-| Setting | Used for | Value in this example |
-| --- | --- | --- |
-| `ascendantReference` | Daily sunrise for the ascendant | Province coordinates, date-specific offset, `timePrecision: "minute"` |
-| `planetaryTimeReference` | Planetary calculation time | Birthplace civil offset → +06:42:04 |
-| `location.localTimeCorrectionMinutes` | Traditional 06:00 reference only | Omitted when using coordinate sunrise |
-
-Automatic selection requires a recognized Thai province, CE 1900–2100 and no explicit reference or custom correction. `input` contains the resolved numeric offsets and coordinates. `profile.referenceMode` reports `"auto"`, `"traditional"` or `"explicit"`; `profile.referenceFallback` explains an automatic fallback with `"year-out-of-range"`, `"missing-province"` or `"explicit-correction"`.
-
-Explicit `ascendantReference` or `planetaryTimeReference` takes precedence: supplied settings are used as-is, without filling the other reference or changing continuous sunrise to minute precision. A country alone does not enable automatic location selection; foreign birthplaces use the location/offset helpers below. Do not apply a province correction on top of sunrise.
-
-Automatic UTC resolution uses the runtime's IANA data through `Intl`. Invalid or ambiguous local times are reported as input errors rather than silently falling back. Retain `input.ascendantReference` and `input.planetaryTimeReference` for repeatable calculations across runtime versions; passing them explicitly bypasses automatic lookup.
-
-These defaults change structured natal/transit calls that previously supplied only a province. Use `referenceMode: "traditional"` to keep those prior results. `calculateDetailedPositions()` and `generateThaiAstrologyChart()` retain their existing defaults.
 
 ## Display the result
 
@@ -66,158 +41,6 @@ console.log(positions)
 ```
 
 Planetary minutes are integers; ascendant minutes can be fractional. Preserve the returned number in stored data and choose display precision separately. The channels already contain `ลั` and `*` markers; you do not need to reconstruct them.
-
-## Coordinate-based sunrise
-
-```ts
-import { calculateSunrise, calculateThaiHoroscope } from "thai-astrology"
-
-const reference = {
-  method: "sunrise" as const, latitude: 13.7563, longitude: 100.5018, utcOffsetHours: 7,
-  timePrecision: "minute" as const,
-}
-const event = calculateSunrise({ yearCe: 2024, month: 6, day: 21, ...reference })
-if (event.status === "rise") console.log(event.roundedTimeMinutes) // 352 = 05:52
-
-const chart = calculateThaiHoroscope({
-  date: { year: 2024, era: "CE", month: 6, day: 21 },
-  time: { hour: 8, minute: 30 },
-  ascendantReference: reference,
-  planetaryTimeReference: {
-    civilUtcOffsetSeconds: Math.round(reference.utcOffsetHours * 3600),
-    referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4,
-  },
-})
-console.log(chart.timing.sunrise?.timeMinutes) // unrounded minutes from local midnight
-```
-
-Optional `ascendantReference` requires `method: "sunrise"`, latitude (-90..90), longitude (-180..180) and civil `utcOffsetHours` (-14..14), including DST. `calculateSunrise()` accepts `yearCe`, `month`, `day` and the same coordinates/offset. Both support CE 1900–2100 in Thailand or abroad. The NOAA/Meeus model uses a sea-level solar-center altitude of −50′, without terrain, elevation or actual weather corrections. Coordinates do not determine the civil timezone; no timezone/DST lookup is performed.
-
-For `status: "rise"`, `timeMinutes` is unrounded and in [0, 1440); `roundedTimeMinutes` is for display or explicit minute precision and may be 1440 (24:00). `altitudeResidualDegrees` is a numerical residual, not physical accuracy. An absent event returns `status: "no-rise"`; a horoscope selecting sunrise on such a date throws `RangeError`. Use `referenceMode: "traditional"` without explicit references in the structured API, or omit `ascendantReference` in the low-level API, to use the traditional reference.
-
-`timePrecision: "minute"` uses nearest-minute sunrise for the ascendant and all twelve sign-start times. In an explicit reference, omitted precision or `"continuous"` uses raw sunrise and preserves existing results. Automatic provincial selection uses `"minute"`. Both location helpers accept the field. Raw events, planets and lunar dates do not change. A rounded 24:00 becomes 00:00 within the ascendant cycle without moving the civil date.
-
-The province correction is zero. A simultaneous nonzero `localTimeCorrectionMinutes` is rejected. The option is also available on `CalculationInput`; the chart wrapper requires `method: "suriyayatra"`.
-
-`ascendantReference` changes the ascendant reference. Rising durations remain fixed and the Sun is held at its birth-time position. Without `planetaryTimeReference`, planetary positions retain the civil-local clock; the sunrise offset alone does not shift planetary calculations. This is not a worldwide geometric ascendant or modern planetary ephemeris.
-
-## Province and country selection
-
-Select a province to fill coordinates; the engine calculates sunrise automatically for the chart's date:
-
-```ts
-import { calculateThaiHoroscope, createSunriseReference, getThaiAstrologyProvinceLocations, getThaiAstrologyCountries } from "thai-astrology"
-
-const provinceOptions = getThaiAstrologyProvinceLocations() // 77 provinces with editable coordinates
-const countryOptions = getThaiAstrologyCountries() // 250 country/territory labels in English
-const reference = createSunriseReference({ province: "กรุงเทพมหานคร", utcOffsetHours: 7, timePrecision: "minute" })
-const provincial = calculateThaiHoroscope({
-  date: { year: 2024, era: "CE", month: 6, day: 21 },
-  time: { hour: 8, minute: 30 },
-  ascendantReference: reference,
-  planetaryTimeReference: {
-    civilUtcOffsetSeconds: Math.round(reference.utcOffsetHours * 3600),
-    referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4,
-  },
-})
-console.log(provincial.timing.sunrise?.roundedTimeMinutes) // 352 = 05:52
-```
-
-```ts
-import { calculateThaiHoroscope, createSunriseReference } from "thai-astrology"
-
-// New York uses EDT (UTC−4) on this date; the country label is optional.
-const foreign = createSunriseReference({
-  countryCode: "US", latitude: 40.7128, longitude: -74.006, utcOffsetHours: -4,
-  timePrecision: "minute",
-})
-const foreignChart = calculateThaiHoroscope({
-  date: { year: 2024, era: "CE", month: 6, day: 21 },
-  time: { hour: 8, minute: 30 },
-  ascendantReference: foreign,
-  planetaryTimeReference: {
-    civilUtcOffsetSeconds: Math.round(foreign.utcOffsetHours * 3600),
-    referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4,
-  },
-})
-console.log(foreignChart.timing.sunrise?.roundedTimeMinutes) // 325 = 05:25
-```
-
-`getThaiAstrologyProvinceLocations()` returns fresh records with `province`, `countryCode: "TH"`, `latitude`, `longitude`, `timeZone: "Asia/Bangkok"`, `coordinateKind: "province-seat"` and a public `geonameId` for inspecting the point. WGS84 coordinates represent provincial seats, rather than boundaries or every birthplace in a province. `timeZone` is metadata; no offset lookup is performed. The existing `getThaiAstrologyProvinces()` retains its traditional correction records.
-
-`createSunriseReference()` requires a province or both coordinates, plus explicit `utcOffsetHours`. Both supplied coordinates override the seat; one coordinate cannot be mixed with a provincial default. Pass the result into a natal/transit chart's `ascendantReference`. Each chart's own date determines a fresh sunrise event; no fixed sunrise time is stored by province.
-
-`getThaiAstrologyCountries()` returns English names and two-letter codes for 250 countries/territories, including GeoNames `XK` and excluding dissolved `AN`/`CS`. An optional `countryCode` must use an uppercase code from this list. A country alone is insufficient: supply coordinates and the date's civil offset, including DST. The helper does not check borders or infer timezones. A foreign country cannot be combined with a Thai province. When switching countries in a form, clear the previous province and coordinates before accepting the new location.
-
-Location data is adapted from [GeoNames](https://www.geonames.org/), retrieved 4 October 2026, under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). It is reduced to selector fields and aligned with existing library province names. See [sources and licensing](../SOURCES.md).
-
-## Country-scoped location search and offsets
-
-```ts
-import { calculateThaiHoroscope, searchThaiAstrologyLocations, createSunriseReferenceForLocation } from "thai-astrology"
-
-const civilTime = { yearCe: 2024, month: 6, day: 21, hour: 8, minute: 30 }
-const result = searchThaiAstrologyLocations({ countryCode: "US", query: "New York" })
-const city = result.items[0]
-if (!city) throw new Error("Location not found")
-const reference = createSunriseReferenceForLocation({ locationId: city.id, civilTime, timePrecision: "minute" })
-console.log(reference.utcOffsetHours) // -4 (EDT)
-const chart = calculateThaiHoroscope({
-  date: { year: civilTime.yearCe, era: "CE", month: civilTime.month, day: civilTime.day },
-  time: { hour: civilTime.hour, minute: civilTime.minute },
-  ascendantReference: reference,
-  planetaryTimeReference: {
-    civilUtcOffsetSeconds: Math.round(reference.utcOffsetHours * 3600),
-    referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4,
-  },
-})
-console.log(chart.timing.sunrise?.roundedTimeMinutes) // 325 = 05:25
-```
-
-`searchThaiAstrologyLocations({ countryCode, query?, limit?, offset? })` requires a code from `getThaiAstrologyCountries()` and searches English city names or Thai province names. Matching ignores case and Latin diacritics. It returns `{ items, total }`, where `total` is before pagination. `limit` defaults to 50 and is capped at 100; `offset` is a nonnegative integer. Each record has `id`, `countryCode`, `nameEnglish`, coordinates, `timeZone`, `coordinateKind` and `geonameId`; Thai seats also have `nameThai` and `province`. Results are fresh copies in stable snapshot order.
-
-The starter catalog includes capitals, the ten largest source cities per country, a largest available source city per timezone and all 77 Thai provincial seats: 1,945 points in 243 countries/territories. It is not every city or every worldwide timezone. Countries without catalog records return `items: []`, without substituting another country's location. Manual coordinates remain supported. GeoNames CC BY 4.0 data is reduced without changing its coordinates or timezone names.
-
-`createSunriseReferenceForLocation()` accepts a result's `locationId` or both coordinates. Optional `countryCode` must agree with the selected ID. Explicit `utcOffsetHours` takes precedence and bypasses `Intl`. Otherwise, supply `civilTime: { yearCe, month, day, hour, minute }`; the selected place's zone, or an explicit `timeZone`, resolves the offset at that birth date/time. CE 1900–2100 is supported.
-
-Both coordinates can override a selected point. Automatic mode then requires an explicitly confirmed `timeZone`, or provide a numeric offset instead. The helper does not infer a timezone from edited coordinates, which might cross a boundary. When switching countries in a form, clear the previous place, coordinates and timezone before selecting new values.
-
-`resolveCivilTimeOffset(civilTime, timeZone, disambiguation?)` returns `timeZone`, `utcOffsetHours`, `utcEpochMilliseconds` and `ambiguous`. It uses runtime IANA rules through `Intl.DateTimeFormat`, without reading the host timezone or current clock. Default `disambiguation: "reject"` refuses repeated times; explicitly choose `"earlier"` or `"later"` when appropriate. Nonexistent times during forward clock changes or skipped dates are always rejected, rather than shifting a birth time.
-
-This is an input adapter. The existing calculation core still receives numeric offsets and retains deterministic results for identical inputs. Intl rules can differ by runtime/database version. For repeatable calculations, retain the resolved numeric offset and runtime version or supply a verified offset explicitly. Unsupported timezone names require a supported runtime or explicit offset.
-
-Automatic offsets apply at the entered civil time. The existing sunrise model holds that offset for the whole day. On an intraday DST transition, displayed sunrise uses the selected offset frame; this does not yet model a civil clock that changes during the event day. The adapter adds no geometric worldwide ascendant or planetary frame conversion by itself. Select the separate planetary clock option below when needed.
-
-## Planetary clock reference
-
-Select `planetaryTimeReference` in `calculateThaiHoroscope`, `calculateDetailedPositions` or the chart wrapper with `method: "suriyayatra"`. Natal and transit inputs choose independently. Legacy refuses the option.
-
-```ts
-import { calculateThaiHoroscope, resolveCivilTimeOffset } from "thai-astrology"
-
-const civil = { yearCe: 2024, month: 1, day: 1, hour: 0, minute: 0 }
-const offset = resolveCivilTimeOffset(civil, "Asia/Bangkok")
-const chart = calculateThaiHoroscope({
-  date: { year: civil.yearCe, era: "CE", month: civil.month, day: civil.day },
-  time: { hour: civil.hour, minute: civil.minute },
-  planetaryTimeReference: {
-    civilUtcOffsetSeconds: Math.round(offset.utcOffsetHours * 3600),
-    referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4,
-  },
-})
-console.log(chart.diagnostics.planetaryTime?.dayOffset) // -1
-console.log(chart.diagnostics.planetaryTime?.secondOfDay) // 85324
-```
-
-Both offsets must be integer seconds within -50,400..50,400. Civil includes birth-time DST; the reference frame is caller-selected. The formula is `reference time = civil time − civil offset + reference offset`, with day carry across years/leap days. A reference date outside CE 1–9999 is refused. Seconds are retained; 23:59 is not changed to 24:00.
-
-The +06:42:04 example comes from IANA civil-clock data; it is not certified as every Suriyayatra formula's meridian. Country/coordinates do not choose the planetary frame. Abroad, resolve the birthplace's dated offset and use a separately justified reference frame. `Math.round` above recovers IANA's whole-second offset from its hours representation; it does not tune a planetary longitude.
-
-The low-level API retains its civil-local planetary clock when this option is omitted. In the structured API, automatic provincial selection supplies it; choose `referenceMode: "traditional"` to retain the previous clock. Equal offsets also preserve calculations, adding diagnostics only. With different frames, solar/lunar/Ketu intraday stages evaluate integral-second fractions before division. Civil dates, `calendar.chulaSakarat`, Thai lunar dates and Taksa remain civil; geometric lunar phase follows the changed Sun/Moon. Ascendant time and sunrise remain in the civil frame, although its new Sun position can change the ascendant/houses. When combining sunrise, both options must use the same civil offset.
-
-Optional `diagnostics.planetaryTime` contains reference `horakhun`, `secondOfDay`, `dayOffset` and both offsets. The planetary epoch's Chula Sakarat uses the chosen frame, while calendar Chula Sakarat stays civil. This is fixed-offset frame conversion, not UT1/TT conversion or leap-second modeling.
-
-Mean Sun uses the reduced day base plus intraday units. `diagnostics.solarCycleUnits` retains the wrapped sum for the epoch-year decision; do not directly convert that diagnostic into mean Sun near an annual crossing.
 
 ## Planetary positions and ascendant: `points`
 
@@ -399,23 +222,6 @@ console.log(result.comparison.sun.longitudeDifferenceDegrees)
 
 `comparison` contains planet keys only, excluding the ascendant. Longitude difference is not accumulated orbital motion, instantaneous speed or retrograde status.
 
-## Traditional calculations
-
-Set `referenceMode: "traditional"` and omit both references to retain the civil-local planetary clock and the 06:00 ascendant reference with province correction. Both modes use the current lunar calendar. This selects calculation conventions, not a library version.
-
-```ts
-import { calculateThaiHoroscope } from "thai-astrology"
-
-const horoscope = calculateThaiHoroscope({
-  date: { year: 2024, era: "CE", month: 9, day: 15 },
-  time: { hour: 8, minute: 30 },
-  location: { province: "เชียงใหม่" },
-  referenceMode: "traditional",
-})
-
-console.log(horoscope.profile.referenceMode) // traditional
-```
-
 ## Function and input reference
 
 | Input field | Type and constraints |
@@ -423,7 +229,7 @@ console.log(horoscope.profile.referenceMode) // traditional
 | `date.year`, `date.era` | Integer year; `"BE"` for Buddhist Era 544-10542 or `"CE"` for Common Era 1-9999 |
 | `date.month`, `date.day` | Integer month 1-12 and a valid day in the Gregorian calendar |
 | `time.hour`, `time.minute` | Integer local civil hour 0-23 and minute 0-59 |
-| `referenceMode` | Optional `"auto"` (default) or `"traditional"`; explicit reference options take precedence |
+| `referenceMode` | Optional `"auto"` for automatic sunrise and planetary-frame selection (default), or `"traditional"` for the 06:00 base with longitude correction; explicit references take precedence |
 | `location.province` | Optional Thai province name from `getThaiAstrologyProvinces()` |
 | `location.localTimeCorrectionMinutes` | Optional finite minutes from -1440 to 1440; overrides the province correction |
 | `planetaryTimeReference` | Optional integer `civilUtcOffsetSeconds` and `referenceUtcOffsetSeconds`, each within ±50,400 |
@@ -437,6 +243,7 @@ For the traditional reference, omitting both province and correction applies zer
 | `calculateHoroscopeTransits(natalInput, transitInput)` | Natal and transit horoscopes with comparisons |
 | `validateHoroscopeInput(input)` | `{ valid: true, value }` or `{ valid: false, issues }`, without throwing for invalid input |
 | `getThaiAstrologyProvinces()` | All 77 provinces, each with `province` and `localTimeCorrectionMinutes` |
+| `calculateMeanSolarTimeCorrection(input)` | Unrounded civil-minus-mean-solar minutes from longitude and UTC offset |
 | `getThaiAstrologyProvinceLocations()` | 77 provincial-seat points for sunrise selection |
 | `getThaiAstrologyCountries()` | English country/territory names and codes for selectors |
 | `createSunriseReference(selection)` | Resolve a provincial seat or precise coordinates into a sunrise option |
@@ -477,3 +284,242 @@ if (!validation.valid) {
 `calculateThaiHoroscope()` and `calculateHoroscopeTransits()` throw `HoroscopeInputError` for invalid input; read details from `error.issues`. Full types, including `profile`, `timing` and `diagnostics`, are in [horoscope.ts](../src/horoscope.ts), [DetailedPosition](../src/engine/astro/suriyayatra.ts) and [CalculationInput](../src/engine/astro-calculation.ts).
 
 Read the [calculation rules and limitations](../README-en.md#calculation-rules-and-limitations) before using the results.
+
+## Advanced settings
+
+## Sunrise and planetary time settings
+
+`referenceMode` selects **how time references are configured**. Both values use the same Suriyayatra engine and Thai lunar calendar; they do not select different engine versions.
+
+| Choice | `auto` — configure daily sunrise | `traditional` — use the 06:00 base |
+| --- | --- | --- |
+| Intended use | Start with a date, local time and Thai province | Choose the 06:00 base with a longitude correction |
+| Ascendant reference | Daily sunrise at the provincial seat, rounded to minutes | 06:00 + the longitude-derived province correction in the UTC+7 frame, rounded to minutes |
+| Planetary clock | Convert local time to the +06:42:04 frame | Use the entered local time |
+| Civil UTC lookup | Date-aware IANA rules | No automatic lookup |
+| How to select | Default; omit `referenceMode` | Set `referenceMode: "traditional"` |
+
+This table assumes no explicit reference or custom correction is supplied. When automatic selection is unavailable, such as outside CE 1900–2100, `auto` falls back to the traditional base and reports why. Read `profile.referenceMode` for the applied method, rather than relying only on the requested `input.referenceMode`.
+
+With the default `referenceMode: "auto"`, the API performs three steps:
+
+1. `resolveCivilTimeOffset` finds the birthplace's UTC offset at the birth date and time.
+2. `createSunriseReference` uses the province's coordinates. The horoscope calculates sunrise for its own date and uses the nearest minute.
+3. `planetaryTimeReference` converts planetary calculation time to the selected +06:42:04 frame.
+
+Keep `referenceUtcOffsetSeconds` fixed for this convention, including foreign births. Only `civilUtcOffsetSeconds` follows the birthplace's timezone. The historical Bangkok frame is an application convention, not a universal Suriyayatra epoch. See [sources](../SOURCES.md) for the independent formula and time references.
+
+| Setting | Used for | Value in this example |
+| --- | --- | --- |
+| `ascendantReference` | Daily sunrise for the ascendant | Province coordinates, date-specific offset, `timePrecision: "minute"` |
+| `planetaryTimeReference` | Planetary calculation time | Birthplace civil offset → +06:42:04 |
+| `location.localTimeCorrectionMinutes` | Traditional 06:00 reference only | Omitted when using coordinate sunrise |
+
+Automatic selection requires a recognized Thai province, CE 1900–2100 and no explicit reference or custom correction. `input` contains the resolved numeric offsets and coordinates. `profile.referenceMode` reports `"auto"`, `"traditional"` or `"explicit"`; `profile.referenceFallback` explains an automatic fallback with `"year-out-of-range"`, `"missing-province"` or `"explicit-correction"`.
+
+Explicit `ascendantReference` or `planetaryTimeReference` takes precedence: supplied settings are used as-is, without filling the other reference or changing continuous sunrise to minute precision. A country alone does not enable automatic location selection; foreign birthplaces use the location/offset helpers below. Do not apply a province correction on top of sunrise.
+
+Automatic UTC resolution uses the runtime's IANA data through `Intl`. Invalid or ambiguous local times are reported as input errors rather than silently falling back. Retain `input.ascendantReference` and `input.planetaryTimeReference` for repeatable calculations across runtime versions; passing them explicitly bypasses automatic lookup.
+
+Choose `referenceMode: "traditional"` for the 06:00 base and local planetary clock. `calculateDetailedPositions()` still defaults to that reference convention, while `generateThaiAstrologyChart()` still defaults to `legacy`. Deriving province corrections from longitude can change traditional ascendants in some provinces, so this mode does not restore every result from a previous release.
+
+Different references can move the ascendant across a sign boundary and change interpretations even with identical birth inputs. Use one convention throughout interpretation, and show the applied method when using advanced settings. For an estimated birth time, check the boundary for the date, coordinates and calculation convention; a 15-minute uncertainty threshold is not universal.
+
+## Coordinate-based sunrise
+
+```ts
+import { calculateSunrise, calculateThaiHoroscope } from "thai-astrology"
+
+const reference = {
+  method: "sunrise" as const, latitude: 13.7563, longitude: 100.5018, utcOffsetHours: 7,
+  timePrecision: "minute" as const,
+}
+const event = calculateSunrise({ yearCe: 2024, month: 6, day: 21, ...reference })
+if (event.status === "rise") console.log(event.roundedTimeMinutes) // 352 = 05:52
+
+const chart = calculateThaiHoroscope({
+  date: { year: 2024, era: "CE", month: 6, day: 21 },
+  time: { hour: 8, minute: 30 },
+  ascendantReference: reference,
+  planetaryTimeReference: {
+    civilUtcOffsetSeconds: Math.round(reference.utcOffsetHours * 3600),
+    referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4,
+  },
+})
+console.log(chart.timing.sunrise?.timeMinutes) // unrounded minutes from local midnight
+```
+
+Optional `ascendantReference` requires `method: "sunrise"`, latitude (-90..90), longitude (-180..180) and civil `utcOffsetHours` (-14..14), including DST. `calculateSunrise()` accepts `yearCe`, `month`, `day` and the same coordinates/offset. Both support CE 1900–2100 in Thailand or abroad. The NOAA/Meeus model uses a sea-level solar-center altitude of −50′, without terrain, elevation or actual weather corrections. Coordinates do not determine the civil timezone; no timezone/DST lookup is performed.
+
+For `status: "rise"`, `timeMinutes` is unrounded and in [0, 1440); `roundedTimeMinutes` is for display or explicit minute precision and may be 1440 (24:00). `altitudeResidualDegrees` is a numerical residual, not physical accuracy. An absent event returns `status: "no-rise"`; a horoscope selecting sunrise on such a date throws `RangeError`. Use `referenceMode: "traditional"` without explicit references in the structured API, or omit `ascendantReference` in the low-level API, to use the traditional reference.
+
+`timePrecision: "minute"` uses nearest-minute sunrise for the ascendant and all twelve sign-start times. In an explicit reference, omitted precision or `"continuous"` uses raw sunrise and preserves existing results. Automatic provincial selection uses `"minute"`. Both location helpers accept the field. Raw events, planets and lunar dates do not change. A rounded 24:00 becomes 00:00 within the ascendant cycle without moving the civil date.
+
+The province correction is zero. A simultaneous nonzero `localTimeCorrectionMinutes` is rejected. The option is also available on `CalculationInput`; the chart wrapper requires `method: "suriyayatra"`.
+
+`ascendantReference` changes the ascendant reference. Rising durations remain fixed and the Sun is held at its birth-time position. Without `planetaryTimeReference`, planetary positions retain the civil-local clock; the sunrise offset alone does not shift planetary calculations. This is not a worldwide geometric ascendant or modern planetary ephemeris.
+
+## Province and country selection
+
+Select a province to fill coordinates; the engine calculates sunrise automatically for the chart's date:
+
+```ts
+import { calculateThaiHoroscope, createSunriseReference, getThaiAstrologyProvinceLocations, getThaiAstrologyCountries } from "thai-astrology"
+
+const provinceOptions = getThaiAstrologyProvinceLocations() // 77 provinces with editable coordinates
+const countryOptions = getThaiAstrologyCountries() // 250 country/territory labels in English
+const reference = createSunriseReference({ province: "กรุงเทพมหานคร", utcOffsetHours: 7, timePrecision: "minute" })
+const provincial = calculateThaiHoroscope({
+  date: { year: 2024, era: "CE", month: 6, day: 21 },
+  time: { hour: 8, minute: 30 },
+  ascendantReference: reference,
+  planetaryTimeReference: {
+    civilUtcOffsetSeconds: Math.round(reference.utcOffsetHours * 3600),
+    referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4,
+  },
+})
+console.log(provincial.timing.sunrise?.roundedTimeMinutes) // 352 = 05:52
+```
+
+```ts
+import { calculateThaiHoroscope, createSunriseReference } from "thai-astrology"
+
+// New York uses EDT (UTC−4) on this date; the country label is optional.
+const foreign = createSunriseReference({
+  countryCode: "US", latitude: 40.7128, longitude: -74.006, utcOffsetHours: -4,
+  timePrecision: "minute",
+})
+const foreignChart = calculateThaiHoroscope({
+  date: { year: 2024, era: "CE", month: 6, day: 21 },
+  time: { hour: 8, minute: 30 },
+  ascendantReference: foreign,
+  planetaryTimeReference: {
+    civilUtcOffsetSeconds: Math.round(foreign.utcOffsetHours * 3600),
+    referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4,
+  },
+})
+console.log(foreignChart.timing.sunrise?.roundedTimeMinutes) // 325 = 05:25
+```
+
+`getThaiAstrologyProvinceLocations()` returns fresh records with `province`, `countryCode: "TH"`, `latitude`, `longitude`, `timeZone: "Asia/Bangkok"`, `coordinateKind: "province-seat"` and a public `geonameId` for inspecting the point. WGS84 coordinates represent provincial seats, rather than boundaries or every birthplace in a province. `timeZone` is metadata; no offset lookup is performed. `getThaiAstrologyProvinces()` returns longitude-derived corrections in the UTC+7 frame, rounded to minutes.
+
+`createSunriseReference()` requires a province or both coordinates, plus explicit `utcOffsetHours`. Both supplied coordinates override the seat; one coordinate cannot be mixed with a provincial default. Pass the result into a natal/transit chart's `ascendantReference`. Each chart's own date determines a fresh sunrise event; no fixed sunrise time is stored by province.
+
+`getThaiAstrologyCountries()` returns English names and two-letter codes for 250 countries/territories, including GeoNames `XK` and excluding dissolved `AN`/`CS`. An optional `countryCode` must use an uppercase code from this list. A country alone is insufficient: supply coordinates and the date's civil offset, including DST. The helper does not check borders or infer timezones. A foreign country cannot be combined with a Thai province. When switching countries in a form, clear the previous province and coordinates before accepting the new location.
+
+Location data is adapted from [GeoNames](https://www.geonames.org/), retrieved 4 October 2026, under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). It is reduced to selector fields and aligned with existing library province names. See [sources and licensing](../SOURCES.md).
+
+## Country-scoped location search and offsets
+
+```ts
+import { calculateThaiHoroscope, searchThaiAstrologyLocations, createSunriseReferenceForLocation } from "thai-astrology"
+
+const civilTime = { yearCe: 2024, month: 6, day: 21, hour: 8, minute: 30 }
+const result = searchThaiAstrologyLocations({ countryCode: "US", query: "New York" })
+const city = result.items[0]
+if (!city) throw new Error("Location not found")
+const reference = createSunriseReferenceForLocation({ locationId: city.id, civilTime, timePrecision: "minute" })
+console.log(reference.utcOffsetHours) // -4 (EDT)
+const chart = calculateThaiHoroscope({
+  date: { year: civilTime.yearCe, era: "CE", month: civilTime.month, day: civilTime.day },
+  time: { hour: civilTime.hour, minute: civilTime.minute },
+  ascendantReference: reference,
+  planetaryTimeReference: {
+    civilUtcOffsetSeconds: Math.round(reference.utcOffsetHours * 3600),
+    referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4,
+  },
+})
+console.log(chart.timing.sunrise?.roundedTimeMinutes) // 325 = 05:25
+```
+
+`searchThaiAstrologyLocations({ countryCode, query?, limit?, offset? })` requires a code from `getThaiAstrologyCountries()` and searches English city names or Thai province names. Matching ignores case and Latin diacritics. It returns `{ items, total }`, where `total` is before pagination. `limit` defaults to 50 and is capped at 100; `offset` is a nonnegative integer. Each record has `id`, `countryCode`, `nameEnglish`, coordinates, `timeZone`, `coordinateKind` and `geonameId`; Thai seats also have `nameThai` and `province`. Results are fresh copies in stable snapshot order.
+
+The starter catalog includes capitals, the ten largest source cities per country, a largest available source city per timezone and all 77 Thai provincial seats: 1,945 points in 243 countries/territories. It is not every city or every worldwide timezone. Countries without catalog records return `items: []`, without substituting another country's location. Manual coordinates remain supported. GeoNames CC BY 4.0 data is reduced without changing its coordinates or timezone names.
+
+`createSunriseReferenceForLocation()` accepts a result's `locationId` or both coordinates. Optional `countryCode` must agree with the selected ID. Explicit `utcOffsetHours` takes precedence and bypasses `Intl`. Otherwise, supply `civilTime: { yearCe, month, day, hour, minute }`; the selected place's zone, or an explicit `timeZone`, resolves the offset at that birth date/time. CE 1900–2100 is supported.
+
+Both coordinates can override a selected point. Automatic mode then requires an explicitly confirmed `timeZone`, or provide a numeric offset instead. The helper does not infer a timezone from edited coordinates, which might cross a boundary. When switching countries in a form, clear the previous place, coordinates and timezone before selecting new values.
+
+`resolveCivilTimeOffset(civilTime, timeZone, disambiguation?)` returns `timeZone`, `utcOffsetHours`, `utcEpochMilliseconds` and `ambiguous`. It uses runtime IANA rules through `Intl.DateTimeFormat`, without reading the host timezone or current clock. Default `disambiguation: "reject"` refuses repeated times; explicitly choose `"earlier"` or `"later"` when appropriate. Nonexistent times during forward clock changes or skipped dates are always rejected, rather than shifting a birth time.
+
+This is an input adapter. The existing calculation core still receives numeric offsets and retains deterministic results for identical inputs. Intl rules can differ by runtime/database version. For repeatable calculations, retain the resolved numeric offset and runtime version or supply a verified offset explicitly. Unsupported timezone names require a supported runtime or explicit offset.
+
+Automatic offsets apply at the entered civil time. The existing sunrise model holds that offset for the whole day. On an intraday DST transition, displayed sunrise uses the selected offset frame; this does not yet model a civil clock that changes during the event day. The adapter adds no geometric worldwide ascendant or planetary frame conversion by itself. Select the separate planetary clock option below when needed.
+
+## Planetary clock reference
+
+Select `planetaryTimeReference` in `calculateThaiHoroscope`, `calculateDetailedPositions` or the chart wrapper with `method: "suriyayatra"`. Natal and transit inputs choose independently. Legacy refuses the option.
+
+```ts
+import { calculateThaiHoroscope, resolveCivilTimeOffset } from "thai-astrology"
+
+const civil = { yearCe: 2024, month: 1, day: 1, hour: 0, minute: 0 }
+const offset = resolveCivilTimeOffset(civil, "Asia/Bangkok")
+const chart = calculateThaiHoroscope({
+  date: { year: civil.yearCe, era: "CE", month: civil.month, day: civil.day },
+  time: { hour: civil.hour, minute: civil.minute },
+  planetaryTimeReference: {
+    civilUtcOffsetSeconds: Math.round(offset.utcOffsetHours * 3600),
+    referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4,
+  },
+})
+console.log(chart.diagnostics.planetaryTime?.dayOffset) // -1
+console.log(chart.diagnostics.planetaryTime?.secondOfDay) // 85324
+```
+
+Both offsets must be integer seconds within -50,400..50,400. Civil includes birth-time DST; the reference frame is caller-selected. The formula is `reference time = civil time − civil offset + reference offset`, with day carry across years/leap days. A reference date outside CE 1–9999 is refused. Seconds are retained; 23:59 is not changed to 24:00.
+
+The +06:42:04 example comes from IANA civil-clock data; it is not certified as every Suriyayatra formula's meridian. Country/coordinates do not choose the planetary frame. Abroad, resolve the birthplace's dated offset and use a separately justified reference frame. `Math.round` above recovers IANA's whole-second offset from its hours representation; it does not tune a planetary longitude.
+
+The low-level API retains its civil-local planetary clock when this option is omitted. In the structured API, automatic provincial selection supplies it; choose `referenceMode: "traditional"` to retain the previous clock. Equal offsets also preserve calculations, adding diagnostics only. With different frames, solar/lunar/Ketu intraday stages evaluate integral-second fractions before division. Civil dates, `calendar.chulaSakarat`, Thai lunar dates and Taksa remain civil; geometric lunar phase follows the changed Sun/Moon. Ascendant time and sunrise remain in the civil frame, although its new Sun position can change the ascendant/houses. When combining sunrise, both options must use the same civil offset.
+
+Optional `diagnostics.planetaryTime` contains reference `horakhun`, `secondOfDay`, `dayOffset` and both offsets. The planetary epoch's Chula Sakarat uses the chosen frame, while calendar Chula Sakarat stays civil. This is fixed-offset frame conversion, not UT1/TT conversion or leap-second modeling.
+
+Mean Sun uses the reduced day base plus intraday units. `diagnostics.solarCycleUnits` retains the wrapped sum for the epoch-year decision; do not directly convert that diagnostic into mean Sun near an annual crossing.
+
+## Traditional calculations
+
+Set `referenceMode: "traditional"` and omit both references to use the entered local planetary clock and the 06:00 base with province correction. This reference uses a longitude correction rather than the date's sunrise time.
+
+```ts
+import { calculateThaiHoroscope } from "thai-astrology"
+
+const horoscope = calculateThaiHoroscope({
+  date: { year: 2024, era: "CE", month: 9, day: 15 },
+  time: { hour: 8, minute: 30 },
+  location: { province: "เชียงใหม่" },
+  referenceMode: "traditional",
+})
+
+console.log(horoscope.profile.referenceMode) // traditional
+```
+
+### Coordinate-based mean solar correction
+
+`calculateMeanSolarTimeCorrection({ longitude, utcOffsetHours })` returns civil clock time minus local mean solar time, in minutes: `60 × utcOffsetHours − 4 × longitude`. A positive value means the civil clock is ahead. Longitude is positive east (-180 to 180 degrees); the civil offset (-14 to 14 hours) must include DST at the birth time and may contain fractional hours.
+
+Default `traditional` province corrections use `Math.round(60 × 7 − 4 × longitude)` from provincial-seat coordinates. UTC+7 is this method's reference convention, not a historical timezone lookup. Supply `localTimeCorrectionMinutes` explicitly for a custom correction on a particular chart.
+
+This example instead uses an unrounded correction and the dated civil offset:
+
+```ts
+import { calculateMeanSolarTimeCorrection, calculateThaiHoroscope, getThaiAstrologyProvinceLocations, resolveCivilTimeOffset } from "thai-astrology"
+
+const birthplace = getThaiAstrologyProvinceLocations().find(place => place.province === "กรุงเทพมหานคร")
+if (!birthplace) throw new Error("Province not found")
+const civilTime = { yearCe: 2024, month: 6, day: 21, hour: 8, minute: 30 }
+const { utcOffsetHours } = resolveCivilTimeOffset(civilTime, birthplace.timeZone)
+const correction = calculateMeanSolarTimeCorrection({ longitude: birthplace.longitude, utcOffsetHours })
+const chart = calculateThaiHoroscope({
+  date: { year: civilTime.yearCe, era: "CE", month: civilTime.month, day: civilTime.day },
+  time: { hour: civilTime.hour, minute: civilTime.minute },
+  referenceMode: "traditional",
+  location: { province: birthplace.province, localTimeCorrectionMinutes: correction },
+})
+console.log(correction.toFixed(5)) // 17.99424 minutes
+console.log(chart.timing.referenceTimeMinutes) // Approximately 377.99424 minutes after midnight
+```
+
+The helper does not round, wrap across dates or resolve timezones. Use `Math.round(correction)` explicitly if whole minutes are required. The input bounds allow results up to ±1560 minutes, while chart `localTimeCorrectionMinutes` accepts only ±1440; values beyond that chart limit are rejected.
+
+This correction excludes the equation of time, seasonal effects and latitude. It is not a daily sunrise prediction and does not guarantee closer ascendant agreement with another method. Use `auto` or `ascendantReference` for coordinate-based daily sunrise without adding this correction again. See the formula and scope in [SOURCES.md](../SOURCES.md).

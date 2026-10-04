@@ -9,6 +9,7 @@ const horoscope = calculateThaiHoroscope({
   date: { year: 2325, era: 'BE', month: 4, day: 21 },
   time: { hour: 6, minute: 54 },
   location: { province: 'กรุงเทพมหานคร' },
+  referenceMode: 'traditional',
 })
 // Houses start at the ascendant; chart channels start at Aries (sign index 0).
 const signs = [...horoscope.houses].sort((a, b) => a.sign - b.sign).map(house => house.signNameThai)

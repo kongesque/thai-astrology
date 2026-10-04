@@ -3,7 +3,7 @@ import type { ChartPoint, DetailedCalculationResult, DetailedPosition, PlanetKey
 import type { CalculationInput, PlanetaryTimeReference, PlanetPositions, SunriseReference } from "./engine/astro-calculation"
 import { normalizeCalculationInput } from "./engine/astro/input"
 import { modulo, PLANET_KEYS, PLANET_NUMBERS, SIGN_NAMES, SIGN_RULERS } from "./engine/astro/math"
-import { PROVINCE_TIME_OFFSETS } from "./engine/astro/provinces"
+import { getProvinceTimeCorrectionMinutes } from "./engine/astro/provinces"
 import { PROVINCE_SEATS } from "./engine/astro/location-data"
 import { createSunriseReference } from "./engine/astro/locations"
 import { resolveCivilTimeOffset } from "./engine/astro/civil-time"
@@ -114,7 +114,7 @@ export function validateHoroscopeInput(input: unknown): HoroscopeInputValidation
       if (yearCe < 1900 || yearCe > 2100) issue("date.year", "range", "Coordinate sunrise supports CE 1900..2100")
     }
   }
-  if (input.ascendantReference === undefined && typeof province === "string" && province.length && province !== "ไม่ระบุจังหวัด" && province !== "ไม่ใช้จังหวัด" && !Object.prototype.hasOwnProperty.call(PROVINCE_TIME_OFFSETS, province) && correction === undefined) {
+  if (input.ascendantReference === undefined && typeof province === "string" && province.length && province !== "ไม่ระบุจังหวัด" && province !== "ไม่ใช้จังหวัด" && getProvinceTimeCorrectionMinutes(province) === undefined && correction === undefined) {
     issue("location.province", "unknown", "Unknown province; provide an explicit local-time correction")
   }
   if (!issues.some(value => value.field === "date" || value.field.startsWith("date."))) {
@@ -306,7 +306,7 @@ export function calculateHoroscopeTransits(natalInput: HoroscopeInput, transitIn
   return { natal: horoscope(natal, result.natal), transit: horoscope(transit, result.transit), comparison: result.comparison }
 }
 
-/** Fresh records for province dropdowns; callers cannot modify the engine's lookup table. */
+/** Fresh province records with longitude-derived UTC+7 corrections rounded to minutes. */
 export function getThaiAstrologyProvinces(): { province: string; localTimeCorrectionMinutes: number }[] {
-  return Object.entries(PROVINCE_TIME_OFFSETS).map(([province, localTimeCorrectionMinutes]) => ({ province, localTimeCorrectionMinutes }))
+  return PROVINCE_SEATS.map(([province]) => ({ province, localTimeCorrectionMinutes: getProvinceTimeCorrectionMinutes(province) as number }))
 }

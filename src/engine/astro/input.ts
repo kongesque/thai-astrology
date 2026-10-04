@@ -1,5 +1,5 @@
 import type { CalculationInput, PlanetaryTimeReference } from "../astro-calculation"
-import { PROVINCE_TIME_OFFSETS } from "./provinces"
+import { getProvinceTimeCorrectionMinutes } from "./provinces"
 import type { SunriseReference } from "./sunrise"
 
 export interface NormalizedCalculationInput {
@@ -100,9 +100,8 @@ export function normalizeCalculationInput(input: CalculationInput, strictProvinc
   if (typeof input.province !== "string" || input.province.length === 0) {
     throw new TypeError("`province` must be a non-empty string")
   }
-  const provinceOffset = Object.prototype.hasOwnProperty.call(PROVINCE_TIME_OFFSETS, input.province)
-    ? PROVINCE_TIME_OFFSETS[input.province]
-    : strictProvince && (input.province === "ไม่ระบุจังหวัด" || input.province === "ไม่ใช้จังหวัด") ? 0 : undefined
+  const provinceOffset = strictProvince && (input.province === "ไม่ระบุจังหวัด" || input.province === "ไม่ใช้จังหวัด")
+    ? 0 : getProvinceTimeCorrectionMinutes(input.province)
   const offset = reference ? 0 : input.localTimeCorrectionMinutes ?? provinceOffset
   if (strictProvince && offset === undefined) {
     throw new RangeError("Unknown province; supply a Thai province or `localTimeCorrectionMinutes`")
@@ -110,7 +109,7 @@ export function normalizeCalculationInput(input: CalculationInput, strictProvinc
   if (offset !== undefined && (!Number.isFinite(offset) || Math.abs(offset) > 1440)) {
     throw new RangeError("`localTimeCorrectionMinutes` must be finite and between -1440 and 1440")
   }
-  const normalized = { day, month, yearCe, yearBe, hour, minute, localTimeCorrectionMinutes: offset ?? 18, ...(reference ? { ascendantReference: reference } : {}), ...(planetaryTimeReference ? { planetaryTimeReference } : {}) }
+  const normalized = { day, month, yearCe, yearBe, hour, minute, localTimeCorrectionMinutes: offset ?? getProvinceTimeCorrectionMinutes("กรุงเทพมหานคร") ?? 0, ...(reference ? { ascendantReference: reference } : {}), ...(planetaryTimeReference ? { planetaryTimeReference } : {}) }
   if (planetaryTimeReference) resolvePlanetaryTime(normalized, civilJulianDay(yearCe, month, day) - 1954167)
   return normalized
 }

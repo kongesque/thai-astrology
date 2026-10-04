@@ -15,6 +15,8 @@ export { searchThaiAstrologyLocations, createSunriseReferenceForLocation } from 
 export type { AstrologyLocation, AstrologyLocationSearch, AstrologyLocationSearchResult, LocationSunriseSelection } from "./astro/location-search"
 export { resolveCivilTimeOffset } from "./astro/civil-time"
 export type { CivilDateTime, CivilTimeDisambiguation, CivilTimeOffset } from "./astro/civil-time"
+export { calculateMeanSolarTimeCorrection } from "./astro/provinces"
+export type { MeanSolarTimeCorrectionInput } from "./astro/provinces"
 
 export interface PlanetPositions {
   ascendant: number
