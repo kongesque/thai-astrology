@@ -26,7 +26,7 @@
 
 **`thai-astrology` is an open-source Thai astrology library for JavaScript and TypeScript.** It calculates natal charts, ascendants and planetary positions using **Suriyayatra (สุริยยาตร์)**, together with divisional charts, Taksa, Thai lunar dates and planetary transits.
 
-For Thai astrologers, the results include familiar chart symbols, sign and house names, rulers and dignities. For developers, the same results are structured data for chart displays, interpretation rules and APIs. Your app supplies the reading and prediction text.
+Supply a birth date, local time and birthplace to obtain planetary positions, houses, rulers, lunar mansions and dignities. Results include Thai or Arabic chart symbols for drawing charts, displaying position tables and building interpretation rules.
 
 Supports **Node.js 16+**, ESM, CommonJS and browsers through a bundler, with no runtime dependencies. Chart results are JSON-serializable; planet, sign, house and Rerk names are returned in Thai.
 
