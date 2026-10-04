@@ -54,52 +54,35 @@ Install the package:
 npm install thai-astrology
 ```
 
-Calculate a chart from a birth date, time and province:
+Calculate the chart shown in the hero image: **21 April 1782 (BE 2325), 06:54, Bangkok**.
 
 ```ts
-import {
-  calculateThaiHoroscope,
-  createSunriseReference,
-  resolveCivilTimeOffset,
-} from "thai-astrology"
+import { calculateThaiHoroscope } from "thai-astrology"
 
-// Edit the birth details here; yearCe is Common Era.
-const birth = { yearCe: 2024, month: 9, day: 15, hour: 8, minute: 30 }
-const province = "เชียงใหม่"
-
-const { utcOffsetHours } = resolveCivilTimeOffset(birth, "Asia/Bangkok")
 const horoscope = calculateThaiHoroscope({
-  date: { year: birth.yearCe, era: "CE", month: birth.month, day: birth.day },
-  time: { hour: birth.hour, minute: birth.minute },
-  ascendantReference: createSunriseReference({
-    province, utcOffsetHours, timePrecision: "minute",
-  }),
-  planetaryTimeReference: {
-    civilUtcOffsetSeconds: Math.round(utcOffsetHours * 3600),
-    referenceUtcOffsetSeconds: 6 * 3600 + 42 * 60 + 4,
-  },
+  date: { year: 1782, era: "CE", month: 4, day: 21 },
+  time: { hour: 6, minute: 54 },
+  location: { province: "กรุงเทพมหานคร" },
 })
 
-console.log(horoscope.points.ascendant.signName) // กันย์ (Virgo)
-console.log(horoscope.points.sun.signName) // สิงห์ (Leo)
-console.log(horoscope.calendar.thaiLunarDate?.label) // ข๑๓ด๑๐ = waxing day 13, lunar month 10
+console.log(horoscope.points.ascendant.signName) // เมษ (Aries)
+console.log(horoscope.points.sun.signName) // เมษ (Aries)
+console.log(horoscope.calendar.thaiLunarDate?.label) // ข๑๐ด ๖ = waxing day 10, lunar month 6
 ```
 
-Enter the birth details in `birth` and select a Thai province in `province`. `yearCe` is Common Era; subtract 543 from a Buddhist Era year. Hours are 0–23 and minutes 0–59, in local civil time. Names and gender are not required. Returned planet, sign and house names are in Thai.
+Edit `date`, `time` and `location.province` for another chart. Use `era: "CE"` for Common Era, or `year: 2325, era: "BE"` for the equivalent Buddhist Era date. Enter local time as numbers: hour 0–23 and minute 0–59. Names and gender are not required.
 
-The remaining code is your app's calculation setup: resolve the date's UTC offset, use the province's coordinates for daily sunrise rounded to the nearest minute, and calculate planets in the historical Bangkok +06:42:04 frame. Keep that frame fixed when changing birthplace; it is separate from the birthplace's UTC offset. Users only enter birth details.
+This historical example uses the **06:00 ascendant reference with province correction** and the civil-local planetary clock, matching the hero image. The coordinate-sunrise and timezone helpers support CE 1900–2100, so they cannot be used for this 1782 chart. For dates within that range, the [API guide](docs/api-en.md#input-and-main-apis) provides a complete example with daily sunrise rounded to the nearest minute, date-aware UTC and the +06:42:04 planetary frame.
 
-For CommonJS, replace the import with `const { calculateThaiHoroscope, createSunriseReference, resolveCivilTimeOffset } = require("thai-astrology")`.
-
-Continue with [foreign locations, precise coordinates and form input](docs/api-en.md). To retain the 06:00 province-reference calculation, see [traditional settings](docs/api-en.md#traditional-calculations).
+For CommonJS, replace the import with `const { calculateThaiHoroscope } = require("thai-astrology")`.
 
 ## Display a Rasi chart
 
-The hero image is a historical chart using the 06:00 reference. The code above calculates a different chart for 2024 using coordinate sunrise. Read its symbols from `horoscope`:
+The code above produces the same Rasi chart as the hero image. Read its twelve channels from `horoscope`:
 
 ```ts
 console.log(horoscope.charts.rasi.channels.thai)
-// ["", "๕*๐", "๓", "", "๑๔", "ลั๖", "", "", "๙", "๒", "๗", "๘"]
+// ["ลั๑*", "๓๙", "๐", "๒", "", "", "", "", "๕๗", "", "", "๔๖๘"]
 ```
 
 The result contains 12 strings ordered Aries through Pisces. An empty string means no planets; `ลั` marks the ascendant and `*` marks Tanuseth. Use `channels.arabic` for Arabic numerals, or replace `rasi` with `navamsa` / `drekkana` for those divisional charts.
@@ -108,7 +91,7 @@ The library returns chart data so you can choose your own layout. See the [illus
 
 To display a planet's position, use its sign name and degrees/minutes within that sign. For angular calculations, use total `longitudeDegrees`. Sign indices run 0–11; houses run 1–12. The API guide documents units and the full result structure.
 
-For calendar dates, read `calendar.thaiLunarDate`. The separately returned `calendar.lunarDay` is calculated from the Moon–Sun angle and can differ from the calendar day. In this example, the calendar day is waxing 13, while the angular lunar day is 12.
+For calendar dates, read `calendar.thaiLunarDate`. The separately returned `calendar.lunarDay` is calculated from the Moon–Sun angle and can differ from the calendar day. In this example, the calendar date is waxing day 10 of lunar month 6, while the angular lunar day is 8.
 
 ## Continue with the API guide
 
@@ -125,7 +108,7 @@ The [English API guide](docs/api-en.md) covers fields, units, options and furthe
 
 Planetary positions follow classical Suriyayatra formulas. The ascendant uses fixed classical rising durations (อันโตนาทีสามัญ), and houses use the whole-sign system. Relationships count zodiac signs. These conventions matter when comparing results with another school or implementing interpretation rules.
 
-The quick start explicitly selects coordinate sunrise rounded to the nearest minute and the historical Bangkok +06:42:04 planetary time frame. The frame is a calculation convention; the birthplace's civil UTC offset is resolved separately. A bare `date`/`time`/`location` call retains the 06:00 province reference and civil-local planetary clock. See [calculation settings](docs/api-en.md#sunrise-and-planetary-time-settings).
+The README example uses the 06:00 province reference. For coordinate sunrise, supply `ascendantReference`; for a chosen planetary frame, supply `planetaryTimeReference` as well. The birthplace's UTC offset and the selected calculation frame are separate settings. See [calculation settings](docs/api-en.md#sunrise-and-planetary-time-settings).
 
 | Reference area | Basis used by the library |
 | --- | --- |
