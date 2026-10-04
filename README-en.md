@@ -24,9 +24,9 @@
   <a href="https://github.com/kongesque/thai-astrology/issues">Report an issue</a>
 </p>
 
-**`thai-astrology` is an open-source Thai astrology library for JavaScript and TypeScript.** It calculates natal charts, ascendants and planetary positions using **Suriyayatra (สุริยยาตร์)**, together with divisional charts, Taksa, Thai lunar dates and planetary transits.
+**`thai-astrology` is an open-source Suriyayatra (สุริยยาตร์) Thai astrology library for JavaScript and TypeScript.** Calculate natal Rasi charts, ascendants, planetary positions and transits from a birth date, local time and birthplace.
 
-Supply a birth date, local time and birthplace to obtain planetary positions, houses, rulers, lunar mansions and dignities. Results include Thai or Arabic chart symbols for drawing charts, displaying position tables and building interpretation rules.
+Results include houses and rulers, Taksa, lunar mansions, planetary dignities and Thai lunar calendar dates, along with Navamsa and Drekkana charts. Use the structured results and Thai or Arabic chart symbols to draw charts, display position tables and build interpretation rules.
 
 Supports **Node.js 16+**, ESM, CommonJS and browsers through a bundler, with no runtime dependencies. Chart results are JSON-serializable; planet, sign, house and Rerk names are returned in Thai.
 
@@ -72,7 +72,9 @@ console.log(horoscope.calendar.thaiLunarDate?.label) // ข๑๐ด ๖ = waxin
 
 Edit `date`, `time` and `location.province` for another chart. Use `era: "CE"` for Common Era, or `year: 2325, era: "BE"` for the equivalent Buddhist Era date. Enter local time as numbers: hour 0–23 and minute 0–59. Names and gender are not required.
 
-This historical example uses the **06:00 ascendant reference with province correction** and the civil-local planetary clock, matching the hero image. The coordinate-sunrise and timezone helpers support CE 1900–2100, so they cannot be used for this 1782 chart. For dates within that range, the [API guide](docs/api-en.md#input-and-main-apis) provides a complete example with daily sunrise rounded to the nearest minute, date-aware UTC and the +06:42:04 planetary frame.
+**Example settings:** the call uses the default 06:00 ascendant reference with province correction and the entered civil-local planetary clock, matching the hero image. Selecting a province does not automatically enable coordinate sunrise, resolve UTC or select a planetary reference frame.
+
+For daily sunrise rounded to the nearest minute, date-aware UTC and the +06:42:04 planetary frame, use the [complete API example](docs/api-en.md#input-and-main-apis). It supplies both `ascendantReference` and `planetaryTimeReference` explicitly. The sunrise and timezone helpers support CE 1900–2100, so that workflow cannot be applied to this 1782 chart.
 
 For CommonJS, replace the import with `const { calculateThaiHoroscope } = require("thai-astrology")`.
 
