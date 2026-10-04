@@ -9,6 +9,8 @@ export type { ChartPoint, DetailedCalculationResult, DetailedPosition, PlanetKey
 export type CalculationMethod = "legacy" | "suriyayatra"
 export { calculateSunrise } from "./astro/sunrise"
 export type { SunriseInput, SunriseLocation, SunriseReference, SunriseResult } from "./astro/sunrise"
+export { createSunriseReference, getThaiAstrologyProvinceLocations, getThaiAstrologyCountries } from "./astro/locations"
+export type { ThaiProvinceLocation, AstrologyCountry, SunriseReferenceSelection } from "./astro/locations"
 
 export interface PlanetPositions {
   ascendant: number

@@ -49,6 +49,7 @@ try {
   copyFileSync(join(root, 'test/calculation.cjs'), join(consumer, 'test/calculation.cjs'))
   copyFileSync(join(root, 'test/horoscope.cjs'), join(consumer, 'test/horoscope.cjs'))
   copyFileSync(join(root, 'test/sunrise.cjs'), join(consumer, 'test/sunrise.cjs'))
+  copyFileSync(join(root, 'test/locations.cjs'), join(consumer, 'test/locations.cjs'))
   copyFileSync(join(root, 'test/fixtures/sunrise-events.json'), join(consumer, 'test/fixtures/sunrise-events.json'))
   copyFileSync(join(root, 'test/fixtures/release-0.1.7.json'), join(consumer, 'test/fixtures/release-0.1.7.json'))
   execFileSync(process.execPath, ['test/run.cjs'], { cwd: consumer, stdio: 'inherit' })
@@ -56,7 +57,7 @@ try {
 
   writeFileSync(join(consumer, 'esm.mjs'), `
 import assert from 'node:assert/strict'
-import { generateThaiAstrologyChart, formatChannelOutputs, calculateSun, calculateDetailedPositions, calculateTransits, describeLongitude, calculateThaiHoroscope, calculateHoroscopeTransits, validateHoroscopeInput, getThaiAstrologyProvinces, HoroscopeInputError, calculateSunrise } from 'thai-astrology'
+import { generateThaiAstrologyChart, formatChannelOutputs, calculateSun, calculateDetailedPositions, calculateTransits, describeLongitude, calculateThaiHoroscope, calculateHoroscopeTransits, validateHoroscopeInput, getThaiAstrologyProvinces, HoroscopeInputError, calculateSunrise, createSunriseReference, getThaiAstrologyProvinceLocations, getThaiAstrologyCountries } from 'thai-astrology'
 const chart = generateThaiAstrologyChart({ day: 15, monthTh: 9, yearBe: 2566, hour: 14, minute: 45, province: 'กรุงเทพมหานคร' })
 assert.deepEqual(chart.sunPosition, [27, 29])
 assert.equal(formatChannelOutputs(chart)[8], 'ลั')
@@ -74,6 +75,10 @@ assert.equal(calculateTransits({ day: 15, monthTh: 9, yearBe: 2567, hour: 8, min
 const sunrise = calculateSunrise({ yearCe: 2024, month: 6, day: 21, latitude: 13.7563, longitude: 100.5018, utcOffsetHours: 7 })
 assert.equal(sunrise.status, 'rise')
 assert.equal(sunrise.roundedTimeMinutes, 352)
+assert.equal(getThaiAstrologyProvinceLocations().length, 77)
+assert.equal(getThaiAstrologyCountries().length, 250)
+const provincial = createSunriseReference({ province: 'กรุงเทพมหานคร', utcOffsetHours: 7 })
+assert.equal(calculateSunrise({ yearCe: 2024, month: 6, day: 21, ...provincial }).roundedTimeMinutes, 352)
 `)
   execFileSync(process.execPath, ['esm.mjs'], { cwd: consumer, stdio: 'inherit' })
 
@@ -105,10 +110,14 @@ assert.equal(sunrise.roundedTimeMinutes, 352)
   const coordinateInput = { ...browserInput, ascendantReference: { method: 'sunrise', latitude: 13.7563, longitude: 100.5018, utcOffsetHours: 7 } }
   assert.deepEqual(JSON.parse(JSON.stringify(browserApi.calculateThaiHoroscope(coordinateInput))), require(installed).calculateThaiHoroscope(coordinateInput))
   assert.equal(browserApi.calculateSunrise({ yearCe: 2024, month: 6, day: 21, latitude: 13.7563, longitude: 100.5018, utcOffsetHours: 7 }).roundedTimeMinutes, 352)
+  assert.deepEqual(JSON.parse(JSON.stringify(browserApi.getThaiAstrologyProvinceLocations())), require(installed).getThaiAstrologyProvinceLocations())
+  assert.deepEqual(JSON.parse(JSON.stringify(browserApi.getThaiAstrologyCountries())), require(installed).getThaiAstrologyCountries())
+  const provincialReference = browserApi.createSunriseReference({ province: 'กรุงเทพมหานคร', utcOffsetHours: 7 })
+  assert.deepEqual(JSON.parse(JSON.stringify(browserApi.calculateThaiHoroscope({ ...browserInput, ascendantReference: provincialReference }))), require(installed).calculateThaiHoroscope({ ...browserInput, ascendantReference: provincialReference }))
 
   const types = `
-import { generateThaiAstrologyChart, formatChannelOutputs, calculateDetailedPositions, calculateTransits, calculateThaiHoroscope, calculateHoroscopeTransits, validateHoroscopeInput, calculateSunrise } from 'thai-astrology'
-import type { CalculationInput, ThaiAstrologyChart, DetailedCalculationResult, DetailedThaiAstrologyChart, ThaiLunarDate, TransitCalculationResult, HoroscopeInput, ThaiHoroscope, HoroscopeTransitResult, SunriseReference, SunriseResult } from 'thai-astrology'
+import { generateThaiAstrologyChart, formatChannelOutputs, calculateDetailedPositions, calculateTransits, calculateThaiHoroscope, calculateHoroscopeTransits, validateHoroscopeInput, calculateSunrise, createSunriseReference, getThaiAstrologyProvinceLocations, getThaiAstrologyCountries } from 'thai-astrology'
+import type { CalculationInput, ThaiAstrologyChart, DetailedCalculationResult, DetailedThaiAstrologyChart, ThaiLunarDate, TransitCalculationResult, HoroscopeInput, ThaiHoroscope, HoroscopeTransitResult, SunriseReference, SunriseResult, ThaiProvinceLocation, AstrologyCountry, SunriseReferenceSelection } from 'thai-astrology'
 const input: CalculationInput = { day: 15, monthTh: 9, yearBe: 2566, hour: 14, minute: 45, province: 'กรุงเทพมหานคร' }
 const chart: ThaiAstrologyChart = generateThaiAstrologyChart(input)
 const channels: string[] = formatChannelOutputs(chart, { numerals: 'thai' })
@@ -131,6 +140,12 @@ if (sunrise.status === 'rise') { const minutes: number = sunrise.timeMinutes; vo
 const seasonal = calculateThaiHoroscope({ ...webInput, ascendantReference: coordinateReference })
 const coordinateDetailed = calculateDetailedPositions({ ...input, ascendantReference: coordinateReference })
 void [seasonal, coordinateDetailed]
+const seats: ThaiProvinceLocation[] = getThaiAstrologyProvinceLocations()
+const countries: AstrologyCountry[] = getThaiAstrologyCountries()
+const selection: SunriseReferenceSelection = { province: 'กรุงเทพมหานคร', utcOffsetHours: 7 }
+const selectedReference: SunriseReference = createSunriseReference(selection)
+const selectedChart: ThaiHoroscope = calculateThaiHoroscope({ ...webInput, ascendantReference: selectedReference })
+void [seats, countries, selectedChart]
 `
   writeFileSync(join(consumer, 'types.cts'), types)
   writeFileSync(join(consumer, 'types.mts'), types)
