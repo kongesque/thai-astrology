@@ -1,7 +1,7 @@
-<h1 align="center">Thai Astrology - Suriyayatra for JavaScript &amp; TypeScript</h1>
+<h1 align="center">Thai Astrology - Suriyayatra Calculation Engine</h1>
 
 <p align="center">
-  Calculate Thai natal Rasi charts, ascendants, planetary positions and transits in JavaScript and TypeScript
+  Calculate Thai natal charts, ascendants, planetary positions and transits with JavaScript and TypeScript
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@
   <a href="https://github.com/kongesque/thai-astrology/issues">Report an issue</a>
 </p>
 
-**`thai-astrology` is an open-source Thai astrology library for JavaScript and TypeScript, using classical Suriyayatra (สุริยยาตร์) calculations.** Calculate natal Rasi charts (ราศีจักรสุริยยาตร์), the ascendant and positions of the ten Thai astrological planets from a birth date, local time and birthplace. Results include zodiac signs, degrees and arcminutes, with planetary transits compared against the natal chart.
+**`thai-astrology` is an open-source Thai astrology calculation engine for JavaScript and TypeScript, based on classical Suriyayatra (สุริยยาตร์).** Calculate natal Rasi charts (ราศีจักรสุริยยาตร์), the ascendant and positions of the ten Thai astrological planets from a birth date, local time and birthplace. Results include zodiac signs, degrees and arcminutes, with planetary transits compared against the natal chart.
 
 Results cover twelve houses and their rulers, Tanulak, Tanuseth, Taksa, Rerk categories, lunar mansions and their quarters, and planetary dignities, along with Navamsa and Drekkana charts. The Thai lunar calendar reports waxing or waning days and lunar months. Use the API's structured results, Thai names and Thai or Arabic chart symbols to draw charts, display position tables or build interpretation rules.
 
