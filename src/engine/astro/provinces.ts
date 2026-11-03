@@ -1,5 +1,11 @@
 import { PROVINCE_SEATS } from "./location-data"
 
+/** Accept an exact Thai label or a case-insensitive ISO 3166-2:TH identifier. */
+export function getProvinceSeat(province: string): typeof PROVINCE_SEATS[number] | undefined {
+  const code = province.toUpperCase()
+  return PROVINCE_SEATS.find(row => row[0] === province || row[4] === code)
+}
+
 export interface MeanSolarTimeCorrectionInput {
   /** Longitude in degrees east of Greenwich; west is negative. */
   longitude: number
@@ -30,6 +36,6 @@ export function calculateMeanSolarTimeCorrection(input: MeanSolarTimeCorrectionI
 
 /** Traditional UTC+7 reference convention, rounded to whole minutes; not a dated civil offset. */
 export function getProvinceTimeCorrectionMinutes(province: string): number | undefined {
-  const seat = PROVINCE_SEATS.find(row => row[0] === province)
+  const seat = getProvinceSeat(province)
   return seat ? Math.round(calculateMeanSolarTimeCorrection({ longitude: seat[2], utcOffsetHours: 7 })) : undefined
 }

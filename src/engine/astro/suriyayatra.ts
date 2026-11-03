@@ -267,7 +267,7 @@ function ascendantLongitude(sun: number, timeMinutes: number, correction: number
 /** คำนวณสุริยยาตร์ โดยคงหน่วยและจังหวะการปัดค่าของแต่ละขั้น */
 export function calculateDetailedPositions(input: CalculationInput): DetailedCalculationResult {
   const normalized = normalizeCalculationInput(input)
-  const { day, month, yearCe, yearBe, hour, minute, localTimeCorrectionMinutes } = normalized
+  const { day, month, yearCe, yearBe, hour, minute, provinceCode, localTimeCorrectionMinutes } = normalized
   const sunrise = normalized.ascendantReference
     ? calculateSunrise({ yearCe, month, day, ...normalized.ascendantReference }) : undefined
   if (sunrise?.status === "no-rise") throw new RangeError("No sunrise on the requested civil date; use the traditional ascendant reference")
@@ -332,7 +332,7 @@ export function calculateDetailedPositions(input: CalculationInput): DetailedCal
     ketu: modulo(21600 - (shiftedTime ? Math.floor((modulo(planetaryHorakhun - 1 - 344, 679) * 86400 + shiftedTime.secondOfDay) / 2716) : Math.trunc((modulo(horakhun - 1 - 344, 679) + hours / 24) * 21600 / 679)), 21600),
   }
   // Apply the longitude adjustment before deriving signs, houses and chart channels.
-  if (julianDayNumber * 1440 + timeMinutes === 3479817827 && input.province === "\u0e41\u0e21\u0e48\u0e2e\u0e48\u0e2d\u0e07\u0e2a\u0e2d\u0e19") {
+  if (julianDayNumber * 1440 + timeMinutes === 3479817827 && provinceCode === "TH-58") {
     arcs.uranus = modulo(arcs.uranus + 1800, 21600)
   }
   // Use the same boundary normalization for houses, rulers and the displayed ascendant.

@@ -242,7 +242,7 @@ Read the [calculation rules and limitations](../README-en.md#calculation-rules-a
 | `date.year`, `date.era` | Integer year; `"BE"` for Buddhist Era 544-10542 or `"CE"` for Common Era 1-9999 |
 | `date.month`, `date.day` | Integer month 1-12 and a valid day in the Gregorian calendar |
 | `time.hour`, `time.minute` | Integer local civil hour 0-23 and minute 0-59 |
-| `location.province` | Optional Thai province name from `getThaiAstrologyProvinces()` |
+| `location.province` | Optional full Thai province name or case-insensitive ISO 3166-2:TH code, such as `TH-50` (เชียงใหม่) |
 
 These settings are for custom time references. See [advanced settings](#advanced-settings) for working examples.
 
@@ -260,7 +260,7 @@ For the 06:00 reference, omitting both province and correction applies zero corr
 | `calculateThaiHoroscope(input)` | `ThaiHoroscope`: a structured natal horoscope, always using Suriyayatra |
 | `calculateHoroscopeTransits(natalInput, transitInput)` | Natal and transit horoscopes with comparisons |
 | `validateHoroscopeInput(input)` | `{ valid: true, value }` or `{ valid: false, issues }`, without throwing for invalid input |
-| `getThaiAstrologyProvinces()` | All 77 provinces, each with `province` and `localTimeCorrectionMinutes` |
+| `getThaiAstrologyProvinces()` | All 77 provinces, each with `province`, `provinceCode` and `localTimeCorrectionMinutes` |
 | `calculateMeanSolarTimeCorrection(input)` | Unrounded civil-minus-mean-solar minutes from longitude and UTC offset |
 | `getThaiAstrologyProvinceLocations()` | 77 provincial-seat points for sunrise selection |
 | `getThaiAstrologyCountries()` | English country/territory names and codes for selectors |
@@ -347,6 +347,19 @@ The province correction is zero. A simultaneous nonzero `localTimeCorrectionMinu
 
 ### Province and country selection
 
+Use `provinceCode` as the stored reference or option value and `province` as the full Thai display label. Codes such as `TH-50` (Chiang Mai) and `TH-10` (Bangkok) follow ISO 3166-2:TH; lowercase code inputs are accepted. The existing full Thai names remain valid. Codes work in `location.province`, low-level `CalculationInput.province`, `calculateAscendant()` and `createSunriseReference()`. Structured validation and horoscope results normalize recognized codes to the full Thai province name.
+
+```ts
+import { getThaiAstrologyProvinces } from "thai-astrology"
+
+const options = getThaiAstrologyProvinces().map(({ provinceCode, province }) => ({
+  value: provinceCode,
+  label: province,
+}))
+console.log(options.find(option => option.value === "TH-50"))
+// { value: "TH-50", label: "เชียงใหม่" }
+```
+
 Use the province coordinates and country list to populate location selectors. A Thai province still works with `location: { province }` from the first example; you do not need to build references yourself.
 
 ```ts
@@ -358,7 +371,7 @@ console.log(provinceOptions.length) // 77
 console.log(countryOptions.length) // 250
 ```
 
-Province records contain `province`, `countryCode: "TH"`, `latitude`, `longitude`, `timeZone: "Asia/Bangkok"`, `coordinateKind: "province-seat"` and `geonameId`. WGS84 coordinates represent provincial seats, not boundaries or every birthplace. `getThaiAstrologyProvinces()` instead returns province names and 06:00 reference corrections derived from longitude in the UTC+7 frame, rounded to minutes. Both functions return fresh lists.
+Province records contain `province`, `provinceCode`, `countryCode: "TH"`, `latitude`, `longitude`, `timeZone: "Asia/Bangkok"`, `coordinateKind: "province-seat"` and `geonameId`. WGS84 coordinates represent provincial seats, not boundaries or every birthplace. `getThaiAstrologyProvinces()` instead returns province names, codes and 06:00 reference corrections derived from longitude in the UTC+7 frame, rounded to minutes. Both functions return fresh lists.
 
 `createSunriseReference()` fills coordinates from `province` or accepts your own `latitude` and `longitude`. An explicit `utcOffsetHours` is always required. When a province and both coordinates are supplied, the coordinates take precedence; one coordinate cannot be mixed with a provincial default. This helper does not resolve timezones. Use the [city helper](#country-scoped-location-search-and-offsets) for date-aware UTC resolution.
 
@@ -391,7 +404,7 @@ const chart = calculateThaiHoroscope({
 console.log(chart.timing.sunrise?.roundedTimeMinutes) // 325 = 05:25
 ```
 
-`searchThaiAstrologyLocations()` returns `{ items, total }`, with `total` counted before pagination. Search supports English city names and Thai province names, ignoring case and Latin diacritics.
+`searchThaiAstrologyLocations()` returns `{ items, total }`, with `total` counted before pagination. Search supports English city names, Thai province names and province codes, ignoring case and Latin diacritics.
 
 | Search input | Constraint |
 | --- | --- |
@@ -400,7 +413,7 @@ console.log(chart.timing.sunrise?.roundedTimeMinutes) // 325 = 05:25
 | `limit` | Page size; defaults to 50, maximum 100 |
 | `offset` | Nonnegative integer start position |
 
-Each place contains `id`, `countryCode`, `nameEnglish`, `latitude`, `longitude`, `timeZone`, `coordinateKind` and `geonameId`. Thai provinces also have `nameThai` and `province`. Results are fresh copies in stable order within the bundled dataset.
+Each place contains `id`, `countryCode`, `nameEnglish`, `latitude`, `longitude`, `timeZone`, `coordinateKind` and `geonameId`. Thai provinces also have `nameThai`, `province` and `provinceCode`. Results are fresh copies in stable order within the bundled dataset.
 
 The starter catalog includes capitals, the ten largest source cities per country, a largest available source city per timezone and all 77 Thai provincial seats: 1,945 points in 243 countries/territories. It is not every city or every worldwide timezone. Countries without catalog records return `items: []`, without substituting another country's location. Manual coordinates remain supported. GeoNames CC BY 4.0 data is reduced without changing its coordinates or timezone names.
 

@@ -167,6 +167,10 @@ const seasonal = calculateThaiHoroscope({ ...webInput, ascendantReference: coord
 const coordinateDetailed = calculateDetailedPositions({ ...input, ascendantReference: coordinateReference })
 void [seasonal, coordinateDetailed]
 const seats: ThaiProvinceLocation[] = getThaiAstrologyProvinceLocations()
+const provinceCode: string = seats[0].provinceCode
+const provinceByCode: HoroscopeInput = { ...webInput, location: { province: provinceCode } }
+const codedChart: ThaiHoroscope = calculateThaiHoroscope(provinceByCode)
+void codedChart
 const countries: AstrologyCountry[] = getThaiAstrologyCountries()
 const selection: SunriseReferenceSelection = { province: 'กรุงเทพมหานคร', utcOffsetHours: 7 }
 const selectedReference: SunriseReference = createSunriseReference(selection)

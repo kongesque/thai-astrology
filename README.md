@@ -69,10 +69,11 @@ npm install thai-astrology
 ```ts
 import { calculateThaiHoroscope } from "thai-astrology"
 
+const province = "TH-50" // เชียงใหม่
 const horoscope = calculateThaiHoroscope({
   date: { year: 2567, era: "BE", month: 9, day: 15 },
   time: { hour: 8, minute: 30 },
-  location: { province: "เชียงใหม่" },
+  location: { province },
 })
 
 console.log(horoscope.points.ascendant.signName) // กันย์
@@ -85,6 +86,8 @@ console.log(horoscope.calendar.thaiLunarDate?.label) // ข๑๓ด๑๐ = ข
 **ตั้งค่าให้อัตโนมัติ:** เมื่อระบุจังหวัดไทยและวันเกิดอยู่ใน ค.ศ. 1900–2100 `calculateThaiHoroscope()` จะเติมพิกัดจังหวัด หา UTC ตามวันเวลาเกิด ใช้อาทิตย์ขึ้นรายวันแบบปัดนาที และเลือกกรอบเวลาดาว +06:42:04 ให้เอง ระบุเพียง `date`, `time` และ `location.province` ก็ใช้ได้ ไม่ต้องกรอกค่าคำนวณเหล่านี้เพิ่ม
 
 หากใช้ CommonJS เปลี่ยนบรรทัด import เป็น `const { calculateThaiHoroscope } = require("thai-astrology")`
+
+ใช้รหัสจังหวัด เช่น `TH-50` หรือ `th-50` เป็นค่าอ้างอิงในโปรแกรมได้ และยังใช้ชื่อเต็ม `เชียงใหม่` แบบเดิมได้ ผลใน `horoscope.input.location.province` ยังคงเป็นชื่อไทยเต็ม ส่วน `getThaiAstrologyProvinces()` คืนทั้ง `provinceCode` สำหรับค่าของตัวเลือกและ `province` สำหรับข้อความที่แสดง ดู [รายละเอียดรหัสจังหวัด](docs/api.md#เลือกจังหวัดและประเทศ)
 
 ## นำข้อมูลไปแสดงราศีจักร
 

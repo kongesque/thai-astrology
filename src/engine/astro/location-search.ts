@@ -11,6 +11,7 @@ export interface AstrologyLocation {
   nameEnglish: string
   nameThai?: string
   province?: string
+  provinceCode?: string
   latitude: number
   longitude: number
   timeZone: string
@@ -51,7 +52,7 @@ const provinceEnglishNames = new Map(PROVINCE_SEAT_NAMES)
 const locations: AstrologyLocation[] = [
   ...getThaiAstrologyProvinceLocations().map(row => ({
     id: `geonames:${row.geonameId}`, countryCode: row.countryCode,
-    nameEnglish: provinceEnglishNames.get(row.geonameId) ?? row.province, nameThai: row.province, province: row.province,
+    nameEnglish: provinceEnglishNames.get(row.geonameId) ?? row.province, nameThai: row.province, province: row.province, provinceCode: row.provinceCode,
     latitude: row.latitude, longitude: row.longitude, timeZone: row.timeZone,
     coordinateKind: row.coordinateKind, geonameId: row.geonameId,
   })),
@@ -73,7 +74,7 @@ export function searchThaiAstrologyLocations(input: AstrologyLocationSearch): As
   if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new RangeError("limit must be an integer between 1 and 100")
   if (!Number.isSafeInteger(offset) || offset < 0) throw new RangeError("offset must be a nonnegative safe integer")
   const query = searchText(input.query ?? "")
-  const matched = locations.filter(row => row.countryCode === input.countryCode && searchText(`${row.nameEnglish} ${row.nameThai ?? ""}`).includes(query))
+  const matched = locations.filter(row => row.countryCode === input.countryCode && searchText(`${row.nameEnglish} ${row.nameThai ?? ""} ${row.provinceCode ?? ""}`).includes(query))
   return { items: matched.slice(offset, offset + limit).map(row => ({ ...row })), total: matched.length }
 }
 

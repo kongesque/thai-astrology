@@ -3,7 +3,7 @@ import type { ChartPoint, DetailedCalculationResult, DetailedPosition, PlanetKey
 import type { CalculationInput, PlanetaryTimeReference, PlanetPositions, SunriseReference } from "./engine/astro-calculation"
 import { normalizeCalculationInput } from "./engine/astro/input"
 import { modulo, PLANET_KEYS, PLANET_NUMBERS, SIGN_NAMES, SIGN_RULERS } from "./engine/astro/math"
-import { getProvinceTimeCorrectionMinutes } from "./engine/astro/provinces"
+import { getProvinceSeat, getProvinceTimeCorrectionMinutes } from "./engine/astro/provinces"
 import { PROVINCE_SEATS } from "./engine/astro/location-data"
 import { createSunriseReference } from "./engine/astro/locations"
 import { resolveCivilTimeOffset } from "./engine/astro/civil-time"
@@ -15,7 +15,7 @@ export type HoroscopeReferenceFallback = "missing-province" | "year-out-of-range
 export interface HoroscopeInput {
   date: { year: number; era: "BE" | "CE"; month: number; day: number }
   time: { hour: number; minute: number }
-  /** Omit for zero province correction. An explicit correction overrides the province. */
+  /** Province accepts a full Thai name or ISO 3166-2:TH code. An explicit correction overrides it. */
   location?: { province?: string; localTimeCorrectionMinutes?: number }
   /** Auto selects provincial sunrise and a historical Bangkok frame when no references are supplied. */
   referenceMode?: HoroscopeReferenceMode
@@ -82,10 +82,11 @@ export function validateHoroscopeInput(input: unknown): HoroscopeInputValidation
   integer(date.day, "date.day", 1, 31)
   integer(time.hour, "time.hour", 0, 23)
   integer(time.minute, "time.minute", 0, 59)
-  if (location.province !== undefined && (typeof location.province !== "string" || !location.province.length)) issue("location.province", "type", "Expected a non-empty Thai province name")
+  if (location.province !== undefined && (typeof location.province !== "string" || !location.province.length)) issue("location.province", "type", "Expected a non-empty Thai province name or code")
   const correction = location.localTimeCorrectionMinutes
   if (correction !== undefined && (typeof correction !== "number" || !Number.isFinite(correction) || Math.abs(correction) > 1440)) issue("location.localTimeCorrectionMinutes", "range", "Expected finite minutes between -1440 and 1440")
-  const province = location.province === undefined ? "ไม่ใช้จังหวัด" : location.province as string
+  const provinceInput = location.province === undefined ? "ไม่ใช้จังหวัด" : location.province as string
+  const province = typeof provinceInput === "string" ? getProvinceSeat(provinceInput)?.[0] ?? provinceInput : provinceInput
   if (input.planetaryTimeReference !== undefined) {
     const reference = input.planetaryTimeReference
     if (!object(reference)) issue("planetaryTimeReference", "type", "Expected an explicit planetary clock object")
@@ -306,7 +307,7 @@ export function calculateHoroscopeTransits(natalInput: HoroscopeInput, transitIn
   return { natal: horoscope(natal, result.natal), transit: horoscope(transit, result.transit), comparison: result.comparison }
 }
 
-/** Fresh province records with longitude-derived UTC+7 corrections rounded to minutes. */
-export function getThaiAstrologyProvinces(): { province: string; localTimeCorrectionMinutes: number }[] {
-  return PROVINCE_SEATS.map(([province]) => ({ province, localTimeCorrectionMinutes: getProvinceTimeCorrectionMinutes(province) as number }))
+/** Fresh Thai labels and province codes, with longitude-derived UTC+7 corrections rounded to minutes. */
+export function getThaiAstrologyProvinces(): { province: string; provinceCode: string; localTimeCorrectionMinutes: number }[] {
+  return PROVINCE_SEATS.map(([province, , , , provinceCode]) => ({ province, provinceCode, localTimeCorrectionMinutes: getProvinceTimeCorrectionMinutes(province) as number }))
 }

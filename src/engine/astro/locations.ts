@@ -1,10 +1,14 @@
 import { COUNTRIES, PROVINCE_SEATS } from "./location-data"
+import { getProvinceSeat } from "./provinces"
 import { normalizeSunriseReference } from "./input"
 import type { SunriseReference } from "./sunrise"
 
 /** A representative provincial-seat point, not a province-wide birthplace. */
 export interface ThaiProvinceLocation {
+  /** Full Thai display name. */
   province: string
+  /** ISO 3166-2:TH identifier, for example TH-50. */
+  provinceCode: string
   countryCode: "TH"
   latitude: number
   longitude: number
@@ -21,7 +25,7 @@ export interface AstrologyCountry {
 }
 
 export interface SunriseReferenceSelection {
-  /** Select a Thai provincial seat when precise coordinates are unavailable. */
+  /** Select a Thai provincial seat by full Thai name or ISO 3166-2:TH code. */
   province?: string
   /** Optional country/territory label; does not infer a timezone or check borders. */
   countryCode?: string
@@ -35,8 +39,8 @@ export interface SunriseReferenceSelection {
 
 /** Fresh province records, suitable for filling editable latitude/longitude fields. */
 export function getThaiAstrologyProvinceLocations(): ThaiProvinceLocation[] {
-  return PROVINCE_SEATS.map(([province, latitude, longitude, geonameId]) => ({
-    province, countryCode: "TH", latitude, longitude, timeZone: "Asia/Bangkok", coordinateKind: "province-seat", geonameId,
+  return PROVINCE_SEATS.map(([province, latitude, longitude, geonameId, provinceCode]) => ({
+    province, provinceCode, countryCode: "TH", latitude, longitude, timeZone: "Asia/Bangkok", coordinateKind: "province-seat", geonameId,
   }))
 }
 
@@ -52,7 +56,7 @@ export function createSunriseReference(selection: SunriseReferenceSelection): Su
   if (countryCode !== undefined && (typeof countryCode !== "string" || !COUNTRIES.some(row => row[0] === countryCode))) {
     throw new RangeError("Unknown countryCode; use a code from getThaiAstrologyCountries()")
   }
-  const seat = province === undefined ? undefined : PROVINCE_SEATS.find(row => row[0] === province)
+  const seat = typeof province === "string" ? getProvinceSeat(province) : undefined
   if (province !== undefined && (typeof province !== "string" || !seat)) throw new RangeError("Unknown Thai province")
   if (seat && countryCode !== undefined && countryCode !== "TH") throw new RangeError("A Thai province requires countryCode TH or no countryCode")
   const precise = latitude !== undefined || longitude !== undefined

@@ -5,6 +5,57 @@ const api = require('thai-astrology')
 const base = { date: { year: 2024, era: 'CE', month: 6, day: 21 }, time: { hour: 8, minute: 30 } }
 
 module.exports = [
+  ['Province codes preserve full Thai labels and chart behavior across all 77 provinces', () => {
+    const provinces = api.getThaiAstrologyProvinces()
+    assert.equal(new Set(provinces.map(row => row.provinceCode)).size, 77)
+    assert.ok(provinces.every(row => /^TH-\d{2}$/.test(row.provinceCode)))
+    // ISO 3166-2 identifiers in the UK PCGN Thailand factfile; see SOURCES.md.
+    for (const [provinceCode, province] of [
+      ['TH-10', 'กรุงเทพมหานคร'], ['TH-38', 'บึงกาฬ'], ['TH-50', 'เชียงใหม่'],
+      ['TH-58', 'แม่ฮ่องสอน'], ['TH-83', 'ภูเก็ต'],
+    ]) assert.equal(provinces.find(row => row.provinceCode === provinceCode).province, province)
+    for (const { province, provinceCode } of provinces) {
+      const thai = { ...base, location: { province } }
+      const code = { ...base, location: { province: provinceCode.toLowerCase() } }
+      assert.deepEqual(api.calculateThaiHoroscope(code), api.calculateThaiHoroscope(thai))
+      assert.deepEqual(api.calculateThaiHoroscope({ ...code, referenceMode: 'traditional' }), api.calculateThaiHoroscope({ ...thai, referenceMode: 'traditional' }))
+      const legacy = { yearBc: 2024, monthTh: 6, day: 21, hour: 8, minute: 30, province }
+      assert.deepEqual(api.generateThaiAstrologyChart({ ...legacy, province: provinceCode }), api.generateThaiAstrologyChart(legacy))
+      assert.deepEqual(api.calculateDetailedPositions({ ...legacy, province: provinceCode }), api.calculateDetailedPositions(legacy))
+      assert.deepEqual(api.createSunriseReference({ province: provinceCode, utcOffsetHours: 7 }), api.createSunriseReference({ province, utcOffsetHours: 7 }))
+    }
+    provinces[0].provinceCode = 'changed'
+    assert.notEqual(api.getThaiAstrologyProvinces()[0].provinceCode, 'changed')
+  }],
+  ['Province aliases retain overrides, normalized Thai names and transit consistency', () => {
+    const thai = { ...base, location: { province: 'เชียงใหม่', localTimeCorrectionMinutes: 12 } }
+    const code = { ...base, location: { province: 'th-50', localTimeCorrectionMinutes: 12 } }
+    assert.deepEqual(api.calculateThaiHoroscope(code), api.calculateThaiHoroscope(thai))
+    assert.equal(api.calculateThaiHoroscope(code).profile.referenceFallback, 'explicit-correction')
+    const validation = api.validateHoroscopeInput(code)
+    assert.equal(validation.valid, true)
+    assert.equal(validation.value.location.province, 'เชียงใหม่')
+    assert.deepEqual(api.calculateHoroscopeTransits(code, code), api.calculateHoroscopeTransits(thai, thai))
+    for (const province of ['TH-00', 'TH-99', 'TH', '50', 50, null]) {
+      assert.equal(api.validateHoroscopeInput({ ...base, location: { province } }).valid, false)
+      assert.throws(() => api.createSunriseReference({ province, utcOffsetHours: 7 }), RangeError)
+    }
+    assert.throws(() => api.createSunriseReference({ province: 'TH-50', countryCode: 'US', utcOffsetHours: 7 }), /Thai province/)
+    assert.equal(api.calculateThaiHoroscope({ ...base, location: { province: 'custom', localTimeCorrectionMinutes: 12 } }).input.location.province, 'custom')
+  }],
+  ['Province location records expose codes as references and Thai names as display labels', () => {
+    const place = api.getThaiAstrologyProvinceLocations().find(row => row.provinceCode === 'TH-50')
+    assert.equal(place.province, 'เชียงใหม่')
+    const search = api.searchThaiAstrologyLocations({ countryCode: 'TH', query: 'th-50' })
+    assert.equal(search.total, 1)
+    assert.equal(search.items[0].provinceCode, 'TH-50')
+    assert.equal(search.items[0].province, 'เชียงใหม่')
+    assert.equal(search.items[0].nameThai, 'เชียงใหม่')
+    assert.equal(search.items[0].id, `geonames:${place.geonameId}`)
+    place.provinceCode = 'changed'
+    search.items[0].provinceCode = 'changed'
+    assert.equal(api.searchThaiAstrologyLocations({ countryCode: 'TH', query: 'TH-50' }).items[0].provinceCode, 'TH-50')
+  }],
   ['Default provincial corrections are computed from longitude in the traditional UTC+7 frame', () => {
     const locations = api.getThaiAstrologyProvinceLocations()
     const provinces = api.getThaiAstrologyProvinces()
@@ -52,7 +103,7 @@ module.exports = [
     assert.equal(new Set(locations.map(row => row.geonameId)).size, 77)
     // GeoNames public numerical facts: https://www.geonames.org/1609350/ and /1608133/.
     assert.deepEqual(locations.find(row => row.province === 'กรุงเทพมหานคร'), {
-      province: 'กรุงเทพมหานคร', countryCode: 'TH', latitude: 13.75398, longitude: 100.50144,
+      province: 'กรุงเทพมหานคร', provinceCode: 'TH-10', countryCode: 'TH', latitude: 13.75398, longitude: 100.50144,
       timeZone: 'Asia/Bangkok', coordinateKind: 'province-seat', geonameId: 1609350,
     })
     const nonthaburi = locations.find(row => row.province === 'นนทบุรี')

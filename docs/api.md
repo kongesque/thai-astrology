@@ -242,7 +242,7 @@ if (!validation.valid) {
 | `date.year`, `date.era` | ปีจำนวนเต็ม ใช้ `"BE"` สำหรับ พ.ศ. 544-10542 หรือ `"CE"` สำหรับ ค.ศ. 1-9999 |
 | `date.month`, `date.day` | เดือน 1-12 และวันที่ที่มีอยู่จริงตามปฏิทินเกรกอเรียน ทั้งสองค่าเป็นจำนวนเต็ม |
 | `time.hour`, `time.minute` | เวลาเกิดตามเวลาท้องถิ่น ชั่วโมง 0-23 นาที 0-59 เป็นจำนวนเต็ม |
-| `location.province` | ไม่บังคับ ใช้ชื่อจังหวัดภาษาไทยจาก `getThaiAstrologyProvinces()` |
+| `location.province` | ไม่บังคับ ใช้ชื่อจังหวัดไทยเต็มหรือรหัส ISO 3166-2:TH เช่น `TH-50` (เชียงใหม่) โดยรหัสไม่แยกตัวพิมพ์ใหญ่–เล็ก |
 
 ตัวเลือกต่อไปนี้ใช้เมื่อกำหนดเวลาอ้างอิงเอง ดูตัวอย่างใน [การตั้งค่าขั้นสูง](#การตั้งค่าขั้นสูง)
 
@@ -260,7 +260,7 @@ if (!validation.valid) {
 | `calculateThaiHoroscope(input)` | `ThaiHoroscope`: ดวงกำเนิดแบบมีโครงสร้าง ใช้สุริยยาตร์เสมอ |
 | `calculateHoroscopeTransits(natalInput, transitInput)` | ดวงกำเนิด ดวงจร และผลเปรียบเทียบ |
 | `validateHoroscopeInput(input)` | `{ valid: true, value }` หรือ `{ valid: false, issues }` โดยไม่ throw เมื่อข้อมูลผิด |
-| `getThaiAstrologyProvinces()` | รายการ 77 จังหวัด แต่ละรายการมี `province` และ `localTimeCorrectionMinutes` |
+| `getThaiAstrologyProvinces()` | รายการ 77 จังหวัด แต่ละรายการมี `province`, `provinceCode` และ `localTimeCorrectionMinutes` |
 | `calculateMeanSolarTimeCorrection(input)` | ส่วนต่างเวลานาฬิกากับเวลาสุริยะเฉลี่ย เป็นนาทีจากลองจิจูดและ UTC offset; ไม่ปัดค่า |
 | `getThaiAstrologyProvinceLocations()` | 77 จังหวัดพร้อมพิกัดเมืองศูนย์กลางสำหรับอาทิตย์ขึ้น |
 | `getThaiAstrologyCountries()` | ชื่อภาษาอังกฤษและรหัสประเทศ/ดินแดนสำหรับรายการเลือก |
@@ -347,6 +347,19 @@ console.log(chart.timing.sunrise?.timeMinutes) // นาทีตั้งแต
 
 ### เลือกจังหวัดและประเทศ
 
+ใช้ `provinceCode` เป็นค่าอ้างอิงที่บันทึกหรือค่าของตัวเลือก และใช้ `province` เป็นชื่อไทยเต็มที่แสดง รหัส เช่น `TH-50` (เชียงใหม่) และ `TH-10` (กรุงเทพมหานคร) อิง ISO 3166-2:TH โดยรับรหัสตัวพิมพ์เล็กด้วย และยังใช้ชื่อไทยเต็มแบบเดิมได้ รหัสใช้ได้กับ `location.province`, `CalculationInput.province` ระดับล่าง, `calculateAscendant()` และ `createSunriseReference()` ผลตรวจข้อมูลและผลดวงแบบโครงสร้างจะเปลี่ยนรหัสที่รู้จักเป็นชื่อจังหวัดไทยเต็ม
+
+```ts
+import { getThaiAstrologyProvinces } from "thai-astrology"
+
+const options = getThaiAstrologyProvinces().map(({ provinceCode, province }) => ({
+  value: provinceCode,
+  label: province,
+}))
+console.log(options.find(option => option.value === "TH-50"))
+// { value: "TH-50", label: "เชียงใหม่" }
+```
+
 สำหรับฟอร์มเลือกสถานที่ ใช้รายการจังหวัดพร้อมพิกัดและรายการประเทศได้ดังนี้ การผูกดวงจากจังหวัดไทยยังใช้ `location: { province }` ตามตัวอย่างแรกได้ ไม่ต้องสร้างจุดอ้างอิงเอง
 
 ```ts
@@ -358,7 +371,7 @@ console.log(provinceOptions.length) // 77
 console.log(countryOptions.length) // 250
 ```
 
-รายการจังหวัดมี `province`, `countryCode: "TH"`, `latitude`, `longitude`, `timeZone: "Asia/Bangkok"`, `coordinateKind: "province-seat"` และ `geonameId` พิกัด WGS84 เป็นจุดเมืองศูนย์กลาง ไม่ใช่ขอบเขตจังหวัดหรือสถานที่เกิดของทุกคน ส่วน `getThaiAstrologyProvinces()` คืนชื่อจังหวัดและค่าแก้เวลาจุดอ้างอิง 06:00 ที่คำนวณจากลองจิจูดในกรอบ UTC+7 แล้วปัดเป็นนาที ทั้งสองฟังก์ชันคืนรายการใหม่ทุกครั้ง
+รายการจังหวัดมี `province`, `provinceCode`, `countryCode: "TH"`, `latitude`, `longitude`, `timeZone: "Asia/Bangkok"`, `coordinateKind: "province-seat"` และ `geonameId` พิกัด WGS84 เป็นจุดเมืองศูนย์กลาง ไม่ใช่ขอบเขตจังหวัดหรือสถานที่เกิดของทุกคน ส่วน `getThaiAstrologyProvinces()` คืนชื่อจังหวัด รหัสจังหวัด และค่าแก้เวลาจุดอ้างอิง 06:00 ที่คำนวณจากลองจิจูดในกรอบ UTC+7 แล้วปัดเป็นนาที ทั้งสองฟังก์ชันคืนรายการใหม่ทุกครั้ง
 
 `createSunriseReference()` ช่วยเติมพิกัดจาก `province` หรือรับ `latitude` และ `longitude` ที่ระบุเอง ต้องส่ง `utcOffsetHours` ด้วยเสมอ หากให้จังหวัดและพิกัดทั้งคู่จะใช้พิกัดที่ส่ง ไม่ผสมพิกัดข้างหนึ่งกับค่าจังหวัด ตัวช่วยนี้ไม่ค้นเขตเวลา ใช้ [ตัวช่วยเลือกเมือง](#ค้นหาสถานที่ตามประเทศและหา-offset) เมื่อต้องการหา UTC ตามวันเวลาเกิด
 
@@ -391,7 +404,7 @@ const chart = calculateThaiHoroscope({
 console.log(chart.timing.sunrise?.roundedTimeMinutes) // 325 = 05:25
 ```
 
-`searchThaiAstrologyLocations()` คืน `{ items, total }` โดย `total` คือจำนวนที่พบก่อนแบ่งหน้า ค้นได้ทั้งชื่อเมืองอังกฤษและชื่อจังหวัดไทย ไม่แยกตัวพิมพ์ และรองรับอักษรละตินที่มีเครื่องหมายกำกับ
+`searchThaiAstrologyLocations()` คืน `{ items, total }` โดย `total` คือจำนวนที่พบก่อนแบ่งหน้า ค้นได้ทั้งชื่อเมืองอังกฤษ ชื่อจังหวัดไทย และรหัสจังหวัด ไม่แยกตัวพิมพ์ และรองรับอักษรละตินที่มีเครื่องหมายกำกับ
 
 | ข้อมูลค้นหา | เงื่อนไข |
 | --- | --- |
@@ -400,7 +413,7 @@ console.log(chart.timing.sunrise?.roundedTimeMinutes) // 325 = 05:25
 | `limit` | จำนวนต่อหน้า ค่าเริ่มต้น 50 สูงสุด 100 |
 | `offset` | ตำแหน่งเริ่มต้น เป็นจำนวนเต็มไม่ติดลบ |
 
-แต่ละสถานที่มี `id`, `countryCode`, `nameEnglish`, `latitude`, `longitude`, `timeZone`, `coordinateKind` และ `geonameId` จังหวัดไทยมี `nameThai` และ `province` เพิ่มด้วย รายการผลลัพธ์เป็นสำเนาใหม่ทุกครั้ง และมีลำดับคงที่ตามชุดข้อมูลที่มากับไลบรารี
+แต่ละสถานที่มี `id`, `countryCode`, `nameEnglish`, `latitude`, `longitude`, `timeZone`, `coordinateKind` และ `geonameId` จังหวัดไทยมี `nameThai`, `province` และ `provinceCode` เพิ่มด้วย รายการผลลัพธ์เป็นสำเนาใหม่ทุกครั้ง และมีลำดับคงที่ตามชุดข้อมูลที่มากับไลบรารี
 
 รายการเริ่มต้นมีเมืองหลวง เมืองใหญ่สิบอันดับจากข้อมูลต้นทางต่อประเทศ เมืองใหญ่ที่สุดที่มีข้อมูลต่อเขตเวลา และจังหวัดไทยครบ 77 จุด รวม 1,945 จุดใน 243 ประเทศ/ดินแดน ไม่ใช่ทุกเมืองหรือทุกเขตเวลาทั่วโลก ประเทศที่ไม่มีรายการจะได้ `items: []`; ไม่แทนด้วยเมืองจากประเทศอื่น ใช้พิกัดเองได้ ข้อมูล GeoNames ภายใต้ CC BY 4.0 ถูกลดรูปโดยไม่เปลี่ยนค่าพิกัดหรือชื่อเขตเวลา
 

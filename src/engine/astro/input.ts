@@ -1,5 +1,5 @@
 import type { CalculationInput, PlanetaryTimeReference } from "../astro-calculation"
-import { getProvinceTimeCorrectionMinutes } from "./provinces"
+import { getProvinceSeat, getProvinceTimeCorrectionMinutes } from "./provinces"
 import type { SunriseReference } from "./sunrise"
 
 export interface NormalizedCalculationInput {
@@ -9,6 +9,7 @@ export interface NormalizedCalculationInput {
   yearBe: number
   hour: number
   minute: number
+  provinceCode?: string
   localTimeCorrectionMinutes: number
   ascendantReference?: SunriseReference
   planetaryTimeReference?: PlanetaryTimeReference
@@ -109,7 +110,8 @@ export function normalizeCalculationInput(input: CalculationInput, strictProvinc
   if (offset !== undefined && (!Number.isFinite(offset) || Math.abs(offset) > 1440)) {
     throw new RangeError("`localTimeCorrectionMinutes` must be finite and between -1440 and 1440")
   }
-  const normalized = { day, month, yearCe, yearBe, hour, minute, localTimeCorrectionMinutes: offset ?? getProvinceTimeCorrectionMinutes("กรุงเทพมหานคร") ?? 0, ...(reference ? { ascendantReference: reference } : {}), ...(planetaryTimeReference ? { planetaryTimeReference } : {}) }
+  const provinceCode = getProvinceSeat(input.province)?.[4]
+  const normalized = { day, month, yearCe, yearBe, hour, minute, ...(provinceCode ? { provinceCode } : {}), localTimeCorrectionMinutes: offset ?? getProvinceTimeCorrectionMinutes("กรุงเทพมหานคร") ?? 0, ...(reference ? { ascendantReference: reference } : {}), ...(planetaryTimeReference ? { planetaryTimeReference } : {}) }
   if (planetaryTimeReference) resolvePlanetaryTime(normalized, civilJulianDay(yearCe, month, day) - 1954167)
   return normalized
 }

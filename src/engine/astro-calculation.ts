@@ -39,6 +39,7 @@ export interface CalculationInput {
   yearBc?: number
   hour: number
   minute: number
+  /** Full Thai province name or ISO 3166-2:TH code, for example TH-50. */
   province: string
   /** Defaults to legacy for release compatibility. Use suriyayatra for detailed Suriyayatra calculations. */
   method?: CalculationMethod

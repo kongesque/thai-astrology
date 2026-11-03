@@ -69,10 +69,11 @@ Calculate an example chart: **15 September 2024 (BE 2567), 08:30, Chiang Mai**.
 ```ts
 import { calculateThaiHoroscope } from "thai-astrology"
 
+const province = "TH-50" // เชียงใหม่ (Chiang Mai)
 const horoscope = calculateThaiHoroscope({
   date: { year: 2024, era: "CE", month: 9, day: 15 },
   time: { hour: 8, minute: 30 },
-  location: { province: "เชียงใหม่" },
+  location: { province },
 })
 
 console.log(horoscope.points.ascendant.signName) // กันย์ (Virgo)
@@ -85,6 +86,8 @@ Edit `date`, `time` and `location.province` for another chart. This example can 
 **Automatic settings:** for a recognized Thai province in CE 1900–2100, `calculateThaiHoroscope()` fills provincial-seat coordinates, resolves the date’s UTC offset, uses daily sunrise rounded to the nearest minute and selects the historical Bangkok +06:42:04 planetary frame. Supply only `date`, `time` and `location.province`; users do not need to enter those calculation settings.
 
 For CommonJS, replace the import with `const { calculateThaiHoroscope } = require("thai-astrology")`.
+
+Use a province code such as `TH-50` or `th-50` as the programmatic reference, or keep the full Thai name `เชียงใหม่`. The normalized `horoscope.input.location.province` remains the full Thai name. `getThaiAstrologyProvinces()` returns both `provinceCode` for option values and `province` for display labels; see [province-code details](docs/api-en.md#province-and-country-selection).
 
 ## Display a Rasi chart
 
