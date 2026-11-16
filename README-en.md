@@ -142,6 +142,39 @@ Automatic selection applies only when neither reference nor a custom province co
 
 `calculateThaiHoroscope()` always uses Suriyayatra. The earlier `generateThaiAstrologyChart()` API defaults to `legacy`; select `method: "suriyayatra"` explicitly for Suriyayatra.
 
+## AI tools and JSON contracts
+
+Optional entry points expose four provider-neutral tools: location search, input validation, horoscope calculation and transits. Existing library calls keep their behavior and have no runtime dependencies.
+
+```ts
+import { executeThaiAstrologyTool, getThaiAstrologyTools } from "thai-astrology/tools"
+import { getThaiAstrologySchemas } from "thai-astrology/schemas"
+
+const tools = getThaiAstrologyTools()
+const schemas = getThaiAstrologySchemas()
+const result = executeThaiAstrologyTool("calculate_horoscope", {
+  input: {
+    date: { year: 2024, era: "CE", month: 9, day: 15 },
+    time: { hour: 8, minute: 30 },
+    location: { province: "TH-50" },
+  },
+})
+if (result.ok) console.log(result.data.points.ascendant.signName)
+else console.log(result.error.code, result.error.issues)
+```
+
+Tool definitions include JSON Schema 2020-12 input/output contracts. The dispatcher returns a versioned JSON envelope and rejects unknown argument fields. Applications supply their own AI provider, MCP or HTTP integration. See the [tool API contract](docs/api-en.md#agent-tools-and-json-schemas).
+
+The same package also installs a JSON CLI for terminal agents and other languages:
+
+```bash
+npx --no-install thai-astrology tools
+npx --no-install thai-astrology schemas calculate_horoscope
+npx --no-install thai-astrology call calculate_horoscope --input birth.json
+```
+
+`birth.json` contains the tool arguments `{ "input": { ... } }`; omit `--input` to read stdin. See [CLI examples and exit codes](docs/api-en.md#json-cli).
+
 ## Development and contributions
 
 The [public test suite](test/run.cjs) covers calendar rules, zodiac boundaries, timezones and published-release regression cases. Package checks also verify installed CommonJS, ESM, TypeScript and browser consumers. See the [CI workflow](.github/workflows/ci.yml).

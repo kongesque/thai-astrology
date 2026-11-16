@@ -7,6 +7,8 @@ const fixtures = require('./fixtures/release-0.1.7.json')
 const tests = [
   ...require('./calculation.cjs'),
   ...require('./horoscope.cjs'),
+  ...require('./tools.cjs'),
+  ...require('./cli.cjs'),
   ...require('./sunrise.cjs'),
   ...require('./locations.cjs'),
   ...require('./location-search.cjs'),

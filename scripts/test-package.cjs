@@ -22,10 +22,10 @@ try {
   // Exercise prepare so the archive always contains a fresh build.
   const [packed] = JSON.parse(npm(['pack', '--json', '--pack-destination', temp], root))
   const paths = packed.files.map(({ path }) => path)
-  for (const required of ['dist/index.js', 'dist/index.d.ts', 'src/index.ts', 'README.md', 'README-en.md', 'SOURCES.md', 'assets/rasi-chart.svg', 'LICENSE']) {
+  for (const required of ['dist/index.js', 'dist/index.d.ts', 'src/index.ts', 'bin/thai-astrology.cjs', 'README.md', 'README-en.md', 'SOURCES.md', 'assets/rasi-chart.svg', 'LICENSE']) {
     assert.ok(paths.includes(required), `Archive is missing ${required}`)
   }
-  assert.ok(paths.every(path => /^(dist\/|src\/|assets\/rasi-chart\.svg$|package\.json$|README(?:-en)?\.md$|SOURCES\.md$|LICENSE$)/.test(path)), 'Unexpected development files in archive')
+  assert.ok(paths.every(path => /^(dist\/|src\/|bin\/thai-astrology\.cjs$|assets\/rasi-chart\.svg$|package\.json$|README(?:-en)?\.md$|SOURCES\.md$|LICENSE$)/.test(path)), 'Unexpected development files in archive')
   assert.ok(paths.every(path => !path.endsWith('.tsbuildinfo')), 'Build cache must not be published')
 
   const consumer = join(temp, 'consumer')
@@ -49,6 +49,8 @@ try {
   copyFileSync(join(root, 'test/run.cjs'), join(consumer, 'test/run.cjs'))
   copyFileSync(join(root, 'test/calculation.cjs'), join(consumer, 'test/calculation.cjs'))
   copyFileSync(join(root, 'test/horoscope.cjs'), join(consumer, 'test/horoscope.cjs'))
+  copyFileSync(join(root, 'test/tools.cjs'), join(consumer, 'test/tools.cjs'))
+  copyFileSync(join(root, 'test/cli.cjs'), join(consumer, 'test/cli.cjs'))
   copyFileSync(join(root, 'test/sunrise.cjs'), join(consumer, 'test/sunrise.cjs'))
   copyFileSync(join(root, 'test/locations.cjs'), join(consumer, 'test/locations.cjs'))
   copyFileSync(join(root, 'test/location-search.cjs'), join(consumer, 'test/location-search.cjs'))
@@ -56,10 +58,17 @@ try {
   copyFileSync(join(root, 'test/fixtures/civil-time-offsets.json'), join(consumer, 'test/fixtures/civil-time-offsets.json'))
   copyFileSync(join(root, 'test/fixtures/release-0.1.7.json'), join(consumer, 'test/fixtures/release-0.1.7.json'))
   execFileSync(process.execPath, ['test/run.cjs'], { cwd: consumer, stdio: 'inherit' })
+  const cliVersion = JSON.parse(npm(['exec', '--offline', '--', 'thai-astrology', '--version'], consumer))
+  assert.equal(cliVersion.data.version, require(join(installed, 'package.json')).version, 'Installed npm executable must resolve this package')
   require('./local-validation.cjs').runLocalValidation(installed, 'installed')
 
   writeFileSync(join(consumer, 'esm.mjs'), `
 import assert from 'node:assert/strict'
+import { executeThaiAstrologyTool, getThaiAstrologyTools } from 'thai-astrology/tools'
+import { getThaiAstrologySchemas } from 'thai-astrology/schemas'
+assert.equal(executeThaiAstrologyTool('validate_horoscope_input', { input: null }).data.valid, false)
+assert.equal(getThaiAstrologyTools().length, 4)
+assert.ok(getThaiAstrologySchemas().calculate_horoscope.outputSchema)
 import { generateThaiAstrologyChart, formatChannelOutputs, calculateSun, calculateDetailedPositions, calculateTransits, describeLongitude, calculateThaiHoroscope, calculateHoroscopeTransits, validateHoroscopeInput, getThaiAstrologyProvinces, HoroscopeInputError, calculateSunrise, createSunriseReference, getThaiAstrologyProvinceLocations, getThaiAstrologyCountries, searchThaiAstrologyLocations, createSunriseReferenceForLocation, resolveCivilTimeOffset } from 'thai-astrology'
 const chart = generateThaiAstrologyChart({ day: 15, monthTh: 9, yearBe: 2566, hour: 14, minute: 45, province: 'กรุงเทพมหานคร' })
 assert.deepEqual(chart.sunPosition, [27, 29])
@@ -114,6 +123,8 @@ assert.equal(resolveCivilTimeOffset(civilTime, 'Asia/Kathmandu').utcOffsetHours,
   }
   const browserApi = loadBrowserModule(join(installed, 'dist/index.js'))
   const browserInput = { date: { year: 2567, era: 'BE', month: 9, day: 15 }, time: { hour: 8, minute: 30 }, location: { province: 'เชียงใหม่' } }
+  const browserTools = loadBrowserModule(join(installed, 'dist/tools.js'))
+  assert.equal(browserTools.executeThaiAstrologyTool('calculate_horoscope', { input: browserInput }).ok, true)
   const browserChart = JSON.parse(JSON.stringify(browserApi.calculateThaiHoroscope(browserInput)))
   const nodeChart = require(installed).calculateThaiHoroscope(browserInput)
   assert.deepEqual(browserChart, nodeChart)
@@ -134,6 +145,11 @@ assert.equal(resolveCivilTimeOffset(civilTime, 'Asia/Kathmandu').utcOffsetHours,
   assert.deepEqual(JSON.parse(JSON.stringify(browserApi.createSunriseReferenceForLocation(locationSelection))), require(installed).createSunriseReferenceForLocation(locationSelection))
 
   const types = `
+import { executeThaiAstrologyTool } from 'thai-astrology/tools'
+import { getThaiAstrologySchemas } from 'thai-astrology/schemas'
+const toolResult = executeThaiAstrologyTool('calculate_horoscope', {})
+if (toolResult.ok) { const sign: number = toolResult.data.points.sun.sign; void sign }
+void getThaiAstrologySchemas()
 import { generateThaiAstrologyChart, formatChannelOutputs, calculateDetailedPositions, calculateTransits, calculateThaiHoroscope, calculateHoroscopeTransits, validateHoroscopeInput, calculateSunrise, createSunriseReference, getThaiAstrologyProvinceLocations, getThaiAstrologyCountries, searchThaiAstrologyLocations, createSunriseReferenceForLocation, resolveCivilTimeOffset } from 'thai-astrology'
 import type { CalculationInput, PlanetaryTimeReference, ThaiAstrologyChart, DetailedCalculationResult, DetailedThaiAstrologyChart, ThaiLunarDate, TransitCalculationResult, HoroscopeInput, ThaiHoroscope, HoroscopeTransitResult, SunriseReference, SunriseResult, ThaiProvinceLocation, AstrologyCountry, SunriseReferenceSelection, CivilDateTime, CivilTimeOffset, AstrologyLocationSearchResult, LocationSunriseSelection } from 'thai-astrology'
 const input: CalculationInput = { day: 15, monthTh: 9, yearBe: 2566, hour: 14, minute: 45, province: 'กรุงเทพมหานคร' }

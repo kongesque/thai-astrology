@@ -492,3 +492,122 @@ console.log(chart.timing.referenceTimeMinutes) // ประมาณ 377.99424 �
 ฟังก์ชันคืนทศนิยมโดยไม่ปัด ไม่วนค่าข้ามวัน และไม่ค้นเขตเวลาเอง หากต้องการนาทีเต็ม ให้เลือก `Math.round(correction)` อย่างชัดเจน ค่าสูงสุดตามขอบเขตข้อมูลนำเข้าคือ ±1560 นาที แต่ `localTimeCorrectionMinutes` รับเพียง ±1440 นาที ค่าที่เกินช่วงนี้จะถูกปฏิเสธเมื่อส่งเข้าดวง
 
 ค่าแก้นี้ไม่รวมสมการเวลา ฤดูกาล หรือละติจูด จึงไม่ใช่เวลาอาทิตย์ขึ้นรายวัน และไม่ได้รับรองว่าลัคนาจะตรงกับอีกวิธีมากขึ้น สำหรับอาทิตย์ขึ้นตามวันและพิกัด ใช้ตัวอย่างแรกหรือตัวอย่างพิกัดด้านบน และไม่บวกค่าแก้นี้ซ้ำ ดูสูตรและขอบเขตใน [SOURCES.md](../SOURCES.md)
+
+<a id="agent-tools-and-json-schemas"></a>
+
+## เครื่องมือ Agent และ JSON Schema
+
+นำเข้า `getThaiAstrologyTools()` และ `executeThaiAstrologyTool()` จาก `thai-astrology/tools` และ `getThaiAstrologySchemas()` จาก `thai-astrology/schemas` ใช้กับ CommonJS, ESM imports และ browser bundler ได้ ไม่มี runtime dependencies และไม่เปลี่ยน root exports หรือค่าเริ่มต้นของการคำนวณ
+
+| ชื่อเครื่องมือ | Arguments | `data` เมื่อสำเร็จ |
+| --- | --- | --- |
+| `search_locations` | `AstrologyLocationSearch`: countryCode และ query/limit/offset ถ้ามี | `AstrologyLocationSearchResult` |
+| `validate_horoscope_input` | `{ input: unknown }` | `HoroscopeInputValidation` |
+| `calculate_horoscope` | `{ input: HoroscopeInput }` | `ThaiHoroscope` ฉบับเต็ม |
+| `calculate_transits` | `{ natal: HoroscopeInput, transit: HoroscopeInput }` | `HoroscopeTransitResult` ฉบับเต็ม |
+
+```ts
+import { executeThaiAstrologyTool, getThaiAstrologyTools } from "thai-astrology/tools"
+import { getThaiAstrologySchemas } from "thai-astrology/schemas"
+
+const definitions = getThaiAstrologyTools()
+const schemas = getThaiAstrologySchemas()
+const input = {
+  date: { year: 2024, era: "CE" as const, month: 9, day: 15 },
+  time: { hour: 8, minute: 30 },
+  location: { province: "TH-50" },
+}
+const result = executeThaiAstrologyTool("calculate_horoscope", { input })
+if (result.ok) console.log(result.data.points.sun.longitudeDegrees)
+else console.log(result.error.code, result.error.message, result.error.issues)
+
+console.log(JSON.stringify(schemas.calculate_horoscope.inputSchema))
+```
+
+แต่ละนิยามมี `name`, `description`, `inputSchema` และ `outputSchema` เอกสารใช้ JSON Schema 2020-12 พร้อม `$defs`/`$ref` ภายในเอกสาร สามารถ serialize เป็น JSON เพื่อใช้กับภาษาอื่นได้ Schema อธิบายโครงสร้างชนิดข้อมูล ส่วนวันที่จริง ช่วงตัวเลข จังหวัด ความขัดแย้งของ reference และกฎ timezone ตรวจโดย runtime API เดิม สร้าง schema จากชนิด TypeScript ด้วย `npm run schemas`; typecheck จะปฏิเสธ schema ที่ไม่ตรงกับต้นฉบับ ฟังก์ชันคืนสำเนาแยกที่แก้ไขได้
+
+dispatcher รับ arguments ที่เข้ากันได้กับ JSON ปฏิเสธฟิลด์ที่ไม่รู้จักในออบเจ็กต์ที่มีชนิดกำหนด และไม่แปลงข้อความเป็นตัวเลข เครื่องมือ validation ตั้งใจรับ `input` ใดก็ได้เพื่อรายงานข้อมูลฟอร์มที่ผิด ผลลัพธ์จึงเป็น `ok: true` ได้แม้ `data.valid` เป็น false เพราะการตรวจสอบทำงานสำเร็จ ส่วนเครื่องมืออื่นคืน failure เมื่อ arguments หรือข้อมูลคำนวณไม่ถูกต้อง API ไลบรารีโดยตรงยังจัดการฟิลด์ส่วนเกินเหมือนเดิม
+
+ผลลัพธ์มีรูปแบบ `{ schemaVersion: "1.0", ok: true, data }` หรือ `{ schemaVersion: "1.0", ok: false, error: { code, message, issues? } }` และ output schema อธิบาย envelope ทั้งชุด
+
+| Code | ความหมาย |
+| --- | --- |
+| `UNKNOWN_TOOL` | ชื่อไม่ใช่หนึ่งในสี่เครื่องมือ |
+| `INVALID_ARGUMENTS` | รูปร่าง arguments ฟิลด์ส่วนเกิน หรือค่าค้นหาสถานที่ไม่ถูกต้อง |
+| `INVALID_INPUT` | ข้อมูลดวงไม่ผ่าน domain validation; `issues` มี field/code/message |
+| `CALCULATION_ERROR` | คำนวณไม่ได้ เช่น ไม่มีพระอาทิตย์ขึ้นในพิกัดใกล้ขั้วโลก |
+
+ข้อผิดพลาด validation ของดาวจรเติม `natal.` หรือ `transit.` หน้าชื่อฟิลด์ ข้อผิดพลาดโครงสร้างระบุเส้นทางฟิลด์ใน `message` ข้อผิดพลาดโปรแกรมที่ไม่คาดหมายส่งต่อให้แอปจัดการ ใช้ code และ issue field ควบคุมลำดับงาน ส่วน message เป็นคำอธิบาย การผ่าน validation ไม่รับประกันว่าจะมีพระอาทิตย์ขึ้นในวันนั้น
+
+ผลลัพธ์คง reference ที่เลือก เหตุผล fallback หน่วย ชื่อไทย และเครื่องหมายในผังดวง ราศีเริ่ม index 0 และภพเริ่ม 1 ไม่เลือกวันที่ปัจจุบัน โมเดล AI หรือคำทำนายอัตโนมัติ location ID ใน catalog ไม่ใช่จังหวัด สำหรับเกิดต่างประเทศ ใช้ `createSunriseReferenceForLocation()` พร้อม civil time และตัวเลือก DST ที่จำเป็น แล้วส่ง reference และ planetary clock ที่ต้องการให้การคำนวณ
+
+แอปแปลงนิยามเหล่านี้เป็นรูปแบบเครื่องมือของผู้ให้บริการหรือ MCP/HTTP adapter ได้ โดยตรวจ vocabulary ของ schema ที่ host รองรับและแปลง response/error envelope ให้ตรงกัน แพ็กเกจนี้ให้สัญญา dispatcher และ JSON CLI ด้านล่าง ส่วนการเชื่อม server และบริการ AI เป็นหน้าที่ของแอป
+
+<a id="json-cli"></a>
+
+## JSON CLI
+
+เมื่อติดตั้ง `thai-astrology` จะได้ executable ชื่อ `thai-astrology` ใช้เครื่องมือทั้งสี่และสัญญาผลลัพธ์เดียวกับไลบรารี โดยไม่มี runtime dependencies เพิ่ม เรียกจากโปรเจกต์ที่ติดตั้งแพ็กเกจแล้ว:
+
+```bash
+npx --no-install thai-astrology --help
+npx --no-install thai-astrology --version
+npx --no-install thai-astrology tools
+npx --no-install thai-astrology schemas
+npx --no-install thai-astrology schemas calculate_horoscope --pretty
+```
+
+`tools` คืน `{ schemaVersion: "1.0", ok: true, data: ToolDefinition[] }` ส่วน `schemas` ใช้ envelope เดียวกัน โดย `data` เป็นแผนที่ชื่อเครื่องมือกับ schema หากระบุชื่อเครื่องมือจะเลือกคู่ `{ inputSchema, outputSchema }` ของชื่อนั้น `--version` คืน envelope ที่มี `data.version` เป็นเวอร์ชันแพ็กเกจ `--help` หรือ `-h` แสดงวิธีใช้เป็นข้อความ คำสั่ง discovery และ schema ไม่อ่าน stdin
+
+`call <tool>` อ่าน JSON แบบ UTF-8 หนึ่งค่าที่สมบูรณ์จาก stdin โดยใช้รูปร่าง arguments ของเครื่องมือ รวม wrapper `input` สำหรับการคำนวณดวงและ validation:
+
+```bash
+npx --no-install thai-astrology call calculate_horoscope <<'JSON'
+{
+  "input": {
+    "date": { "year": 2024, "era": "CE", "month": 9, "day": 15 },
+    "time": { "hour": 8, "minute": 30 },
+    "location": { "province": "TH-50" }
+  }
+}
+JSON
+```
+
+บันทึกออบเจ็กต์ JSON นี้เป็น `birth.json` เพื่ออ่านจากไฟล์ หรือระบุ `--input -` เพื่อเลือก stdin อย่างชัดเจน หาก path มีช่องว่างให้ใส่เครื่องหมายคำพูด
+
+```bash
+npx --no-install thai-astrology call calculate_horoscope --input birth.json --pretty
+```
+
+arguments สำหรับค้นหาสถานที่เป็น `{ "countryCode": "TH", "query": "Chiang Mai" }` โดยตรง ส่วนดาวจรใช้ `{ "natal": HoroscopeInput, "transit": HoroscopeInput }` ไม่เดาวันหรือเวลาปัจจุบัน กติกาวันที่ ศักราช เวลาท้องถิ่น และ reference เหมือนการเรียกไลบรารี เครื่องมือ validation คืน exit 0 ได้แม้ `data.valid: false`
+
+แต่ละครั้งส่งผลลัพธ์ JSON หนึ่งชุดลง stdout และจบด้วย newline; `--pretty` เพิ่มการเยื้อง การเรียกเครื่องมือคง envelope จาก dispatcher ทั้งหมด เมื่อผิดพลาดจะมีคำอธิบายสั้นลง stderr ด้วย จึงควรอ่าน stdout แยกจาก stderr ปฏิเสธข้อมูลว่าง UTF-8 BOM JSON ที่ผิดรูปแบบ และ JSON หลายเอกสาร CLI นี้ทำงานหนึ่งครั้งต่อ process ไม่ใช่ server แบบ JSON Lines
+
+| Exit code | ความหมาย | Error code |
+| --- | --- | --- |
+| 0 | คำสั่งหรือเครื่องมือทำงานสำเร็จ | ไม่มี transport error; ตรวจ `data.valid` เมื่อใช้ validation |
+| 1 | เครื่องมือทำงานไม่สำเร็จ | `UNKNOWN_TOOL`, `INVALID_ARGUMENTS`, `INVALID_INPUT`, `CALCULATION_ERROR` |
+| 2 | คำสั่งหรือข้อมูลเข้าอ่านไม่ได้ | `CLI_USAGE_ERROR`, `INPUT_READ_ERROR`, `INVALID_JSON` |
+| 3 | ข้อผิดพลาดภายในที่ไม่คาดหมาย | `INTERNAL_ERROR`; หากเขียน output stream ไม่ได้จะรายงาน `OUTPUT_WRITE_ERROR` ทาง stderr |
+
+ข้อผิดพลาด parse JSON ไม่แสดงเอกสารต้นฉบับ ข้อผิดพลาดที่ไม่คาดหมายคืนคำอธิบายทั่วไปแทน stack trace ส่วนข้อผิดพลาด domain ของเครื่องมือยังมี issue field ตามเดิม เมื่อเรียก `call` จาก terminal ต้องใช้ `--input <file>` หรือ pipe เข้า stdin จึงไม่รอรับข้อมูลเกิดแบบโต้ตอบ
+
+Python เรียกแพ็กเกจที่ติดตั้งผ่าน Node ได้โดยไม่ต้องมี AI SDK รันตัวอย่างจากโปรเจกต์ที่ติดตั้งแพ็กเกจ npm แล้ว:
+
+```python
+import json
+import subprocess
+
+args = {"countryCode": "TH", "query": "Chiang Mai", "limit": 1}
+completed = subprocess.run(
+    ["node", "node_modules/thai-astrology/bin/thai-astrology.cjs", "call", "search_locations"],
+    input=json.dumps(args), capture_output=True, text=True, encoding="utf-8",
+)
+result = json.loads(completed.stdout)
+if completed.returncode == 0:
+    print(result["data"]["items"])
+else:
+    print(result["error"]["code"], result["error"]["message"])
+```
+
+หากใช้ source checkout ให้รัน `npm run build` ก่อน แล้วใช้ `node bin/thai-astrology.cjs` แทน `npx --no-install thai-astrology` CLI แยกจาก browser imports และไม่เปิด network service

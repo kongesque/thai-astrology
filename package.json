@@ -19,6 +19,16 @@
       "types": "./dist/index.d.ts",
       "require": "./dist/index.js",
       "import": "./dist/index.js"
+    },
+    "./schemas": {
+      "types": "./dist/schemas.d.ts",
+      "require": "./dist/schemas.js",
+      "import": "./dist/schemas.js"
+    },
+    "./tools": {
+      "types": "./dist/tools.d.ts",
+      "require": "./dist/tools.js",
+      "import": "./dist/tools.js"
     }
   },
   "files": [
@@ -26,19 +36,21 @@
     "src",
     "README-en.md",
     "SOURCES.md",
-    "assets/rasi-chart.svg"
+    "assets/rasi-chart.svg",
+    "bin/thai-astrology.cjs"
   ],
   "scripts": {
     "clean": "node scripts/clean.cjs",
     "build": "npm run clean && tsc -p tsconfig.json",
     "docs:chart": "npm run build && node scripts/render-readme-chart.cjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "node scripts/generate-tool-schemas.cjs --check && tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node test/run.cjs",
     "test:package": "node scripts/test-package.cjs",
     "test:local": "npm run build && node scripts/local-validation.cjs",
     "check": "npm run typecheck && npm test && npm run test:local && npm run test:package",
     "prepare": "npm run build",
-    "prepublishOnly": "npm run check"
+    "prepublishOnly": "npm run check",
+    "schemas": "node scripts/generate-tool-schemas.cjs"
   },
   "keywords": [
     "thai",
@@ -67,5 +79,8 @@
   },
   "engines": {
     "node": ">=16"
+  },
+  "bin": {
+    "thai-astrology": "bin/thai-astrology.cjs"
   }
 }

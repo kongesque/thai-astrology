@@ -492,3 +492,119 @@ console.log(chart.timing.referenceTimeMinutes) // Approximately 377.99424 minute
 The helper does not round, wrap across dates or resolve timezones. Use `Math.round(correction)` explicitly if whole minutes are required. The input bounds allow results up to ±1560 minutes, while chart `localTimeCorrectionMinutes` accepts only ±1440; values beyond that chart limit are rejected.
 
 This correction excludes the equation of time, seasonal effects and latitude. It is not a daily sunrise prediction and does not guarantee closer ascendant agreement with another method. Use the first example or the coordinate example above for daily sunrise without adding this correction again. See the formula and scope in [SOURCES.md](../SOURCES.md).
+
+## Agent tools and JSON schemas
+
+Import `getThaiAstrologyTools()` and `executeThaiAstrologyTool()` from `thai-astrology/tools`; import `getThaiAstrologySchemas()` from `thai-astrology/schemas`. These optional entry points work with CommonJS, ESM imports and browser bundlers. They add no runtime dependencies and do not change the root exports or calculation defaults.
+
+| Tool name | Arguments | Successful `data` |
+| --- | --- | --- |
+| `search_locations` | `AstrologyLocationSearch`: countryCode, optional query/limit/offset | `AstrologyLocationSearchResult` |
+| `validate_horoscope_input` | `{ input: unknown }` | `HoroscopeInputValidation` |
+| `calculate_horoscope` | `{ input: HoroscopeInput }` | Full `ThaiHoroscope` |
+| `calculate_transits` | `{ natal: HoroscopeInput, transit: HoroscopeInput }` | Full `HoroscopeTransitResult` |
+
+```ts
+import { executeThaiAstrologyTool, getThaiAstrologyTools } from "thai-astrology/tools"
+import { getThaiAstrologySchemas } from "thai-astrology/schemas"
+
+const definitions = getThaiAstrologyTools()
+const schemas = getThaiAstrologySchemas()
+const input = {
+  date: { year: 2024, era: "CE" as const, month: 9, day: 15 },
+  time: { hour: 8, minute: 30 },
+  location: { province: "TH-50" },
+}
+const result = executeThaiAstrologyTool("calculate_horoscope", { input })
+if (result.ok) console.log(result.data.points.sun.longitudeDegrees)
+else console.log(result.error.code, result.error.message, result.error.issues)
+
+// JSON Schema documents can be serialized for other languages and services.
+console.log(JSON.stringify(schemas.calculate_horoscope.inputSchema))
+```
+
+Each definition has `name`, `description`, `inputSchema` and `outputSchema`. Schema documents use JSON Schema 2020-12 and local `$defs`/`$ref`. They describe structural types; civil-date validity, numeric ranges, province recognition, reference conflicts and timezone rules are checked by the existing runtime APIs. They are generated from TypeScript types with `npm run schemas`; typecheck rejects stale schemas. Returned definitions and schemas are independent mutable copies.
+
+The dispatcher accepts JSON-compatible arguments, rejects unknown fields in typed input objects and never coerces strings to numbers. The validation tool deliberately accepts arbitrary `input` so it can report invalid forms. Its result is `ok: true` even when `data.valid` is false: the validation itself completed successfully. Other tools return failures for invalid arguments or calculation inputs. Existing direct library APIs retain their earlier treatment of extra fields.
+
+Results are either `{ schemaVersion: "1.0", ok: true, data }` or `{ schemaVersion: "1.0", ok: false, error: { code, message, issues? } }`. Output schemas describe this complete envelope. Error codes are:
+
+| Code | Meaning |
+| --- | --- |
+| `UNKNOWN_TOOL` | Name is not one of the four tools |
+| `INVALID_ARGUMENTS` | Argument shape, extra fields or location-search values are invalid |
+| `INVALID_INPUT` | Horoscope domain validation failed; `issues` contains field/code/message records |
+| `CALCULATION_ERROR` | A calculation could not complete, for example no sunrise at polar coordinates |
+
+Transit validation prefixes issue fields with `natal.` or `transit.`. Structural failures include a field path in `message`. Unexpected programming errors propagate to the host application. Callers should use codes and issue fields for control flow; messages are explanatory text. Validation does not guarantee a sunrise exists for the requested day.
+
+Results preserve all resolved references, fallback reasons, units, Thai labels and chart markers. Signs are zero-based and houses are 1–12. No current date, AI model or interpretation is selected automatically. A catalog location ID is not a province: for foreign births, use `createSunriseReferenceForLocation()` with an explicit civil time and any required DST choice, then supply the resulting reference and the intended planetary clock settings.
+
+Applications can translate these definitions into a provider's tool format or an MCP/HTTP adapter. Check that host's supported schema vocabulary and map its response/error envelope explicitly. The package supplies contracts, a dispatcher and the JSON CLI below. Applications supply server integrations and AI connections.
+
+## JSON CLI
+
+Installing `thai-astrology` also installs the `thai-astrology` executable. It uses the same four tools and result contracts as the library, without extra runtime dependencies. From a project that has installed the package, run:
+
+```bash
+npx --no-install thai-astrology --help
+npx --no-install thai-astrology --version
+npx --no-install thai-astrology tools
+npx --no-install thai-astrology schemas
+npx --no-install thai-astrology schemas calculate_horoscope --pretty
+```
+
+`tools` returns `{ schemaVersion: "1.0", ok: true, data: ToolDefinition[] }`. `schemas` returns the same envelope with `data` containing the tool-name-to-schema map; adding a tool name selects its `{ inputSchema, outputSchema }` pair. `--version` returns an envelope whose `data.version` is the package version. `--help` (or `-h`) prints plain-text usage. Discovery and schema commands never read stdin.
+
+`call <tool>` reads one complete UTF-8 JSON value from stdin. Use the tool's argument shape, including the `input` wrapper for horoscope and validation calls:
+
+```bash
+npx --no-install thai-astrology call calculate_horoscope <<'JSON'
+{
+  "input": {
+    "date": { "year": 2024, "era": "CE", "month": 9, "day": 15 },
+    "time": { "hour": 8, "minute": 30 },
+    "location": { "province": "TH-50" }
+  }
+}
+JSON
+```
+
+Save that JSON object as `birth.json` to read it from a file instead. `--input -` explicitly selects stdin. A file path can contain spaces when quoted.
+
+```bash
+npx --no-install thai-astrology call calculate_horoscope --input birth.json --pretty
+```
+
+Search arguments are directly `{ "countryCode": "TH", "query": "Chiang Mai" }`. Transit arguments contain both `{ "natal": HoroscopeInput, "transit": HoroscopeInput }`. No current date or time is inferred. Date, era, local time and reference conventions remain identical to the library. A selected validation call returns exit 0 even if its result contains `data.valid: false`.
+
+Each invocation emits one JSON result to stdout, ending with a newline; `--pretty` adds indentation. Tool calls preserve the dispatcher's full result envelope. Failures also emit a short diagnostic to stderr, so callers should parse stdout separately from stderr. Empty input, a UTF-8 BOM, malformed JSON and multiple JSON documents are rejected. This CLI processes one call per process; it is not a JSON Lines server.
+
+| Exit code | Meaning | Error code |
+| --- | --- | --- |
+| 0 | Command or tool completed | No transport error; inspect validation `data.valid` if relevant |
+| 1 | Tool failed | `UNKNOWN_TOOL`, `INVALID_ARGUMENTS`, `INVALID_INPUT`, `CALCULATION_ERROR` |
+| 2 | Command or input could not be read | `CLI_USAGE_ERROR`, `INPUT_READ_ERROR`, `INVALID_JSON` |
+| 3 | Unexpected internal failure | `INTERNAL_ERROR`; output-stream failures report `OUTPUT_WRITE_ERROR` to stderr |
+
+Malformed JSON diagnostics do not echo the source document. Unexpected exceptions produce a generic failure instead of a stack trace. Existing tool-domain errors retain their structured issue fields. A terminal invocation of `call` requires `--input <file>` or piped stdin, so it does not wait interactively for birth data.
+
+Python can call the installed package directly through Node, without an AI SDK. Run this example from the project where the npm package is installed:
+
+```python
+import json
+import subprocess
+
+args = {"countryCode": "TH", "query": "Chiang Mai", "limit": 1}
+completed = subprocess.run(
+    ["node", "node_modules/thai-astrology/bin/thai-astrology.cjs", "call", "search_locations"],
+    input=json.dumps(args), capture_output=True, text=True, encoding="utf-8",
+)
+result = json.loads(completed.stdout)
+if completed.returncode == 0:
+    print(result["data"]["items"])
+else:
+    print(result["error"]["code"], result["error"]["message"])
+```
+
+For a source checkout, first run `npm run build`, then use `node bin/thai-astrology.cjs` in place of `npx --no-install thai-astrology`. The CLI is independent of browser imports and does not open a network service.

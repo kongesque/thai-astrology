@@ -142,6 +142,39 @@ console.log(horoscope.charts.rasi.channels.thai)
 
 `calculateThaiHoroscope()` ใช้สุริยยาตร์เสมอ ส่วน API เดิม `generateThaiAstrologyChart()` ใช้ `legacy` เป็นค่าเริ่มต้น ต้องระบุ `method: "suriyayatra"` เมื่อต้องการสุริยยาตร์
 
+## เครื่องมือ AI และสัญญา JSON
+
+entry point เสริมมีเครื่องมือที่ไม่ผูกกับผู้ให้บริการ AI จำนวน 4 รายการ: ค้นหาสถานที่ ตรวจสอบข้อมูล คำนวณดวง และเทียบดาวจร การเรียกไลบรารีเดิมยังทำงานเหมือนเดิมและไม่มี runtime dependencies
+
+```ts
+import { executeThaiAstrologyTool, getThaiAstrologyTools } from "thai-astrology/tools"
+import { getThaiAstrologySchemas } from "thai-astrology/schemas"
+
+const tools = getThaiAstrologyTools()
+const schemas = getThaiAstrologySchemas()
+const result = executeThaiAstrologyTool("calculate_horoscope", {
+  input: {
+    date: { year: 2024, era: "CE", month: 9, day: 15 },
+    time: { hour: 8, minute: 30 },
+    location: { province: "TH-50" },
+  },
+})
+if (result.ok) console.log(result.data.points.ascendant.signName)
+else console.log(result.error.code, result.error.issues)
+```
+
+นิยามเครื่องมือมีสัญญาข้อมูลเข้า/ออกแบบ JSON Schema 2020-12 ตัว dispatcher คืน JSON ที่ระบุเวอร์ชันและปฏิเสธฟิลด์ argument ที่ไม่รู้จัก แอปพลิเคชันเป็นผู้เชื่อมต่อผู้ให้บริการ AI, MCP หรือ HTTP เอง ดู [สัญญา API เครื่องมือ](docs/api.md#agent-tools-and-json-schemas)
+
+แพ็กเกจเดียวกันติดตั้ง JSON CLI สำหรับ terminal agent และการเรียกจากภาษาอื่นด้วย:
+
+```bash
+npx --no-install thai-astrology tools
+npx --no-install thai-astrology schemas calculate_horoscope
+npx --no-install thai-astrology call calculate_horoscope --input birth.json
+```
+
+`birth.json` เก็บ arguments ของเครื่องมือในรูป `{ "input": { ... } }`; หากไม่ระบุ `--input` จะอ่าน stdin ดู [ตัวอย่าง CLI และ exit code](docs/api.md#json-cli)
+
 ## พัฒนาและร่วมปรับปรุง
 
 [ชุดทดสอบ](test/run.cjs) ครอบคลุมกฎปฏิทิน รอยต่อราศี เขตเวลา และการเทียบผลกับเวอร์ชันที่เผยแพร่แล้ว นอกจากนี้ยังตรวจการใช้งานแพ็กเกจที่ติดตั้งจริงทั้ง CommonJS, ESM, TypeScript และเบราว์เซอร์ ดูขั้นตอนใน [CI workflow](.github/workflows/ci.yml)
