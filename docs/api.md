@@ -503,8 +503,8 @@ console.log(chart.timing.referenceTimeMinutes) // ประมาณ 377.99424 �
 | --- | --- | --- |
 | `search_locations` | `AstrologyLocationSearch`: countryCode และ query/limit/offset ถ้ามี | `AstrologyLocationSearchResult` |
 | `validate_horoscope_input` | `{ input: unknown }` | `HoroscopeInputValidation` |
-| `calculate_horoscope` | `{ input: HoroscopeInput }` | `ThaiHoroscope` ฉบับเต็ม |
-| `calculate_transits` | `{ natal: HoroscopeInput, transit: HoroscopeInput }` | `HoroscopeTransitResult` ฉบับเต็ม |
+| `calculate_horoscope` | `{ input: HoroscopeInput, sections?: HoroscopeSection[] }` | `ThaiHoroscope` ฉบับเต็มตามค่าเริ่มต้น หรือเฉพาะส่วนที่เลือก |
+| `calculate_transits` | `{ natal: HoroscopeInput, transit: HoroscopeInput, sections?: HoroscopeSection[] }` | `HoroscopeTransitResult` ฉบับเต็มตามค่าเริ่มต้น หรือเฉพาะส่วนที่เลือก |
 
 ```ts
 import { executeThaiAstrologyTool, getThaiAstrologyTools } from "thai-astrology/tools"
@@ -649,3 +649,40 @@ npm --prefix adapters/mcp run test:package
 SDK เวอร์ชันที่ตรึงไว้ใช้การตกลงรุ่นโพรโทคอลผ่าน initialization ชุดทดสอบใช้ client จาก SDK อย่างเป็นทางการเพื่อตรวจรุ่น `2025-06-18` และ `2025-11-25` รวมถึงตรวจผลลัพธ์กับ output schema ดังนั้น client ต้องรองรับวิธีเชื่อมต่อดังกล่าว ส่วนนี้ประกาศความสามารถเฉพาะเครื่องมือ ไม่ได้ให้บริการ HTTP, resources, prompts, model sampling หรือ background tasks ดู [วงจรการเชื่อมต่อ MCP](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle) และ [สัญญาเครื่องมือ](https://modelcontextprotocol.io/specification/2025-11-25/server/tools) จากเอกสารทางการ
 
 ดูรายละเอียดการติดตั้งและทดสอบแพ็กเกจใน [README ของ MCP adapter](../adapters/mcp/README.md) การเรียกไลบรารีและ JSON CLI ยังคงใช้งานแยกกันได้ตามเดิม
+
+<a id="selected-result-sections"></a>
+
+## เลือกเฉพาะส่วนของผลลัพธ์
+
+เครื่องมือคำนวณรับ `sections` เป็นอาร์เรย์เพิ่มเติมจากอาร์กิวเมนต์เดิม ใช้ได้ทั้งการเรียกผ่าน dispatcher, JSON CLI และ MCP หากไม่ระบุ จะได้ผลลัพธ์ฉบับเต็มเหมือนเดิม ส่วน API คำนวณหลักของไลบรารียังคงคืนผลลัพธ์ฉบับเต็มเสมอ
+
+```ts
+import { executeThaiAstrologyTool } from "thai-astrology/tools"
+
+const result = executeThaiAstrologyTool("calculate_horoscope", {
+  input: {
+    date: { year: 2024, era: "CE", month: 9, day: 15 },
+    time: { hour: 8, minute: 30 },
+    location: { province: "TH-50" },
+  },
+  sections: ["points", "calendar"],
+})
+if (result.ok) console.log(result.data.points?.ascendant.signName)
+```
+
+เลือกได้จาก `points`, `houses`, `charts`, `factors`, `calendar`, `taksa`, `relationships`, `timing` และ `diagnostics` โดย `schemaVersion`, `profile` และ `input` ที่ปรับให้อยู่ในรูปมาตรฐานแล้วจะมีอยู่เสมอ รวมถึง reference ที่เลือกและเหตุผล fallback หากระบุ `sections: []` จะได้เฉพาะข้อมูลกำกับเหล่านี้ ชื่อที่ซ้ำกันนับเป็นส่วนเดียว ส่วนชื่อที่ไม่รู้จักหรือค่าที่ไม่ใช่อาร์เรย์จะได้ข้อผิดพลาด `INVALID_ARGUMENTS` ค่าของแต่ละส่วนมาจากผลคำนวณฉบับเต็มชุดเดียวกัน จึงไม่มีการปัดเศษหรือคำนวณใหม่ การเลือกส่วนช่วยลดขนาดข้อมูลที่ส่งกลับ แต่ไม่ลดงานคำนวณ
+
+สำหรับ `calculate_transits` จะใช้รายการเดียวกันเลือกส่วนของทั้งดวง `natal` และ `transit` โดยยังคง `comparison` ฉบับเต็มไว้เสมอ ระบบตรวจสอบข้อมูลและคำนวณตามเดิมทุกขั้นตอน แม้ไม่เลือกส่วนใดเลย และเมื่อเกิดข้อผิดพลาดจะคืน error envelope ตามปกติ
+
+หากเรียกจาก TypeScript ด้วยออบเจ็กต์อาร์กิวเมนต์ที่ทราบชนิดและไม่ได้เลือกส่วน จะยังได้ชนิดผลลัพธ์ฉบับเต็ม การเรียกที่เลือกส่วน หรือส่งอาร์กิวเมนต์ชนิด unknown ซึ่งอาจมีตัวเลือกนี้ จะได้ `SelectedHoroscope` หรือ `SelectedHoroscopeTransits` โดยฟิลด์ที่เลือกได้เป็น optional นำเข้าชนิดเหล่านี้และ `HoroscopeSection` ได้จาก `thai-astrology/tools` ส่วน output schema รองรับทั้งฉบับเต็มและฉบับเลือกส่วน โดยกำหนดให้ข้อมูลกำกับมีอยู่เสมอ
+
+## เชื่อมต่อกับ Codex
+
+เมื่อ build ไลบรารีหลักและติดตั้ง dependencies ของ adapter แล้ว ให้ลงทะเบียนคำสั่ง stdio กับ Codex โดยแทนที่ path ทั้งสองด้วย absolute path จริงในเครื่อง:
+
+```bash
+codex mcp add thai_astrology -- /absolute/path/to/node /absolute/path/to/thai-astrology/adapters/mcp/bin/thai-astrology-mcp.cjs
+codex mcp get thai_astrology
+```
+
+เลือก Node.js 20 ขึ้นไป แล้วเริ่ม Codex session ใหม่เพื่อโหลด server ที่ลงทะเบียนไว้ จากนั้นให้ค้นหาสถานที่เกิด ตรวจสอบข้อมูลวันที่และเวลาท้องถิ่นที่ระบุชัดเจน คำนวณเฉพาะส่วนที่ต้องการ และอธิบายปัจจัยที่ได้ Codex ต้องมีการลงชื่อเข้าใช้และเลือกโมเดลที่บัญชีรองรับแยกจากตัว adapter ส่วนไลบรารีและ adapter ไม่ได้เลือกหรือตั้งค่าโมเดล AI ให้ ดู [เอกสาร MCP ของ Codex](https://developers.openai.com/codex/mcp)

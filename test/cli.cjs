@@ -18,6 +18,15 @@ function run(args, input = '') {
 }
 
 module.exports = [
+  ['CLI returns selected sections without losing calculation references', () => {
+    const args = { input, sections: ['points', 'calendar'] }
+    const result = run(['call', 'calculate_horoscope'], JSON.stringify(args))
+    assert.equal(result.status, 0)
+    const parsed = JSON.parse(result.stdout)
+    assert.deepEqual(parsed, executeThaiAstrologyTool('calculate_horoscope', args))
+    assert.deepEqual(Object.keys(parsed.data), ['schemaVersion', 'profile', 'input', 'points', 'calendar'])
+    assert.equal(parsed.data.profile.referenceMode, 'auto')
+  }],
   ['CLI discovers tools and exports complete schemas without reading stdin', () => {
     const tools = run(['tools'], 'not JSON')
     assert.equal(tools.status, 0)

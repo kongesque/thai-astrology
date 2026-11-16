@@ -175,6 +175,8 @@ const webTransit: HoroscopeTransitResult = calculateHoroscopeTransits(webInput, 
 const validation = validateHoroscopeInput(webInput)
 if (validation.valid) { const ceYear: number = validation.value.date.yearCe; void ceYear }
 else { const field: string = validation.issues[0].field; void field }
+const selectedResult = executeThaiAstrologyTool('calculate_horoscope', { input: webInput, sections: ['points'] })
+if (selectedResult.ok) { const selectedSign: number | undefined = selectedResult.data.points?.sun.sign; void selectedSign }
 void [webChart, webTransit]
 const coordinateReference: SunriseReference = { method: 'sunrise', latitude: 13.7563, longitude: 100.5018, utcOffsetHours: 7 }
 const sunrise: SunriseResult = calculateSunrise({ yearCe: 2024, month: 6, day: 21, ...coordinateReference })

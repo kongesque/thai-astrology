@@ -717,6 +717,53 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
       "properties": {
         "input": {
           "$ref": "#/$defs/object2"
+        },
+        "sections": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "const": "calendar",
+                    "type": "string"
+                  },
+                  {
+                    "const": "taksa",
+                    "type": "string"
+                  },
+                  {
+                    "const": "relationships",
+                    "type": "string"
+                  },
+                  {
+                    "const": "diagnostics",
+                    "type": "string"
+                  },
+                  {
+                    "const": "points",
+                    "type": "string"
+                  },
+                  {
+                    "const": "houses",
+                    "type": "string"
+                  },
+                  {
+                    "const": "charts",
+                    "type": "string"
+                  },
+                  {
+                    "const": "factors",
+                    "type": "string"
+                  },
+                  {
+                    "const": "timing",
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          ]
         }
       },
       "additionalProperties": false,
@@ -729,6 +776,53 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
           "properties": {
             "input": {
               "$ref": "#/$defs/object2"
+            },
+            "sections": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "const": "calendar",
+                        "type": "string"
+                      },
+                      {
+                        "const": "taksa",
+                        "type": "string"
+                      },
+                      {
+                        "const": "relationships",
+                        "type": "string"
+                      },
+                      {
+                        "const": "diagnostics",
+                        "type": "string"
+                      },
+                      {
+                        "const": "points",
+                        "type": "string"
+                      },
+                      {
+                        "const": "houses",
+                        "type": "string"
+                      },
+                      {
+                        "const": "charts",
+                        "type": "string"
+                      },
+                      {
+                        "const": "factors",
+                        "type": "string"
+                      },
+                      {
+                        "const": "timing",
+                        "type": "string"
+                      }
+                    ]
+                  }
+                }
+              ]
             }
           },
           "additionalProperties": false,
@@ -1056,67 +1150,293 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
         "object5": {
           "type": "object",
           "properties": {
+            "input": {
+              "$ref": "#/$defs/object6"
+            },
             "schemaVersion": {
               "const": "1.0",
               "type": "string"
             },
             "profile": {
-              "$ref": "#/$defs/object6"
-            },
-            "input": {
-              "$ref": "#/$defs/object7"
-            },
-            "points": {
-              "$ref": "#/$defs/object13"
-            },
-            "houses": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/object15"
-              }
-            },
-            "charts": {
-              "$ref": "#/$defs/object17"
-            },
-            "factors": {
-              "$ref": "#/$defs/object21"
+              "$ref": "#/$defs/object12"
             },
             "calendar": {
-              "$ref": "#/$defs/object24"
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object13"
+                }
+              ]
             },
             "taksa": {
-              "$ref": "#/$defs/object26"
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object15"
+                }
+              ]
             },
             "relationships": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/object27"
-              }
-            },
-            "timing": {
-              "$ref": "#/$defs/object28"
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/object16"
+                  }
+                }
+              ]
             },
             "diagnostics": {
-              "$ref": "#/$defs/object31"
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object17"
+                }
+              ]
+            },
+            "points": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object19"
+                }
+              ]
+            },
+            "houses": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/object21"
+                  }
+                }
+              ]
+            },
+            "charts": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object23"
+                }
+              ]
+            },
+            "factors": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object27"
+                }
+              ]
+            },
+            "timing": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object30"
+                }
+              ]
             }
           },
           "additionalProperties": false,
           "required": [
-            "schemaVersion",
-            "profile",
             "input",
-            "points",
-            "houses",
-            "charts",
-            "factors",
-            "calendar",
-            "taksa",
-            "relationships",
-            "timing",
-            "diagnostics"
+            "schemaVersion",
+            "profile"
           ]
         },
         "object6": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "$ref": "#/$defs/object7"
+            },
+            "time": {
+              "$ref": "#/$defs/object8"
+            },
+            "location": {
+              "$ref": "#/$defs/object9"
+            },
+            "referenceMode": {
+              "anyOf": [
+                {
+                  "const": "auto",
+                  "type": "string"
+                },
+                {
+                  "const": "traditional",
+                  "type": "string"
+                }
+              ]
+            },
+            "referenceSelection": {
+              "anyOf": [
+                {
+                  "const": "auto",
+                  "type": "string"
+                },
+                {
+                  "const": "traditional",
+                  "type": "string"
+                },
+                {
+                  "const": "explicit",
+                  "type": "string"
+                }
+              ]
+            },
+            "referenceFallback": {
+              "anyOf": [
+                {
+                  "const": "missing-province",
+                  "type": "string"
+                },
+                {
+                  "const": "year-out-of-range",
+                  "type": "string"
+                },
+                {
+                  "const": "explicit-correction",
+                  "type": "string"
+                }
+              ]
+            },
+            "ascendantReference": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object10"
+                }
+              ]
+            },
+            "planetaryTimeReference": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object11"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "date",
+            "time",
+            "location",
+            "referenceMode",
+            "referenceSelection"
+          ]
+        },
+        "object7": {
+          "type": "object",
+          "properties": {
+            "yearBe": {
+              "type": "number"
+            },
+            "yearCe": {
+              "type": "number"
+            },
+            "month": {
+              "type": "number"
+            },
+            "day": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "yearBe",
+            "yearCe",
+            "month",
+            "day"
+          ]
+        },
+        "object8": {
+          "type": "object",
+          "properties": {
+            "hour": {
+              "type": "number"
+            },
+            "minute": {
+              "type": "number"
+            },
+            "convention": {
+              "const": "civil-local",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "hour",
+            "minute",
+            "convention"
+          ]
+        },
+        "object9": {
+          "type": "object",
+          "properties": {
+            "province": {
+              "type": "string"
+            },
+            "localTimeCorrectionMinutes": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "province",
+            "localTimeCorrectionMinutes"
+          ]
+        },
+        "object10": {
+          "type": "object",
+          "properties": {
+            "method": {
+              "const": "sunrise",
+              "type": "string"
+            },
+            "timePrecision": {
+              "anyOf": [
+                {
+                  "const": "continuous",
+                  "type": "string"
+                },
+                {
+                  "const": "minute",
+                  "type": "string"
+                }
+              ],
+              "description": "Minute-table reference rounds sunrise to the nearest minute; omitted uses continuous time."
+            },
+            "latitude": {
+              "type": "number"
+            },
+            "longitude": {
+              "type": "number",
+              "description": "Degrees east of Greenwich; west is negative."
+            },
+            "utcOffsetHours": {
+              "type": "number",
+              "description": "Civil hours east of UTC, including any daylight-saving offset. Required."
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "latitude",
+            "longitude",
+            "utcOffsetHours"
+          ]
+        },
+        "object11": {
+          "type": "object",
+          "properties": {
+            "civilUtcOffsetSeconds": {
+              "type": "number",
+              "description": "Civil UTC offset on the input date, including DST, in whole seconds."
+            },
+            "referenceUtcOffsetSeconds": {
+              "type": "number",
+              "description": "UTC offset of the calculation's declared reference clock, in whole seconds."
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "civilUtcOffsetSeconds",
+            "referenceUtcOffsetSeconds"
+          ]
+        },
+        "object12": {
           "type": "object",
           "properties": {
             "method": {
@@ -1200,240 +1520,378 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "referenceMode"
           ]
         },
-        "object7": {
+        "object13": {
           "type": "object",
           "properties": {
-            "date": {
-              "$ref": "#/$defs/object8"
+            "julianDayNumber": {
+              "type": "number"
             },
-            "time": {
-              "$ref": "#/$defs/object9"
+            "horakhun": {
+              "type": "number"
             },
-            "location": {
-              "$ref": "#/$defs/object10"
+            "chulaSakarat": {
+              "type": "number"
             },
-            "referenceMode": {
+            "civilWeekday": {
+              "type": "number",
+              "description": "1 = Sunday, ..., 7 = Saturday."
+            },
+            "astrologicalWeekday": {
+              "type": "number",
+              "description": "ใช้เลขวันแบบเดียวกัน แต่เปลี่ยนวันทางโหราศาสตร์ที่ 06:00"
+            },
+            "lunarPhase": {
               "anyOf": [
                 {
-                  "const": "auto",
+                  "const": "waxing",
                   "type": "string"
                 },
                 {
-                  "const": "traditional",
+                  "const": "waning",
                   "type": "string"
                 }
-              ]
+              ],
+              "description": "Geometric lunar phase; distinct from the Thai calendar's intercalation tables."
             },
-            "referenceSelection": {
+            "lunarDay": {
+              "type": "number"
+            },
+            "elongationDegrees": {
+              "type": "number"
+            },
+            "thaiLunarDate": {
               "anyOf": [
                 {
-                  "const": "auto",
-                  "type": "string"
+                  "type": "null"
                 },
                 {
-                  "const": "traditional",
-                  "type": "string"
-                },
-                {
-                  "const": "explicit",
-                  "type": "string"
+                  "$ref": "#/$defs/object14"
                 }
-              ]
-            },
-            "referenceFallback": {
-              "anyOf": [
-                {
-                  "const": "missing-province",
-                  "type": "string"
-                },
-                {
-                  "const": "year-out-of-range",
-                  "type": "string"
-                },
-                {
-                  "const": "explicit-correction",
-                  "type": "string"
-                }
-              ]
-            },
-            "ascendantReference": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/object11"
-                }
-              ]
-            },
-            "planetaryTimeReference": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/object12"
-                }
-              ]
+              ],
+              "description": "คืน null เมื่ออยู่นอกช่วงปฏิทินที่รองรับ: พ.ศ. 2125..2619"
             }
           },
           "additionalProperties": false,
           "required": [
-            "date",
-            "time",
-            "location",
-            "referenceMode",
-            "referenceSelection"
+            "julianDayNumber",
+            "horakhun",
+            "chulaSakarat",
+            "civilWeekday",
+            "astrologicalWeekday",
+            "lunarPhase",
+            "lunarDay",
+            "elongationDegrees",
+            "thaiLunarDate"
           ]
         },
-        "object8": {
+        "object14": {
           "type": "object",
           "properties": {
-            "yearBe": {
-              "type": "number"
+            "dayBoundary": {
+              "const": "civil-midnight",
+              "type": "string",
+              "description": "วันจันทรคติเปลี่ยนที่เที่ยงคืน แยกจากเฟสที่คำนวณด้วยมุมจันทร์–อาทิตย์"
             },
-            "yearCe": {
+            "yearType": {
+              "anyOf": [
+                {
+                  "const": "ordinary",
+                  "type": "string"
+                },
+                {
+                  "const": "intercalary-month",
+                  "type": "string"
+                },
+                {
+                  "const": "intercalary-day",
+                  "type": "string"
+                }
+              ]
+            },
+            "phase": {
+              "anyOf": [
+                {
+                  "const": "waxing",
+                  "type": "string"
+                },
+                {
+                  "const": "waning",
+                  "type": "string"
+                }
+              ]
+            },
+            "day": {
               "type": "number"
             },
             "month": {
               "type": "number"
             },
-            "day": {
-              "type": "number"
+            "secondEighthMonth": {
+              "type": "boolean"
+            },
+            "label": {
+              "type": "string"
             }
           },
           "additionalProperties": false,
           "required": [
-            "yearBe",
-            "yearCe",
+            "dayBoundary",
+            "yearType",
+            "phase",
+            "day",
             "month",
-            "day"
+            "secondEighthMonth",
+            "label"
           ]
         },
-        "object9": {
-          "type": "object",
-          "properties": {
-            "hour": {
-              "type": "number"
-            },
-            "minute": {
-              "type": "number"
-            },
-            "convention": {
-              "const": "civil-local",
-              "type": "string"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "hour",
-            "minute",
-            "convention"
-          ]
-        },
-        "object10": {
-          "type": "object",
-          "properties": {
-            "province": {
-              "type": "string"
-            },
-            "localTimeCorrectionMinutes": {
-              "type": "number"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "province",
-            "localTimeCorrectionMinutes"
-          ]
-        },
-        "object11": {
+        "object15": {
           "type": "object",
           "properties": {
             "method": {
-              "const": "sunrise",
+              "const": "weekday-0600",
               "type": "string"
             },
-            "timePrecision": {
-              "anyOf": [
-                {
-                  "const": "continuous",
-                  "type": "string"
-                },
-                {
-                  "const": "minute",
-                  "type": "string"
-                }
-              ],
-              "description": "Minute-table reference rounds sunrise to the nearest minute; omitted uses continuous time."
-            },
-            "latitude": {
+            "boriwan": {
               "type": "number"
             },
-            "longitude": {
-              "type": "number",
-              "description": "Degrees east of Greenwich; west is negative."
+            "ayu": {
+              "type": "number"
             },
-            "utcOffsetHours": {
-              "type": "number",
-              "description": "Civil hours east of UTC, including any daylight-saving offset. Required."
+            "det": {
+              "type": "number"
+            },
+            "si": {
+              "type": "number"
+            },
+            "mula": {
+              "type": "number"
+            },
+            "utsaha": {
+              "type": "number"
+            },
+            "montri": {
+              "type": "number"
+            },
+            "kalakini": {
+              "type": "number"
+            },
+            "center": {
+              "type": "number"
             }
           },
           "additionalProperties": false,
           "required": [
             "method",
-            "latitude",
-            "longitude",
-            "utcOffsetHours"
+            "boriwan",
+            "ayu",
+            "det",
+            "si",
+            "mula",
+            "utsaha",
+            "montri",
+            "kalakini",
+            "center"
           ]
         },
-        "object12": {
+        "object16": {
           "type": "object",
           "properties": {
-            "civilUtcOffsetSeconds": {
-              "type": "number",
-              "description": "Civil UTC offset on the input date, including DST, in whole seconds."
+            "sign": {
+              "type": "number"
             },
-            "referenceUtcOffsetSeconds": {
-              "type": "number",
-              "description": "UTC offset of the calculation's declared reference clock, in whole seconds."
+            "ruler": {
+              "type": "number"
+            },
+            "conjunction": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "opposition": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "trines": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              ],
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "squares": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              ],
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "sextiles": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              ],
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "numberCandidates": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "description": "เลขดาวจากความสัมพันธ์ราศี ตัดเลขซ้ำและให้ผลเดิมเมื่อ input เดิม"
             }
           },
           "additionalProperties": false,
           "required": [
+            "sign",
+            "ruler",
+            "conjunction",
+            "opposition",
+            "trines",
+            "squares",
+            "sextiles",
+            "numberCandidates"
+          ]
+        },
+        "object17": {
+          "type": "object",
+          "properties": {
+            "meanSunArcMinutes": {
+              "type": "number"
+            },
+            "meanRaviArcMinutes": {
+              "type": "number"
+            },
+            "planetaryEpochArcMinutes": {
+              "type": "number"
+            },
+            "solarCycleUnits": {
+              "type": "number"
+            },
+            "planetaryTime": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object18"
+                }
+              ],
+              "description": "Present only for an explicitly selected planetary clock; calendar/timing stay civil."
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "meanSunArcMinutes",
+            "meanRaviArcMinutes",
+            "planetaryEpochArcMinutes",
+            "solarCycleUnits"
+          ]
+        },
+        "object18": {
+          "type": "object",
+          "properties": {
+            "horakhun": {
+              "type": "number"
+            },
+            "secondOfDay": {
+              "type": "number"
+            },
+            "dayOffset": {
+              "type": "number"
+            },
+            "civilUtcOffsetSeconds": {
+              "type": "number"
+            },
+            "referenceUtcOffsetSeconds": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "horakhun",
+            "secondOfDay",
+            "dayOffset",
             "civilUtcOffsetSeconds",
             "referenceUtcOffsetSeconds"
           ]
         },
-        "object13": {
+        "object19": {
           "type": "object",
           "properties": {
             "sun": {
-              "$ref": "#/$defs/object14"
+              "$ref": "#/$defs/object20"
             },
             "moon": {
-              "$ref": "#/$defs/object14"
+              "$ref": "#/$defs/object20"
             },
             "mars": {
-              "$ref": "#/$defs/object14"
+              "$ref": "#/$defs/object20"
             },
             "mercury": {
-              "$ref": "#/$defs/object14"
+              "$ref": "#/$defs/object20"
             },
             "jupiter": {
-              "$ref": "#/$defs/object14"
+              "$ref": "#/$defs/object20"
             },
             "venus": {
-              "$ref": "#/$defs/object14"
+              "$ref": "#/$defs/object20"
             },
             "saturn": {
-              "$ref": "#/$defs/object14"
+              "$ref": "#/$defs/object20"
             },
             "rahu": {
-              "$ref": "#/$defs/object14"
+              "$ref": "#/$defs/object20"
             },
             "ketu": {
-              "$ref": "#/$defs/object14"
+              "$ref": "#/$defs/object20"
             },
             "uranus": {
-              "$ref": "#/$defs/object14"
+              "$ref": "#/$defs/object20"
             },
             "ascendant": {
-              "$ref": "#/$defs/object14"
+              "$ref": "#/$defs/object20"
             }
           },
           "additionalProperties": false,
@@ -1451,7 +1909,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "ascendant"
           ]
         },
-        "object14": {
+        "object20": {
           "type": "object",
           "properties": {
             "key": {
@@ -1654,7 +2112,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "dignities"
           ]
         },
-        "object15": {
+        "object21": {
           "type": "object",
           "properties": {
             "number": {
@@ -1670,7 +2128,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
               "type": "string"
             },
             "ruler": {
-              "$ref": "#/$defs/object16"
+              "$ref": "#/$defs/object22"
             },
             "occupants": {
               "type": "array",
@@ -1734,7 +2192,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "containsAscendant"
           ]
         },
-        "object16": {
+        "object22": {
           "type": "object",
           "properties": {
             "key": {
@@ -1799,17 +2257,17 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "house"
           ]
         },
-        "object17": {
+        "object23": {
           "type": "object",
           "properties": {
             "rasi": {
-              "$ref": "#/$defs/object18"
+              "$ref": "#/$defs/object24"
             },
             "navamsa": {
-              "$ref": "#/$defs/object18"
+              "$ref": "#/$defs/object24"
             },
             "drekkana": {
-              "$ref": "#/$defs/object18"
+              "$ref": "#/$defs/object24"
             }
           },
           "additionalProperties": false,
@@ -1819,14 +2277,14 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "drekkana"
           ]
         },
-        "object18": {
+        "object24": {
           "type": "object",
           "properties": {
             "positions": {
-              "$ref": "#/$defs/object19"
+              "$ref": "#/$defs/object25"
             },
             "channels": {
-              "$ref": "#/$defs/object20"
+              "$ref": "#/$defs/object26"
             }
           },
           "additionalProperties": false,
@@ -1835,7 +2293,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "channels"
           ]
         },
-        "object19": {
+        "object25": {
           "type": "object",
           "properties": {
             "ascendant": {
@@ -1887,7 +2345,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "uranus"
           ]
         },
-        "object20": {
+        "object26": {
           "type": "object",
           "properties": {
             "arabic": {
@@ -1909,7 +2367,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "thai"
           ]
         },
-        "object21": {
+        "object27": {
           "type": "object",
           "properties": {
             "ascendantRuler": {
@@ -1957,7 +2415,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
               ]
             },
             "tanuseth": {
-              "$ref": "#/$defs/object22"
+              "$ref": "#/$defs/object28"
             },
             "ascendantOccupants": {
               "type": "array",
@@ -2015,7 +2473,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "ascendantOccupants"
           ]
         },
-        "object22": {
+        "object28": {
           "type": "object",
           "properties": {
             "key": {
@@ -2069,7 +2527,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
               "type": "string"
             },
             "calculation": {
-              "$ref": "#/$defs/object23"
+              "$ref": "#/$defs/object29"
             }
           },
           "additionalProperties": false,
@@ -2080,7 +2538,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "calculation"
           ]
         },
-        "object23": {
+        "object29": {
           "type": "object",
           "properties": {
             "firstLord": {
@@ -2112,284 +2570,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "secondDistance"
           ]
         },
-        "object24": {
-          "type": "object",
-          "properties": {
-            "julianDayNumber": {
-              "type": "number"
-            },
-            "horakhun": {
-              "type": "number"
-            },
-            "chulaSakarat": {
-              "type": "number"
-            },
-            "civilWeekday": {
-              "type": "number",
-              "description": "1 = Sunday, ..., 7 = Saturday."
-            },
-            "astrologicalWeekday": {
-              "type": "number",
-              "description": "ใช้เลขวันแบบเดียวกัน แต่เปลี่ยนวันทางโหราศาสตร์ที่ 06:00"
-            },
-            "lunarPhase": {
-              "anyOf": [
-                {
-                  "const": "waxing",
-                  "type": "string"
-                },
-                {
-                  "const": "waning",
-                  "type": "string"
-                }
-              ],
-              "description": "Geometric lunar phase; distinct from the Thai calendar's intercalation tables."
-            },
-            "lunarDay": {
-              "type": "number"
-            },
-            "elongationDegrees": {
-              "type": "number"
-            },
-            "thaiLunarDate": {
-              "anyOf": [
-                {
-                  "type": "null"
-                },
-                {
-                  "$ref": "#/$defs/object25"
-                }
-              ],
-              "description": "คืน null เมื่ออยู่นอกช่วงปฏิทินที่รองรับ: พ.ศ. 2125..2619"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "julianDayNumber",
-            "horakhun",
-            "chulaSakarat",
-            "civilWeekday",
-            "astrologicalWeekday",
-            "lunarPhase",
-            "lunarDay",
-            "elongationDegrees",
-            "thaiLunarDate"
-          ]
-        },
-        "object25": {
-          "type": "object",
-          "properties": {
-            "dayBoundary": {
-              "const": "civil-midnight",
-              "type": "string",
-              "description": "วันจันทรคติเปลี่ยนที่เที่ยงคืน แยกจากเฟสที่คำนวณด้วยมุมจันทร์–อาทิตย์"
-            },
-            "yearType": {
-              "anyOf": [
-                {
-                  "const": "ordinary",
-                  "type": "string"
-                },
-                {
-                  "const": "intercalary-month",
-                  "type": "string"
-                },
-                {
-                  "const": "intercalary-day",
-                  "type": "string"
-                }
-              ]
-            },
-            "phase": {
-              "anyOf": [
-                {
-                  "const": "waxing",
-                  "type": "string"
-                },
-                {
-                  "const": "waning",
-                  "type": "string"
-                }
-              ]
-            },
-            "day": {
-              "type": "number"
-            },
-            "month": {
-              "type": "number"
-            },
-            "secondEighthMonth": {
-              "type": "boolean"
-            },
-            "label": {
-              "type": "string"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "dayBoundary",
-            "yearType",
-            "phase",
-            "day",
-            "month",
-            "secondEighthMonth",
-            "label"
-          ]
-        },
-        "object26": {
-          "type": "object",
-          "properties": {
-            "method": {
-              "const": "weekday-0600",
-              "type": "string"
-            },
-            "boriwan": {
-              "type": "number"
-            },
-            "ayu": {
-              "type": "number"
-            },
-            "det": {
-              "type": "number"
-            },
-            "si": {
-              "type": "number"
-            },
-            "mula": {
-              "type": "number"
-            },
-            "utsaha": {
-              "type": "number"
-            },
-            "montri": {
-              "type": "number"
-            },
-            "kalakini": {
-              "type": "number"
-            },
-            "center": {
-              "type": "number"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "method",
-            "boriwan",
-            "ayu",
-            "det",
-            "si",
-            "mula",
-            "utsaha",
-            "montri",
-            "kalakini",
-            "center"
-          ]
-        },
-        "object27": {
-          "type": "object",
-          "properties": {
-            "sign": {
-              "type": "number"
-            },
-            "ruler": {
-              "type": "number"
-            },
-            "conjunction": {
-              "type": "array",
-              "items": {
-                "type": "number"
-              }
-            },
-            "opposition": {
-              "type": "array",
-              "items": {
-                "type": "number"
-              }
-            },
-            "trines": {
-              "type": "array",
-              "prefixItems": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  }
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  }
-                }
-              ],
-              "minItems": 2,
-              "maxItems": 2
-            },
-            "squares": {
-              "type": "array",
-              "prefixItems": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  }
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  }
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  }
-                }
-              ],
-              "minItems": 3,
-              "maxItems": 3
-            },
-            "sextiles": {
-              "type": "array",
-              "prefixItems": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  }
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  }
-                }
-              ],
-              "minItems": 2,
-              "maxItems": 2
-            },
-            "numberCandidates": {
-              "type": "array",
-              "items": {
-                "type": "number"
-              },
-              "description": "เลขดาวจากความสัมพันธ์ราศี ตัดเลขซ้ำและให้ผลเดิมเมื่อ input เดิม"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "sign",
-            "ruler",
-            "conjunction",
-            "opposition",
-            "trines",
-            "squares",
-            "sextiles",
-            "numberCandidates"
-          ]
-        },
-        "object28": {
+        "object30": {
           "type": "object",
           "properties": {
             "method": {
@@ -2411,10 +2592,10 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "sunrise": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/object29"
+                  "$ref": "#/$defs/object31"
                 },
                 {
-                  "$ref": "#/$defs/object30"
+                  "$ref": "#/$defs/object32"
                 }
               ],
               "description": "Present only when coordinate sunrise is explicitly selected."
@@ -2428,7 +2609,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "signStartTimesMinutes"
           ]
         },
-        "object29": {
+        "object31": {
           "type": "object",
           "properties": {
             "model": {
@@ -2466,70 +2647,10 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "altitudeResidualDegrees"
           ]
         },
-        "object30": {
+        "object32": {
           "type": "object",
           "properties": {},
           "additionalProperties": false
-        },
-        "object31": {
-          "type": "object",
-          "properties": {
-            "meanSunArcMinutes": {
-              "type": "number"
-            },
-            "meanRaviArcMinutes": {
-              "type": "number"
-            },
-            "planetaryEpochArcMinutes": {
-              "type": "number"
-            },
-            "solarCycleUnits": {
-              "type": "number"
-            },
-            "planetaryTime": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/object32"
-                }
-              ],
-              "description": "Present only for an explicitly selected planetary clock; calendar/timing stay civil."
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "meanSunArcMinutes",
-            "meanRaviArcMinutes",
-            "planetaryEpochArcMinutes",
-            "solarCycleUnits"
-          ]
-        },
-        "object32": {
-          "type": "object",
-          "properties": {
-            "horakhun": {
-              "type": "number"
-            },
-            "secondOfDay": {
-              "type": "number"
-            },
-            "dayOffset": {
-              "type": "number"
-            },
-            "civilUtcOffsetSeconds": {
-              "type": "number"
-            },
-            "referenceUtcOffsetSeconds": {
-              "type": "number"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "horakhun",
-            "secondOfDay",
-            "dayOffset",
-            "civilUtcOffsetSeconds",
-            "referenceUtcOffsetSeconds"
-          ]
         }
       }
     }
@@ -2544,6 +2665,53 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
         },
         "transit": {
           "$ref": "#/$defs/object2"
+        },
+        "sections": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "const": "calendar",
+                    "type": "string"
+                  },
+                  {
+                    "const": "taksa",
+                    "type": "string"
+                  },
+                  {
+                    "const": "relationships",
+                    "type": "string"
+                  },
+                  {
+                    "const": "diagnostics",
+                    "type": "string"
+                  },
+                  {
+                    "const": "points",
+                    "type": "string"
+                  },
+                  {
+                    "const": "houses",
+                    "type": "string"
+                  },
+                  {
+                    "const": "charts",
+                    "type": "string"
+                  },
+                  {
+                    "const": "factors",
+                    "type": "string"
+                  },
+                  {
+                    "const": "timing",
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          ]
         }
       },
       "additionalProperties": false,
@@ -2560,6 +2728,53 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             },
             "transit": {
               "$ref": "#/$defs/object2"
+            },
+            "sections": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "const": "calendar",
+                        "type": "string"
+                      },
+                      {
+                        "const": "taksa",
+                        "type": "string"
+                      },
+                      {
+                        "const": "relationships",
+                        "type": "string"
+                      },
+                      {
+                        "const": "diagnostics",
+                        "type": "string"
+                      },
+                      {
+                        "const": "points",
+                        "type": "string"
+                      },
+                      {
+                        "const": "houses",
+                        "type": "string"
+                      },
+                      {
+                        "const": "charts",
+                        "type": "string"
+                      },
+                      {
+                        "const": "factors",
+                        "type": "string"
+                      },
+                      {
+                        "const": "timing",
+                        "type": "string"
+                      }
+                    ]
+                  }
+                }
+              ]
             }
           },
           "additionalProperties": false,
@@ -2908,67 +3123,293 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
         "object6": {
           "type": "object",
           "properties": {
+            "input": {
+              "$ref": "#/$defs/object7"
+            },
             "schemaVersion": {
               "const": "1.0",
               "type": "string"
             },
             "profile": {
-              "$ref": "#/$defs/object7"
-            },
-            "input": {
-              "$ref": "#/$defs/object8"
-            },
-            "points": {
-              "$ref": "#/$defs/object14"
-            },
-            "houses": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/object16"
-              }
-            },
-            "charts": {
-              "$ref": "#/$defs/object18"
-            },
-            "factors": {
-              "$ref": "#/$defs/object22"
+              "$ref": "#/$defs/object13"
             },
             "calendar": {
-              "$ref": "#/$defs/object25"
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object14"
+                }
+              ]
             },
             "taksa": {
-              "$ref": "#/$defs/object27"
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object16"
+                }
+              ]
             },
             "relationships": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/object28"
-              }
-            },
-            "timing": {
-              "$ref": "#/$defs/object29"
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/object17"
+                  }
+                }
+              ]
             },
             "diagnostics": {
-              "$ref": "#/$defs/object32"
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object18"
+                }
+              ]
+            },
+            "points": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object20"
+                }
+              ]
+            },
+            "houses": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/object22"
+                  }
+                }
+              ]
+            },
+            "charts": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object24"
+                }
+              ]
+            },
+            "factors": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object28"
+                }
+              ]
+            },
+            "timing": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object31"
+                }
+              ]
             }
           },
           "additionalProperties": false,
           "required": [
-            "schemaVersion",
-            "profile",
             "input",
-            "points",
-            "houses",
-            "charts",
-            "factors",
-            "calendar",
-            "taksa",
-            "relationships",
-            "timing",
-            "diagnostics"
+            "schemaVersion",
+            "profile"
           ]
         },
         "object7": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "$ref": "#/$defs/object8"
+            },
+            "time": {
+              "$ref": "#/$defs/object9"
+            },
+            "location": {
+              "$ref": "#/$defs/object10"
+            },
+            "referenceMode": {
+              "anyOf": [
+                {
+                  "const": "auto",
+                  "type": "string"
+                },
+                {
+                  "const": "traditional",
+                  "type": "string"
+                }
+              ]
+            },
+            "referenceSelection": {
+              "anyOf": [
+                {
+                  "const": "auto",
+                  "type": "string"
+                },
+                {
+                  "const": "traditional",
+                  "type": "string"
+                },
+                {
+                  "const": "explicit",
+                  "type": "string"
+                }
+              ]
+            },
+            "referenceFallback": {
+              "anyOf": [
+                {
+                  "const": "missing-province",
+                  "type": "string"
+                },
+                {
+                  "const": "year-out-of-range",
+                  "type": "string"
+                },
+                {
+                  "const": "explicit-correction",
+                  "type": "string"
+                }
+              ]
+            },
+            "ascendantReference": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object11"
+                }
+              ]
+            },
+            "planetaryTimeReference": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object12"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "date",
+            "time",
+            "location",
+            "referenceMode",
+            "referenceSelection"
+          ]
+        },
+        "object8": {
+          "type": "object",
+          "properties": {
+            "yearBe": {
+              "type": "number"
+            },
+            "yearCe": {
+              "type": "number"
+            },
+            "month": {
+              "type": "number"
+            },
+            "day": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "yearBe",
+            "yearCe",
+            "month",
+            "day"
+          ]
+        },
+        "object9": {
+          "type": "object",
+          "properties": {
+            "hour": {
+              "type": "number"
+            },
+            "minute": {
+              "type": "number"
+            },
+            "convention": {
+              "const": "civil-local",
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "hour",
+            "minute",
+            "convention"
+          ]
+        },
+        "object10": {
+          "type": "object",
+          "properties": {
+            "province": {
+              "type": "string"
+            },
+            "localTimeCorrectionMinutes": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "province",
+            "localTimeCorrectionMinutes"
+          ]
+        },
+        "object11": {
+          "type": "object",
+          "properties": {
+            "method": {
+              "const": "sunrise",
+              "type": "string"
+            },
+            "timePrecision": {
+              "anyOf": [
+                {
+                  "const": "continuous",
+                  "type": "string"
+                },
+                {
+                  "const": "minute",
+                  "type": "string"
+                }
+              ],
+              "description": "Minute-table reference rounds sunrise to the nearest minute; omitted uses continuous time."
+            },
+            "latitude": {
+              "type": "number"
+            },
+            "longitude": {
+              "type": "number",
+              "description": "Degrees east of Greenwich; west is negative."
+            },
+            "utcOffsetHours": {
+              "type": "number",
+              "description": "Civil hours east of UTC, including any daylight-saving offset. Required."
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "latitude",
+            "longitude",
+            "utcOffsetHours"
+          ]
+        },
+        "object12": {
+          "type": "object",
+          "properties": {
+            "civilUtcOffsetSeconds": {
+              "type": "number",
+              "description": "Civil UTC offset on the input date, including DST, in whole seconds."
+            },
+            "referenceUtcOffsetSeconds": {
+              "type": "number",
+              "description": "UTC offset of the calculation's declared reference clock, in whole seconds."
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "civilUtcOffsetSeconds",
+            "referenceUtcOffsetSeconds"
+          ]
+        },
+        "object13": {
           "type": "object",
           "properties": {
             "method": {
@@ -3052,240 +3493,378 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "referenceMode"
           ]
         },
-        "object8": {
+        "object14": {
           "type": "object",
           "properties": {
-            "date": {
-              "$ref": "#/$defs/object9"
+            "julianDayNumber": {
+              "type": "number"
             },
-            "time": {
-              "$ref": "#/$defs/object10"
+            "horakhun": {
+              "type": "number"
             },
-            "location": {
-              "$ref": "#/$defs/object11"
+            "chulaSakarat": {
+              "type": "number"
             },
-            "referenceMode": {
+            "civilWeekday": {
+              "type": "number",
+              "description": "1 = Sunday, ..., 7 = Saturday."
+            },
+            "astrologicalWeekday": {
+              "type": "number",
+              "description": "ใช้เลขวันแบบเดียวกัน แต่เปลี่ยนวันทางโหราศาสตร์ที่ 06:00"
+            },
+            "lunarPhase": {
               "anyOf": [
                 {
-                  "const": "auto",
+                  "const": "waxing",
                   "type": "string"
                 },
                 {
-                  "const": "traditional",
+                  "const": "waning",
                   "type": "string"
                 }
-              ]
+              ],
+              "description": "Geometric lunar phase; distinct from the Thai calendar's intercalation tables."
             },
-            "referenceSelection": {
+            "lunarDay": {
+              "type": "number"
+            },
+            "elongationDegrees": {
+              "type": "number"
+            },
+            "thaiLunarDate": {
               "anyOf": [
                 {
-                  "const": "auto",
-                  "type": "string"
+                  "type": "null"
                 },
                 {
-                  "const": "traditional",
-                  "type": "string"
-                },
-                {
-                  "const": "explicit",
-                  "type": "string"
+                  "$ref": "#/$defs/object15"
                 }
-              ]
-            },
-            "referenceFallback": {
-              "anyOf": [
-                {
-                  "const": "missing-province",
-                  "type": "string"
-                },
-                {
-                  "const": "year-out-of-range",
-                  "type": "string"
-                },
-                {
-                  "const": "explicit-correction",
-                  "type": "string"
-                }
-              ]
-            },
-            "ascendantReference": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/object12"
-                }
-              ]
-            },
-            "planetaryTimeReference": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/object13"
-                }
-              ]
+              ],
+              "description": "คืน null เมื่ออยู่นอกช่วงปฏิทินที่รองรับ: พ.ศ. 2125..2619"
             }
           },
           "additionalProperties": false,
           "required": [
-            "date",
-            "time",
-            "location",
-            "referenceMode",
-            "referenceSelection"
+            "julianDayNumber",
+            "horakhun",
+            "chulaSakarat",
+            "civilWeekday",
+            "astrologicalWeekday",
+            "lunarPhase",
+            "lunarDay",
+            "elongationDegrees",
+            "thaiLunarDate"
           ]
         },
-        "object9": {
+        "object15": {
           "type": "object",
           "properties": {
-            "yearBe": {
-              "type": "number"
+            "dayBoundary": {
+              "const": "civil-midnight",
+              "type": "string",
+              "description": "วันจันทรคติเปลี่ยนที่เที่ยงคืน แยกจากเฟสที่คำนวณด้วยมุมจันทร์–อาทิตย์"
             },
-            "yearCe": {
+            "yearType": {
+              "anyOf": [
+                {
+                  "const": "ordinary",
+                  "type": "string"
+                },
+                {
+                  "const": "intercalary-month",
+                  "type": "string"
+                },
+                {
+                  "const": "intercalary-day",
+                  "type": "string"
+                }
+              ]
+            },
+            "phase": {
+              "anyOf": [
+                {
+                  "const": "waxing",
+                  "type": "string"
+                },
+                {
+                  "const": "waning",
+                  "type": "string"
+                }
+              ]
+            },
+            "day": {
               "type": "number"
             },
             "month": {
               "type": "number"
             },
-            "day": {
-              "type": "number"
+            "secondEighthMonth": {
+              "type": "boolean"
+            },
+            "label": {
+              "type": "string"
             }
           },
           "additionalProperties": false,
           "required": [
-            "yearBe",
-            "yearCe",
+            "dayBoundary",
+            "yearType",
+            "phase",
+            "day",
             "month",
-            "day"
+            "secondEighthMonth",
+            "label"
           ]
         },
-        "object10": {
-          "type": "object",
-          "properties": {
-            "hour": {
-              "type": "number"
-            },
-            "minute": {
-              "type": "number"
-            },
-            "convention": {
-              "const": "civil-local",
-              "type": "string"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "hour",
-            "minute",
-            "convention"
-          ]
-        },
-        "object11": {
-          "type": "object",
-          "properties": {
-            "province": {
-              "type": "string"
-            },
-            "localTimeCorrectionMinutes": {
-              "type": "number"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "province",
-            "localTimeCorrectionMinutes"
-          ]
-        },
-        "object12": {
+        "object16": {
           "type": "object",
           "properties": {
             "method": {
-              "const": "sunrise",
+              "const": "weekday-0600",
               "type": "string"
             },
-            "timePrecision": {
-              "anyOf": [
-                {
-                  "const": "continuous",
-                  "type": "string"
-                },
-                {
-                  "const": "minute",
-                  "type": "string"
-                }
-              ],
-              "description": "Minute-table reference rounds sunrise to the nearest minute; omitted uses continuous time."
-            },
-            "latitude": {
+            "boriwan": {
               "type": "number"
             },
-            "longitude": {
-              "type": "number",
-              "description": "Degrees east of Greenwich; west is negative."
+            "ayu": {
+              "type": "number"
             },
-            "utcOffsetHours": {
-              "type": "number",
-              "description": "Civil hours east of UTC, including any daylight-saving offset. Required."
+            "det": {
+              "type": "number"
+            },
+            "si": {
+              "type": "number"
+            },
+            "mula": {
+              "type": "number"
+            },
+            "utsaha": {
+              "type": "number"
+            },
+            "montri": {
+              "type": "number"
+            },
+            "kalakini": {
+              "type": "number"
+            },
+            "center": {
+              "type": "number"
             }
           },
           "additionalProperties": false,
           "required": [
             "method",
-            "latitude",
-            "longitude",
-            "utcOffsetHours"
+            "boriwan",
+            "ayu",
+            "det",
+            "si",
+            "mula",
+            "utsaha",
+            "montri",
+            "kalakini",
+            "center"
           ]
         },
-        "object13": {
+        "object17": {
           "type": "object",
           "properties": {
-            "civilUtcOffsetSeconds": {
-              "type": "number",
-              "description": "Civil UTC offset on the input date, including DST, in whole seconds."
+            "sign": {
+              "type": "number"
             },
-            "referenceUtcOffsetSeconds": {
-              "type": "number",
-              "description": "UTC offset of the calculation's declared reference clock, in whole seconds."
+            "ruler": {
+              "type": "number"
+            },
+            "conjunction": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "opposition": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "trines": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              ],
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "squares": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              ],
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "sextiles": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              ],
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "numberCandidates": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "description": "เลขดาวจากความสัมพันธ์ราศี ตัดเลขซ้ำและให้ผลเดิมเมื่อ input เดิม"
             }
           },
           "additionalProperties": false,
           "required": [
+            "sign",
+            "ruler",
+            "conjunction",
+            "opposition",
+            "trines",
+            "squares",
+            "sextiles",
+            "numberCandidates"
+          ]
+        },
+        "object18": {
+          "type": "object",
+          "properties": {
+            "meanSunArcMinutes": {
+              "type": "number"
+            },
+            "meanRaviArcMinutes": {
+              "type": "number"
+            },
+            "planetaryEpochArcMinutes": {
+              "type": "number"
+            },
+            "solarCycleUnits": {
+              "type": "number"
+            },
+            "planetaryTime": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object19"
+                }
+              ],
+              "description": "Present only for an explicitly selected planetary clock; calendar/timing stay civil."
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "meanSunArcMinutes",
+            "meanRaviArcMinutes",
+            "planetaryEpochArcMinutes",
+            "solarCycleUnits"
+          ]
+        },
+        "object19": {
+          "type": "object",
+          "properties": {
+            "horakhun": {
+              "type": "number"
+            },
+            "secondOfDay": {
+              "type": "number"
+            },
+            "dayOffset": {
+              "type": "number"
+            },
+            "civilUtcOffsetSeconds": {
+              "type": "number"
+            },
+            "referenceUtcOffsetSeconds": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "horakhun",
+            "secondOfDay",
+            "dayOffset",
             "civilUtcOffsetSeconds",
             "referenceUtcOffsetSeconds"
           ]
         },
-        "object14": {
+        "object20": {
           "type": "object",
           "properties": {
             "sun": {
-              "$ref": "#/$defs/object15"
+              "$ref": "#/$defs/object21"
             },
             "moon": {
-              "$ref": "#/$defs/object15"
+              "$ref": "#/$defs/object21"
             },
             "mars": {
-              "$ref": "#/$defs/object15"
+              "$ref": "#/$defs/object21"
             },
             "mercury": {
-              "$ref": "#/$defs/object15"
+              "$ref": "#/$defs/object21"
             },
             "jupiter": {
-              "$ref": "#/$defs/object15"
+              "$ref": "#/$defs/object21"
             },
             "venus": {
-              "$ref": "#/$defs/object15"
+              "$ref": "#/$defs/object21"
             },
             "saturn": {
-              "$ref": "#/$defs/object15"
+              "$ref": "#/$defs/object21"
             },
             "rahu": {
-              "$ref": "#/$defs/object15"
+              "$ref": "#/$defs/object21"
             },
             "ketu": {
-              "$ref": "#/$defs/object15"
+              "$ref": "#/$defs/object21"
             },
             "uranus": {
-              "$ref": "#/$defs/object15"
+              "$ref": "#/$defs/object21"
             },
             "ascendant": {
-              "$ref": "#/$defs/object15"
+              "$ref": "#/$defs/object21"
             }
           },
           "additionalProperties": false,
@@ -3303,7 +3882,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "ascendant"
           ]
         },
-        "object15": {
+        "object21": {
           "type": "object",
           "properties": {
             "key": {
@@ -3506,7 +4085,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "dignities"
           ]
         },
-        "object16": {
+        "object22": {
           "type": "object",
           "properties": {
             "number": {
@@ -3522,7 +4101,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
               "type": "string"
             },
             "ruler": {
-              "$ref": "#/$defs/object17"
+              "$ref": "#/$defs/object23"
             },
             "occupants": {
               "type": "array",
@@ -3586,7 +4165,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "containsAscendant"
           ]
         },
-        "object17": {
+        "object23": {
           "type": "object",
           "properties": {
             "key": {
@@ -3651,17 +4230,17 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "house"
           ]
         },
-        "object18": {
+        "object24": {
           "type": "object",
           "properties": {
             "rasi": {
-              "$ref": "#/$defs/object19"
+              "$ref": "#/$defs/object25"
             },
             "navamsa": {
-              "$ref": "#/$defs/object19"
+              "$ref": "#/$defs/object25"
             },
             "drekkana": {
-              "$ref": "#/$defs/object19"
+              "$ref": "#/$defs/object25"
             }
           },
           "additionalProperties": false,
@@ -3671,14 +4250,14 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "drekkana"
           ]
         },
-        "object19": {
+        "object25": {
           "type": "object",
           "properties": {
             "positions": {
-              "$ref": "#/$defs/object20"
+              "$ref": "#/$defs/object26"
             },
             "channels": {
-              "$ref": "#/$defs/object21"
+              "$ref": "#/$defs/object27"
             }
           },
           "additionalProperties": false,
@@ -3687,7 +4266,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "channels"
           ]
         },
-        "object20": {
+        "object26": {
           "type": "object",
           "properties": {
             "ascendant": {
@@ -3739,7 +4318,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "uranus"
           ]
         },
-        "object21": {
+        "object27": {
           "type": "object",
           "properties": {
             "arabic": {
@@ -3761,7 +4340,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "thai"
           ]
         },
-        "object22": {
+        "object28": {
           "type": "object",
           "properties": {
             "ascendantRuler": {
@@ -3809,7 +4388,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
               ]
             },
             "tanuseth": {
-              "$ref": "#/$defs/object23"
+              "$ref": "#/$defs/object29"
             },
             "ascendantOccupants": {
               "type": "array",
@@ -3867,7 +4446,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "ascendantOccupants"
           ]
         },
-        "object23": {
+        "object29": {
           "type": "object",
           "properties": {
             "key": {
@@ -3921,7 +4500,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
               "type": "string"
             },
             "calculation": {
-              "$ref": "#/$defs/object24"
+              "$ref": "#/$defs/object30"
             }
           },
           "additionalProperties": false,
@@ -3932,7 +4511,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "calculation"
           ]
         },
-        "object24": {
+        "object30": {
           "type": "object",
           "properties": {
             "firstLord": {
@@ -3964,284 +4543,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "secondDistance"
           ]
         },
-        "object25": {
-          "type": "object",
-          "properties": {
-            "julianDayNumber": {
-              "type": "number"
-            },
-            "horakhun": {
-              "type": "number"
-            },
-            "chulaSakarat": {
-              "type": "number"
-            },
-            "civilWeekday": {
-              "type": "number",
-              "description": "1 = Sunday, ..., 7 = Saturday."
-            },
-            "astrologicalWeekday": {
-              "type": "number",
-              "description": "ใช้เลขวันแบบเดียวกัน แต่เปลี่ยนวันทางโหราศาสตร์ที่ 06:00"
-            },
-            "lunarPhase": {
-              "anyOf": [
-                {
-                  "const": "waxing",
-                  "type": "string"
-                },
-                {
-                  "const": "waning",
-                  "type": "string"
-                }
-              ],
-              "description": "Geometric lunar phase; distinct from the Thai calendar's intercalation tables."
-            },
-            "lunarDay": {
-              "type": "number"
-            },
-            "elongationDegrees": {
-              "type": "number"
-            },
-            "thaiLunarDate": {
-              "anyOf": [
-                {
-                  "type": "null"
-                },
-                {
-                  "$ref": "#/$defs/object26"
-                }
-              ],
-              "description": "คืน null เมื่ออยู่นอกช่วงปฏิทินที่รองรับ: พ.ศ. 2125..2619"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "julianDayNumber",
-            "horakhun",
-            "chulaSakarat",
-            "civilWeekday",
-            "astrologicalWeekday",
-            "lunarPhase",
-            "lunarDay",
-            "elongationDegrees",
-            "thaiLunarDate"
-          ]
-        },
-        "object26": {
-          "type": "object",
-          "properties": {
-            "dayBoundary": {
-              "const": "civil-midnight",
-              "type": "string",
-              "description": "วันจันทรคติเปลี่ยนที่เที่ยงคืน แยกจากเฟสที่คำนวณด้วยมุมจันทร์–อาทิตย์"
-            },
-            "yearType": {
-              "anyOf": [
-                {
-                  "const": "ordinary",
-                  "type": "string"
-                },
-                {
-                  "const": "intercalary-month",
-                  "type": "string"
-                },
-                {
-                  "const": "intercalary-day",
-                  "type": "string"
-                }
-              ]
-            },
-            "phase": {
-              "anyOf": [
-                {
-                  "const": "waxing",
-                  "type": "string"
-                },
-                {
-                  "const": "waning",
-                  "type": "string"
-                }
-              ]
-            },
-            "day": {
-              "type": "number"
-            },
-            "month": {
-              "type": "number"
-            },
-            "secondEighthMonth": {
-              "type": "boolean"
-            },
-            "label": {
-              "type": "string"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "dayBoundary",
-            "yearType",
-            "phase",
-            "day",
-            "month",
-            "secondEighthMonth",
-            "label"
-          ]
-        },
-        "object27": {
-          "type": "object",
-          "properties": {
-            "method": {
-              "const": "weekday-0600",
-              "type": "string"
-            },
-            "boriwan": {
-              "type": "number"
-            },
-            "ayu": {
-              "type": "number"
-            },
-            "det": {
-              "type": "number"
-            },
-            "si": {
-              "type": "number"
-            },
-            "mula": {
-              "type": "number"
-            },
-            "utsaha": {
-              "type": "number"
-            },
-            "montri": {
-              "type": "number"
-            },
-            "kalakini": {
-              "type": "number"
-            },
-            "center": {
-              "type": "number"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "method",
-            "boriwan",
-            "ayu",
-            "det",
-            "si",
-            "mula",
-            "utsaha",
-            "montri",
-            "kalakini",
-            "center"
-          ]
-        },
-        "object28": {
-          "type": "object",
-          "properties": {
-            "sign": {
-              "type": "number"
-            },
-            "ruler": {
-              "type": "number"
-            },
-            "conjunction": {
-              "type": "array",
-              "items": {
-                "type": "number"
-              }
-            },
-            "opposition": {
-              "type": "array",
-              "items": {
-                "type": "number"
-              }
-            },
-            "trines": {
-              "type": "array",
-              "prefixItems": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  }
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  }
-                }
-              ],
-              "minItems": 2,
-              "maxItems": 2
-            },
-            "squares": {
-              "type": "array",
-              "prefixItems": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  }
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  }
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  }
-                }
-              ],
-              "minItems": 3,
-              "maxItems": 3
-            },
-            "sextiles": {
-              "type": "array",
-              "prefixItems": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  }
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  }
-                }
-              ],
-              "minItems": 2,
-              "maxItems": 2
-            },
-            "numberCandidates": {
-              "type": "array",
-              "items": {
-                "type": "number"
-              },
-              "description": "เลขดาวจากความสัมพันธ์ราศี ตัดเลขซ้ำและให้ผลเดิมเมื่อ input เดิม"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "sign",
-            "ruler",
-            "conjunction",
-            "opposition",
-            "trines",
-            "squares",
-            "sextiles",
-            "numberCandidates"
-          ]
-        },
-        "object29": {
+        "object31": {
           "type": "object",
           "properties": {
             "method": {
@@ -4263,10 +4565,10 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "sunrise": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/object30"
+                  "$ref": "#/$defs/object32"
                 },
                 {
-                  "$ref": "#/$defs/object31"
+                  "$ref": "#/$defs/object33"
                 }
               ],
               "description": "Present only when coordinate sunrise is explicitly selected."
@@ -4280,7 +4582,7 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "signStartTimesMinutes"
           ]
         },
-        "object30": {
+        "object32": {
           "type": "object",
           "properties": {
             "model": {
@@ -4318,70 +4620,10 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "altitudeResidualDegrees"
           ]
         },
-        "object31": {
+        "object33": {
           "type": "object",
           "properties": {},
           "additionalProperties": false
-        },
-        "object32": {
-          "type": "object",
-          "properties": {
-            "meanSunArcMinutes": {
-              "type": "number"
-            },
-            "meanRaviArcMinutes": {
-              "type": "number"
-            },
-            "planetaryEpochArcMinutes": {
-              "type": "number"
-            },
-            "solarCycleUnits": {
-              "type": "number"
-            },
-            "planetaryTime": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/object33"
-                }
-              ],
-              "description": "Present only for an explicitly selected planetary clock; calendar/timing stay civil."
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "meanSunArcMinutes",
-            "meanRaviArcMinutes",
-            "planetaryEpochArcMinutes",
-            "solarCycleUnits"
-          ]
-        },
-        "object33": {
-          "type": "object",
-          "properties": {
-            "horakhun": {
-              "type": "number"
-            },
-            "secondOfDay": {
-              "type": "number"
-            },
-            "dayOffset": {
-              "type": "number"
-            },
-            "civilUtcOffsetSeconds": {
-              "type": "number"
-            },
-            "referenceUtcOffsetSeconds": {
-              "type": "number"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "horakhun",
-            "secondOfDay",
-            "dayOffset",
-            "civilUtcOffsetSeconds",
-            "referenceUtcOffsetSeconds"
-          ]
         },
         "object34": {
           "type": "object",

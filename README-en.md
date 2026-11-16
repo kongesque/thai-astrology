@@ -165,6 +165,8 @@ else console.log(result.error.code, result.error.issues)
 
 Tool definitions include JSON Schema 2020-12 input/output contracts. The dispatcher returns a versioned JSON envelope and rejects unknown argument fields. Applications supply their own AI provider or HTTP integration. See the [tool API contract](docs/api-en.md#agent-tools-and-json-schemas).
 
+Calculation tools also accept `sections: ["points", "calendar"]` to return selected data while retaining the calculation profile and normalized input. Omit `sections` for full results. See [selected result sections](docs/api-en.md#selected-result-sections).
+
 The same package also installs a JSON CLI for terminal agents and other languages:
 
 ```bash

@@ -66,3 +66,28 @@ test('MCP command rejects arguments without writing non-protocol data to stdout'
   assert.equal(result.stdout, '')
   assert.match(result.stderr, /^Usage:/)
 })
+
+test('MCP workflow resolves a birthplace, validates input and returns selected factors', { timeout: 20000 }, async () => {
+  await withClient(entry, async client => {
+    await client.listTools()
+    const found = await client.callTool({ name: 'search_locations', arguments: { countryCode: 'TH', query: 'Chiang Mai', limit: 1 } })
+    const province = found.structuredContent.data.items[0].provinceCode
+    assert.equal(province, 'TH-50')
+    const natal = { ...input, location: { province } }
+    const validation = await client.callTool({ name: 'validate_horoscope_input', arguments: { input: natal } })
+    assert.equal(validation.structuredContent.data.valid, true)
+    const chart = await client.callTool({ name: 'calculate_horoscope', arguments: { input: natal, sections: ['points', 'calendar'] } })
+    assert.equal(chart.isError, false)
+    const data = chart.structuredContent.data
+    assert.deepEqual(Object.keys(data), ['schemaVersion', 'profile', 'input', 'points', 'calendar'])
+    assert.equal(data.points.ascendant.signName, 'กันย์')
+    assert.equal(data.points.sun.signName, 'สิงห์')
+    assert.equal(data.calendar.thaiLunarDate.label, 'ข๑๓ด๑๐')
+    const transits = await client.callTool({ name: 'calculate_transits', arguments: { natal, transit: { ...natal, date: { ...natal.date, day: 16 } }, sections: [] } })
+    assert.equal(transits.isError, false)
+    assert.deepEqual(Object.keys(transits.structuredContent.data.natal), ['schemaVersion', 'profile', 'input'])
+    assert.equal(transits.structuredContent.data.comparison.sun.natalHouse, 12)
+    assert.equal(transits.structuredContent.data.natal.profile.referenceMode, 'auto')
+    assert.equal(transits.structuredContent.data.transit.profile.referenceMode, 'auto')
+  })
+})

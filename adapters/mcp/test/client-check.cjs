@@ -35,6 +35,8 @@ async function checkTools(client) {
     ['validate_horoscope_input', { input }],
     ['calculate_horoscope', { input }],
     ['calculate_transits', { natal: input, transit: { ...input, date: { ...input.date, day: 16 } } }],
+    ['calculate_horoscope', { input, sections: ['points', 'calendar'] }],
+    ['calculate_transits', { natal: input, transit: input, sections: [] }],
   ]
   await Promise.all(calls.map(async ([name, args]) => {
     const result = await client.callTool({ name, arguments: args })

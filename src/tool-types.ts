@@ -1,18 +1,29 @@
 import type { HoroscopeInput, HoroscopeInputIssue, HoroscopeInputValidation, HoroscopeTransitResult, ThaiHoroscope } from "./horoscope"
 import type { AstrologyLocationSearch, AstrologyLocationSearchResult } from "./engine/astro/location-search"
 
+export type HoroscopeSection = "points" | "houses" | "charts" | "factors" | "calendar" | "taksa" | "relationships" | "timing" | "diagnostics"
+
+/** Selected responses always retain the calculation profile and normalized civil inputs. */
+export type SelectedHoroscope = Pick<ThaiHoroscope, "schemaVersion" | "profile" | "input"> & Partial<Pick<ThaiHoroscope, HoroscopeSection>>
+
+export interface SelectedHoroscopeTransits {
+  natal: SelectedHoroscope
+  transit: SelectedHoroscope
+  comparison: HoroscopeTransitResult["comparison"]
+}
+
 export interface AstrologyToolInputs {
   search_locations: AstrologyLocationSearch
   validate_horoscope_input: { input: unknown }
-  calculate_horoscope: { input: HoroscopeInput }
-  calculate_transits: { natal: HoroscopeInput; transit: HoroscopeInput }
+  calculate_horoscope: { input: HoroscopeInput; sections?: HoroscopeSection[] }
+  calculate_transits: { natal: HoroscopeInput; transit: HoroscopeInput; sections?: HoroscopeSection[] }
 }
 
 export interface AstrologyToolOutputs {
   search_locations: AstrologyLocationSearchResult
   validate_horoscope_input: HoroscopeInputValidation
-  calculate_horoscope: ThaiHoroscope
-  calculate_transits: HoroscopeTransitResult
+  calculate_horoscope: SelectedHoroscope
+  calculate_transits: SelectedHoroscopeTransits
 }
 
 export type AstrologyToolName = keyof AstrologyToolInputs

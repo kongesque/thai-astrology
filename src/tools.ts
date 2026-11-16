@@ -1,9 +1,10 @@
 import { calculateHoroscopeTransits, calculateThaiHoroscope, HoroscopeInputError, validateHoroscopeInput } from "./horoscope"
+import type { HoroscopeTransitResult, ThaiHoroscope } from "./horoscope"
 import { searchThaiAstrologyLocations } from "./engine/astro/location-search"
 import { getThaiAstrologySchemas } from "./schemas"
 import type { AstrologyJsonSchema, AstrologyToolSchemas } from "./schemas"
-import type { AstrologyToolError, AstrologyToolInputs, AstrologyToolName, AstrologyToolOutputs, AstrologyToolResult } from "./tool-types"
-export type { AstrologyToolError, AstrologyToolInputs, AstrologyToolName, AstrologyToolOutputs, AstrologyToolResult } from "./tool-types"
+import type { AstrologyToolError, AstrologyToolInputs, AstrologyToolName, AstrologyToolOutputs, AstrologyToolResult, HoroscopeSection, SelectedHoroscope } from "./tool-types"
+export type { AstrologyToolError, AstrologyToolInputs, AstrologyToolName, AstrologyToolOutputs, AstrologyToolResult, HoroscopeSection, SelectedHoroscope, SelectedHoroscopeTransits } from "./tool-types"
 
 export interface AstrologyToolDefinition extends AstrologyToolSchemas {
   name: AstrologyToolName
@@ -13,8 +14,8 @@ export interface AstrologyToolDefinition extends AstrologyToolSchemas {
 const descriptions: Record<AstrologyToolName, string> = {
   search_locations: "Search the offline birthplace catalog within an ISO countryCode. Returns location IDs, coordinates and IANA zones, with total and pagination. Query accepts English or Thai labels. A location ID is not a horoscope province; resolve foreign coordinates and dated UTC offsets using the library's location helpers.",
   validate_horoscope_input: "Validate an untrusted horoscope input and inspect normalized references or field issues before calculation. Supply a Gregorian civil date, explicit BE/CE era and local hour/minute. Validation success does not guarantee sunrise exists at the selected coordinates.",
-  calculate_horoscope: "Calculate a Suriyayatra horoscope from a Gregorian civil date, BE/CE era and local time. Thai province codes such as TH-50 select dated civil offsets and sunrise automatically in CE 1900–2100. Foreign coordinates require explicit sunrise and clock settings. Returns longitudes in degrees/arcminutes, zero-based signs, houses 1–12, Thai labels and resolved references. Do not guess missing birth times.",
-  calculate_transits: "Compare explicit natal and transit civil inputs using Suriyayatra. Each input follows calculate_horoscope conventions. Returns both full horoscopes, natal houses occupied by transiting points and signed longitude differences in degrees. Supply the transit date/time explicitly; no current clock is used.",
+  calculate_horoscope: "Calculate a Suriyayatra horoscope from a Gregorian civil date, BE/CE era and local time. Thai province codes such as TH-50 select dated civil offsets and sunrise automatically in CE 1900–2100. Foreign coordinates require explicit sunrise and clock settings. Returns longitudes in degrees/arcminutes, zero-based signs, houses 1–12, Thai labels and resolved references. Do not guess missing birth times. Optional sections selects result sections; profile, normalized input and schemaVersion are always retained. Omit sections for the full chart; use [] for metadata only.",
+  calculate_transits: "Compare explicit natal and transit civil inputs using Suriyayatra. Each input follows calculate_horoscope conventions. Returns both full horoscopes, natal houses occupied by transiting points and signed longitude differences in degrees. Supply the transit date/time explicitly; no current clock is used. Optional sections selects the same sections in natal and transit charts; metadata and comparison are always retained. Omit sections for full charts.",
 }
 const schemas = getThaiAstrologySchemas()
 
@@ -69,6 +70,16 @@ const failure = (code: AstrologyToolError["code"], message: string, issues?: Ast
   schemaVersion: "1.0", ok: false, error: { code, message, ...(issues ? { issues } : {}) },
 })
 
+function selectSections(chart: ThaiHoroscope, sections?: HoroscopeSection[]): SelectedHoroscope {
+  if (sections === undefined) return chart
+  const selected: SelectedHoroscope = { schemaVersion: chart.schemaVersion, profile: chart.profile, input: chart.input }
+  for (const section of sections) Object.assign(selected, { [section]: chart[section] })
+  return selected
+}
+
+// Known calls without a selection preserve the full-result TypeScript contract.
+export function executeThaiAstrologyTool(name: "calculate_horoscope", args: { input?: unknown; sections?: undefined }): AstrologyToolResult<ThaiHoroscope>
+export function executeThaiAstrologyTool(name: "calculate_transits", args: { natal?: unknown; transit?: unknown; sections?: undefined }): AstrologyToolResult<HoroscopeTransitResult>
 export function executeThaiAstrologyTool<K extends AstrologyToolName>(name: K, args: unknown): AstrologyToolResult<AstrologyToolOutputs[K]>
 export function executeThaiAstrologyTool(name: string, args: unknown): AstrologyToolResult
 export function executeThaiAstrologyTool(name: string, args: unknown): AstrologyToolResult {
@@ -82,16 +93,21 @@ export function executeThaiAstrologyTool(name: string, args: unknown): Astrology
     switch (key) {
       case "search_locations": data = searchThaiAstrologyLocations(args as AstrologyToolInputs["search_locations"]); break
       case "validate_horoscope_input": data = validateHoroscopeInput((args as AstrologyToolInputs["validate_horoscope_input"]).input); break
-      case "calculate_horoscope": data = calculateThaiHoroscope((args as AstrologyToolInputs["calculate_horoscope"]).input); break
+      case "calculate_horoscope": {
+        const { input, sections } = args as AstrologyToolInputs["calculate_horoscope"]
+        data = selectSections(calculateThaiHoroscope(input), sections)
+        break
+      }
       case "calculate_transits": {
-        const { natal, transit } = args as AstrologyToolInputs["calculate_transits"]
+        const { natal, transit, sections } = args as AstrologyToolInputs["calculate_transits"]
         // Prefix both inputs' issues so a caller can repair the correct civil fields.
         const issues = ([ ["natal", natal], ["transit", transit] ] as const).flatMap(([prefix, input]) => {
           const validation = validateHoroscopeInput(input)
           return validation.valid ? [] : validation.issues.map(item => ({ ...item, field: `${prefix}.${item.field}` }))
         })
         if (issues.length) return failure("INVALID_INPUT", "Invalid natal or transit input", issues)
-        data = calculateHoroscopeTransits(natal, transit)
+        const result = calculateHoroscopeTransits(natal, transit)
+        data = sections === undefined ? result : { natal: selectSections(result.natal, sections), transit: selectSections(result.transit, sections), comparison: result.comparison }
         break
       }
     }

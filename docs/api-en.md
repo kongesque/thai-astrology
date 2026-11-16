@@ -501,8 +501,8 @@ Import `getThaiAstrologyTools()` and `executeThaiAstrologyTool()` from `thai-ast
 | --- | --- | --- |
 | `search_locations` | `AstrologyLocationSearch`: countryCode, optional query/limit/offset | `AstrologyLocationSearchResult` |
 | `validate_horoscope_input` | `{ input: unknown }` | `HoroscopeInputValidation` |
-| `calculate_horoscope` | `{ input: HoroscopeInput }` | Full `ThaiHoroscope` |
-| `calculate_transits` | `{ natal: HoroscopeInput, transit: HoroscopeInput }` | Full `HoroscopeTransitResult` |
+| `calculate_horoscope` | `{ input: HoroscopeInput, sections?: HoroscopeSection[] }` | Full `ThaiHoroscope` by default, or selected sections |
+| `calculate_transits` | `{ natal: HoroscopeInput, transit: HoroscopeInput, sections?: HoroscopeSection[] }` | Full `HoroscopeTransitResult` by default, or selected sections |
 
 ```ts
 import { executeThaiAstrologyTool, getThaiAstrologyTools } from "thai-astrology/tools"
@@ -644,3 +644,38 @@ Discovery returns the tool definitions, JSON input/output schemas and read-only 
 The pinned SDK negotiates initialization-based MCP revisions. Tests cover `2025-06-18` and `2025-11-25` using the official SDK client, including output-schema validation. Clients must support that negotiation model. The adapter advertises only tools; HTTP transport, resources, prompts, model sampling and background tasks are outside its capabilities. See the official [lifecycle](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle) and [tool contract](https://modelcontextprotocol.io/specification/2025-11-25/server/tools).
 
 See the [adapter README](../adapters/mcp/README.md) for setup and packaging details. Core library and JSON CLI usage remain available independently.
+
+## Selected result sections
+
+The calculation tools accept an optional `sections` array alongside the existing arguments. It applies equally to direct tool dispatch, JSON CLI input and MCP calls. Omit it to preserve the existing full result; the core calculation APIs always return their full results.
+
+```ts
+import { executeThaiAstrologyTool } from "thai-astrology/tools"
+
+const result = executeThaiAstrologyTool("calculate_horoscope", {
+  input: {
+    date: { year: 2024, era: "CE", month: 9, day: 15 },
+    time: { hour: 8, minute: 30 },
+    location: { province: "TH-50" },
+  },
+  sections: ["points", "calendar"],
+})
+if (result.ok) console.log(result.data.points?.ascendant.signName)
+```
+
+Allowed names are `points`, `houses`, `charts`, `factors`, `calendar`, `taksa`, `relationships`, `timing` and `diagnostics`. The chart's `schemaVersion`, `profile` and normalized `input` are always returned, including resolved references and fallback reasons. `sections: []` returns only that metadata; repeated names are ignored. Unknown names and non-array selections produce `INVALID_ARGUMENTS`. Selected values are copied from the same full calculation, without rounding or recalculation, so selection reduces response size rather than calculation cost.
+
+For `calculate_transits`, the same selection applies independently to both `natal` and `transit` charts. The complete `comparison` is always retained. Full domain validation and calculation still run, including when no data sections are selected. Failures preserve the usual error envelope.
+
+TypeScript calls with a known argument object and no selection retain the full-result type. Selected calls, and unknown arguments that could contain a selection, return `SelectedHoroscope` or `SelectedHoroscopeTransits`, whose selectable fields are optional. These types and `HoroscopeSection` are exported from `thai-astrology/tools`. The output schemas accept both full and selected envelopes; they require the always-present metadata and describe optional selectable sections.
+
+## Connect with Codex
+
+After building the core and installing the adapter dependencies, register its stdio command with Codex. Replace the executable and script paths with absolute paths on your computer:
+
+```bash
+codex mcp add thai_astrology -- /absolute/path/to/node /absolute/path/to/thai-astrology/adapters/mcp/bin/thai-astrology-mcp.cjs
+codex mcp get thai_astrology
+```
+
+Use Node.js 20+ for that command. Start a new Codex session to load the registered server. Ask it to search for a birthplace, validate an explicit civil input, then calculate the requested sections and explain the returned factors. The client needs a supported signed-in model independently of the MCP adapter. The library and adapter do not select or configure an AI model. See the [official Codex MCP documentation](https://developers.openai.com/codex/mcp).

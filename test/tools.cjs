@@ -48,7 +48,7 @@ module.exports = [
       assert.ok(conforms(restored, schemas[name].inputSchema), name)
     }
     const result = execute('calculate_horoscope', { input })
-    delete result.data.points
+    delete result.data.profile
     assert.equal(conforms(result, schemas.calculate_horoscope.outputSchema), false)
   }],
   ['Tool boundaries reject malformed arguments and unknown names without coercion', () => {
@@ -84,5 +84,44 @@ module.exports = [
     assert.equal(getThaiAstrologyTools()[0].inputSchema.properties.countryCode.type, 'string')
     getThaiAstrologySchemas().calculate_horoscope.inputSchema.$defs.object1.required.length = 0
     assert.equal(execute('calculate_horoscope', {}).error.code, 'INVALID_ARGUMENTS')
+  }],
+  ['Selected horoscope sections retain exact values, references and fallbacks', () => {
+    const schemas = getThaiAstrologySchemas()
+    const full = api.calculateThaiHoroscope(input)
+    const sections = ['points', 'houses', 'charts', 'factors', 'calendar', 'taksa', 'relationships', 'timing', 'diagnostics']
+    for (const section of sections) {
+      const result = execute('calculate_horoscope', { input, sections: [section] })
+      assert.deepEqual(result.data, { schemaVersion: full.schemaVersion, profile: full.profile, input: full.input, [section]: full[section] })
+      assert.ok(conforms(result, schemas.calculate_horoscope.outputSchema))
+    }
+    const { location, ...withoutProvince } = input
+    const metadata = execute('calculate_horoscope', { input: withoutProvince, sections: [] }).data
+    assert.deepEqual(Object.keys(metadata), ['schemaVersion', 'profile', 'input'])
+    assert.equal(metadata.profile.referenceFallback, 'missing-province')
+    assert.deepEqual(execute('calculate_horoscope', { input, sections: ['points', 'points'] }).data,
+      execute('calculate_horoscope', { input, sections: ['points'] }).data)
+    assert.deepEqual(execute('calculate_horoscope', { input }).data, full)
+    assert.deepEqual(api.calculateThaiHoroscope(input), full)
+  }],
+  ['Selected transit sections preserve comparison and independent chart references', () => {
+    const transitInput = { ...input, date: { ...input.date, day: 16 }, referenceMode: 'traditional' }
+    const full = api.calculateHoroscopeTransits(input, transitInput)
+    const result = execute('calculate_transits', { natal: input, transit: transitInput, sections: ['calendar'] })
+    assert.deepEqual(result.data.comparison, full.comparison)
+    for (const key of ['natal', 'transit']) {
+      assert.deepEqual(result.data[key], { schemaVersion: full[key].schemaVersion, profile: full[key].profile, input: full[key].input, calendar: full[key].calendar })
+    }
+    assert.ok(conforms(result, getThaiAstrologySchemas().calculate_transits.outputSchema))
+    const minimal = execute('calculate_transits', { natal: input, transit: input, sections: [] })
+    assert.deepEqual(Object.keys(minimal.data.natal), ['schemaVersion', 'profile', 'input'])
+    assert.equal(minimal.data.comparison.sun.longitudeDifferenceDegrees, 0)
+  }],
+  ['Section selection rejects unknown names and keeps invalid charts as failures', () => {
+    for (const sections of [null, 'points', ['point'], [1], ['profile'], ['__proto__']]) {
+      assert.equal(execute('calculate_horoscope', { input, sections }).error.code, 'INVALID_ARGUMENTS')
+      assert.equal(execute('calculate_transits', { natal: input, transit: input, sections }).error.code, 'INVALID_ARGUMENTS')
+    }
+    const invalid = { ...input, time: { hour: 25, minute: 0 } }
+    assert.equal(execute('calculate_horoscope', { input: invalid, sections: [] }).error.code, 'INVALID_INPUT')
   }],
 ]

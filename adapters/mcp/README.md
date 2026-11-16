@@ -40,9 +40,11 @@ For applications using an `mcpServers` configuration, replace both absolute path
 
 Other clients can use the same command and arguments in their own configuration format. The client launches the process and manages its lifecycle; the adapter accepts no command-line options. It uses newline-delimited JSON-RPC on stdin/stdout, with diagnostics on stderr. It does not open an HTTP port or contact an AI provider. Its tools are read-only and calculate in the local process.
 
+For Codex, register the command with `codex mcp add thai_astrology -- /absolute/path/to/node /absolute/path/to/thai-astrology/adapters/mcp/bin/thai-astrology-mcp.cjs`, then start a new session. See [Codex setup](../../docs/api-en.md#connect-with-codex).
+
 ## Results and compatibility
 
-Tool inputs match `getThaiAstrologyTools()`. Each call returns the complete `AstrologyToolResult` envelope in both `structuredContent` and a JSON text block. The advertised output schema describes that envelope. Tool validation/calculation failures set `isError: true`; an unknown tool is an MCP invalid-params error. Negative validation (`data.valid: false`) is a successful tool execution and leaves `isError: false`.
+Tool inputs match `getThaiAstrologyTools()`. Calculation calls accept optional `sections` to return selected data; profile, normalized input and schemaVersion are always retained, and transit comparisons remain complete. Omit the selection for full results. See [selected sections](../../docs/api-en.md#selected-result-sections). Each call returns the complete `AstrologyToolResult` envelope in both `structuredContent` and a JSON text block. The advertised output schema describes that envelope. Tool validation/calculation failures set `isError: true`; an unknown tool is an MCP invalid-params error. Negative validation (`data.valid: false`) is a successful tool execution and leaves `isError: false`.
 
 Dates remain Gregorian civil dates with an explicit BE/CE era, and times are local civil clocks. No birth time, transit date or timezone choice is guessed. Results retain calculation profiles, normalized inputs, fallback reasons and Thai labels. Location search returns coordinates and IANA zones; a foreign chart still needs explicit reference settings as described in the core API guide.
 
