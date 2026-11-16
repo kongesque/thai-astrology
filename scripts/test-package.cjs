@@ -54,6 +54,7 @@ try {
   copyFileSync(join(root, 'test/sunrise.cjs'), join(consumer, 'test/sunrise.cjs'))
   copyFileSync(join(root, 'test/locations.cjs'), join(consumer, 'test/locations.cjs'))
   copyFileSync(join(root, 'test/location-search.cjs'), join(consumer, 'test/location-search.cjs'))
+  copyFileSync(join(root, 'test/birthplace.cjs'), join(consumer, 'test/birthplace.cjs'))
   copyFileSync(join(root, 'test/fixtures/sunrise-events.json'), join(consumer, 'test/fixtures/sunrise-events.json'))
   copyFileSync(join(root, 'test/fixtures/civil-time-offsets.json'), join(consumer, 'test/fixtures/civil-time-offsets.json'))
   copyFileSync(join(root, 'test/fixtures/release-0.1.7.json'), join(consumer, 'test/fixtures/release-0.1.7.json'))
@@ -64,10 +65,13 @@ try {
 
   writeFileSync(join(consumer, 'esm.mjs'), `
 import assert from 'node:assert/strict'
+import { resolveHoroscopeBirthplace, BirthplaceResolutionError } from 'thai-astrology'
+assert.equal(typeof resolveHoroscopeBirthplace, 'function')
+assert.equal(typeof BirthplaceResolutionError, 'function')
 import { executeThaiAstrologyTool, getThaiAstrologyTools } from 'thai-astrology/tools'
 import { getThaiAstrologySchemas } from 'thai-astrology/schemas'
 assert.equal(executeThaiAstrologyTool('validate_horoscope_input', { input: null }).data.valid, false)
-assert.equal(getThaiAstrologyTools().length, 4)
+assert.equal(getThaiAstrologyTools().length, 5)
 assert.ok(getThaiAstrologySchemas().calculate_horoscope.outputSchema)
 import { generateThaiAstrologyChart, formatChannelOutputs, calculateSun, calculateDetailedPositions, calculateTransits, describeLongitude, calculateThaiHoroscope, calculateHoroscopeTransits, validateHoroscopeInput, getThaiAstrologyProvinces, HoroscopeInputError, calculateSunrise, createSunriseReference, getThaiAstrologyProvinceLocations, getThaiAstrologyCountries, searchThaiAstrologyLocations, createSunriseReferenceForLocation, resolveCivilTimeOffset } from 'thai-astrology'
 const chart = generateThaiAstrologyChart({ day: 15, monthTh: 9, yearBe: 2566, hour: 14, minute: 45, province: 'กรุงเทพมหานคร' })
@@ -125,6 +129,8 @@ assert.equal(resolveCivilTimeOffset(civilTime, 'Asia/Kathmandu').utcOffsetHours,
   const browserInput = { date: { year: 2567, era: 'BE', month: 9, day: 15 }, time: { hour: 8, minute: 30 }, location: { province: 'เชียงใหม่' } }
   const browserTools = loadBrowserModule(join(installed, 'dist/tools.js'))
   assert.equal(browserTools.executeThaiAstrologyTool('calculate_horoscope', { input: browserInput }).ok, true)
+  const resolvedBirthplace = browserApi.resolveHoroscopeBirthplace({ date: browserInput.date, time: browserInput.time, location: { locationId: 'geonames:5128581' } })
+  assert.equal(resolvedBirthplace.civilTime.utcOffsetSeconds, -14400)
   const browserChart = JSON.parse(JSON.stringify(browserApi.calculateThaiHoroscope(browserInput)))
   const nodeChart = require(installed).calculateThaiHoroscope(browserInput)
   assert.deepEqual(browserChart, nodeChart)
@@ -145,6 +151,11 @@ assert.equal(resolveCivilTimeOffset(civilTime, 'Asia/Kathmandu').utcOffsetHours,
   assert.deepEqual(JSON.parse(JSON.stringify(browserApi.createSunriseReferenceForLocation(locationSelection))), require(installed).createSunriseReferenceForLocation(locationSelection))
 
   const types = `
+import { resolveHoroscopeBirthplace } from 'thai-astrology'
+import type { BirthplaceResolutionInput, ResolvedBirthplace } from 'thai-astrology'
+const birthplaceRequest: BirthplaceResolutionInput = { date: { year: 2024, era: 'CE', month: 6, day: 21 }, time: { hour: 8, minute: 30 }, location: { locationId: 'geonames:5128581' } }
+const birthplace: ResolvedBirthplace = resolveHoroscopeBirthplace(birthplaceRequest)
+void birthplace
 import { executeThaiAstrologyTool } from 'thai-astrology/tools'
 import { getThaiAstrologySchemas } from 'thai-astrology/schemas'
 const toolResult = executeThaiAstrologyTool('calculate_horoscope', {})

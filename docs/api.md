@@ -502,6 +502,7 @@ console.log(chart.timing.referenceTimeMinutes) // ประมาณ 377.99424 �
 | ชื่อเครื่องมือ | Arguments | `data` เมื่อสำเร็จ |
 | --- | --- | --- |
 | `search_locations` | `AstrologyLocationSearch`: countryCode และ query/limit/offset ถ้ามี | `AstrologyLocationSearchResult` |
+| `resolve_birthplace` | `BirthplaceResolutionInput`: date, time, location และตัวเลือกนาฬิกา | `ResolvedBirthplace` พร้อม `input` สำหรับคำนวณดวง |
 | `validate_horoscope_input` | `{ input: unknown }` | `HoroscopeInputValidation` |
 | `calculate_horoscope` | `{ input: HoroscopeInput, sections?: HoroscopeSection[] }` | `ThaiHoroscope` ฉบับเต็มตามค่าเริ่มต้น หรือเฉพาะส่วนที่เลือก |
 | `calculate_transits` | `{ natal: HoroscopeInput, transit: HoroscopeInput, sections?: HoroscopeSection[] }` | `HoroscopeTransitResult` ฉบับเต็มตามค่าเริ่มต้น หรือเฉพาะส่วนที่เลือก |
@@ -532,9 +533,11 @@ dispatcher รับ arguments ที่เข้ากันได้กับ 
 
 | Code | ความหมาย |
 | --- | --- |
-| `UNKNOWN_TOOL` | ชื่อไม่ใช่หนึ่งในสี่เครื่องมือ |
+| `UNKNOWN_TOOL` | ชื่อไม่ใช่หนึ่งในห้าเครื่องมือ |
 | `INVALID_ARGUMENTS` | รูปร่าง arguments ฟิลด์ส่วนเกิน หรือค่าค้นหาสถานที่ไม่ถูกต้อง |
 | `INVALID_INPUT` | ข้อมูลดวงไม่ผ่าน domain validation; `issues` มี field/code/message |
+| `INVALID_BIRTHPLACE` | สถานที่ เขตเวลา ตัวเลือกนาฬิกา หรือวันที่สำหรับ resolve ไม่ถูกต้อง |
+| `AMBIGUOUS_CIVIL_TIME` | เวลาท้องถิ่นเกิดขึ้นสองครั้ง ต้องเลือกก่อน/หลังหรือระบุ UTC offset |
 | `CALCULATION_ERROR` | คำนวณไม่ได้ เช่น ไม่มีพระอาทิตย์ขึ้นในพิกัดใกล้ขั้วโลก |
 
 ข้อผิดพลาด validation ของดาวจรเติม `natal.` หรือ `transit.` หน้าชื่อฟิลด์ ข้อผิดพลาดโครงสร้างระบุเส้นทางฟิลด์ใน `message` ข้อผิดพลาดโปรแกรมที่ไม่คาดหมายส่งต่อให้แอปจัดการ ใช้ code และ issue field ควบคุมลำดับงาน ส่วน message เป็นคำอธิบาย การผ่าน validation ไม่รับประกันว่าจะมีพระอาทิตย์ขึ้นในวันนั้น
@@ -547,7 +550,7 @@ dispatcher รับ arguments ที่เข้ากันได้กับ 
 
 ## JSON CLI
 
-เมื่อติดตั้ง `thai-astrology` จะได้ executable ชื่อ `thai-astrology` ใช้เครื่องมือทั้งสี่และสัญญาผลลัพธ์เดียวกับไลบรารี โดยไม่มี runtime dependencies เพิ่ม เรียกจากโปรเจกต์ที่ติดตั้งแพ็กเกจแล้ว:
+เมื่อติดตั้ง `thai-astrology` จะได้ executable ชื่อ `thai-astrology` ใช้เครื่องมือทั้งห้าและสัญญาผลลัพธ์เดียวกับไลบรารี โดยไม่มี runtime dependencies เพิ่ม เรียกจากโปรเจกต์ที่ติดตั้งแพ็กเกจแล้ว:
 
 ```bash
 npx --no-install thai-astrology --help
@@ -616,7 +619,7 @@ else:
 
 ## เชื่อมต่อผ่าน MCP
 
-แพ็กเกจเสริมใน `adapters/mcp` เปิดให้โปรแกรมที่รองรับ MCP เรียกเครื่องมือทั้งสี่ผ่าน process ภายในเครื่อง โดยใช้ stdio และ MCP TypeScript SDK อย่างเป็นทางการ dependencies ของส่วนนี้แยกจากไลบรารีหลัก จึงไม่เปลี่ยน runtime dependencies หรือการใช้งานในเบราว์เซอร์ของไลบรารี
+แพ็กเกจเสริมใน `adapters/mcp` เปิดให้โปรแกรมที่รองรับ MCP เรียกเครื่องมือทั้งห้าผ่าน process ภายในเครื่อง โดยใช้ stdio และ MCP TypeScript SDK อย่างเป็นทางการ dependencies ของส่วนนี้แยกจากไลบรารีหลัก จึงไม่เปลี่ยน runtime dependencies หรือการใช้งานในเบราว์เซอร์ของไลบรารี
 
 ส่วน MCP ต้องใช้ Node.js 20 ขึ้นไป (ใช้ Node.js 24 สำหรับพัฒนาใน repository) เรียกคำสั่งต่อไปนี้จากโฟลเดอร์หลัก:
 
@@ -686,3 +689,38 @@ codex mcp get thai_astrology
 ```
 
 เลือก Node.js 20 ขึ้นไป แล้วเริ่ม Codex session ใหม่เพื่อโหลด server ที่ลงทะเบียนไว้ จากนั้นให้ค้นหาสถานที่เกิด ตรวจสอบข้อมูลวันที่และเวลาท้องถิ่นที่ระบุชัดเจน คำนวณเฉพาะส่วนที่ต้องการ และอธิบายปัจจัยที่ได้ Codex ต้องมีการลงชื่อเข้าใช้และเลือกโมเดลที่บัญชีรองรับแยกจากตัว adapter ส่วนไลบรารีและ adapter ไม่ได้เลือกหรือตั้งค่าโมเดล AI ให้ ดู [เอกสาร MCP ของ Codex](https://developers.openai.com/codex/mcp)
+
+<a id="birthplace-resolution"></a>
+
+## เตรียมสถานที่เกิดและเวลาท้องถิ่น
+
+ใช้ `resolveHoroscopeBirthplace()` จากไลบรารีหลัก หรือเครื่องมือ `resolve_birthplace` เพื่อเตรียมสถานที่เกิดสำหรับคำนวณดวง ทั้งสองแบบรับ `BirthplaceResolutionInput` และคืน `ResolvedBirthplace` รองรับวันที่เกรกอเรียนในช่วง ค.ศ. 1900–2100 โดยต้องระบุศักราช `"CE"` หรือ `"BE"` พร้อมชั่วโมงและนาทีตามเวลาท้องถิ่น
+
+```ts
+import { searchThaiAstrologyLocations, resolveHoroscopeBirthplace, calculateThaiHoroscope } from "thai-astrology"
+
+const city = searchThaiAstrologyLocations({ countryCode: "US", query: "New York", limit: 1 }).items[0]
+if (!city) throw new Error("Select another location or supply precise coordinates")
+const resolved = resolveHoroscopeBirthplace({
+  date: { year: 2024, era: "CE", month: 6, day: 21 },
+  time: { hour: 8, minute: 30 },
+  location: { locationId: city.id, countryCode: "US" },
+})
+console.log(resolved.civilTime.utcOffsetSeconds) // -14400 (EDT)
+const chart = calculateThaiHoroscope(resolved.input)
+console.log(chart.profile.referenceMode) // explicit
+```
+
+หากใช้เครื่องมือ ให้ส่งออบเจ็กต์อาร์กิวเมนต์รูปแบบเดียวกันโดยไม่ครอบด้วย `input` จากนั้นนำ `data.input` ที่ได้ไปใช้กับ `validate_horoscope_input` หรือ `calculate_horoscope` โดยไม่ต้องแก้ค่า สำหรับดวงกำเนิดและดาวจรให้เตรียมข้อมูลแยกกันตามวันที่ของแต่ละดวง ระบบคงวันที่และเวลาท้องถิ่นไว้ ไม่แปลงฟิลด์เหล่านั้นเป็น UTC
+
+ใน `location` ใช้ `locationId` จากรายการสถานที่ได้ พร้อม `countryCode` ที่ตรงกันถ้าต้องการตรวจประเทศ หรือระบุ `latitude`/`longitude` เองพร้อม `timeZone` หรือ `utcOffsetHours` ที่ชัดเจน หากแก้พิกัด จะไม่ใช้ timezone ของสถานที่เดิมโดยอัตโนมัติ ผลลัพธ์ `location` มีข้อมูลสถานที่จากรายการ พิกัดที่เลือก และ `coordinateKind`; หากแก้พิกัด ชื่อที่คืนมายังหมายถึงรายการสถานที่ที่เลือกไว้ การเลือกจุดที่ตั้งจังหวัดไทยจะเก็บรหัสจังหวัดในข้อมูลดวง ส่วนพิกัดที่แก้เองจะใช้ reference ที่ระบุ
+
+ค่าเริ่มต้นใช้เวลาพระอาทิตย์ขึ้นที่ปัดเป็นนาที และกรอบเวลาคำนวณดาว +06:42:04 หรือ 24124 วินาทีทางตะวันออกของ UTC เช่นเดียวกับการตั้งค่าอัตโนมัติสำหรับจังหวัดไทย เลือก `timePrecision: "continuous"` หรือกำหนด `referenceUtcOffsetSeconds` เพื่อเปลี่ยนค่าได้ ข้อมูลพร้อมใช้มีทั้ง `ascendantReference` และ `planetaryTimeReference` ดวงที่คำนวณจึงรายงานการเลือก reference แบบ explicit ทั้งนี้ UTC offset ของเวลาท้องถิ่นเป็นคนละค่ากับกรอบเวลาคำนวณดาว และการเกิดต่างประเทศยังใช้กติกาอันโตนาทีและหลักโหราศาสตร์ชุดเดิมของไลบรารี
+
+เมื่อไม่ระบุ offset เอง ระบบใช้กฎ IANA จาก runtime เพื่อหา offset ตามวันเวลา โดย `civilTime` รายงาน `source: "iana"`, `utcOffsetSeconds`, `utcEpochMilliseconds`, สถานะ `ambiguous` และตัวเลือก `disambiguation` ที่ขอ ควรเก็บ `input` ที่เตรียมแล้วไว้ หากต้องการคำนวณซ้ำโดยไม่ขึ้นกับการปรับปรุงฐานข้อมูลเขตเวลาของ runtime
+
+ค่าเริ่มต้น `disambiguation: "reject"` จะคืน `AMBIGUOUS_CIVIL_TIME` เมื่อเวลาท้องถิ่นเกิดขึ้นสองครั้ง ต้องเลือก `"earlier"`, `"later"` หรือระบุ UTC offset ที่ทราบก่อนลองใหม่ เช่น นิวยอร์กวันที่ 3 พฤศจิกายน 2024 เวลา 01:30 ช่วงก่อนใช้ −14400 วินาที ส่วนช่วงหลังใช้ −18000 วินาที เวลาที่ไม่มีอยู่จริง เช่น นิวยอร์กวันที่ 10 มีนาคม 2024 เวลา 02:30 จะได้ `INVALID_BIRTHPLACE` โดยไม่เลื่อนเวลาให้เอง การเรียกไลบรารีโดยตรงจะโยน `BirthplaceResolutionError` ที่มี `code` และ `issues` รายฟิลด์แบบเดียวกัน
+
+หากกำหนด `location.utcOffsetHours` จะไม่เรียก IANA แม้ runtime ไม่มี Intl ก็ใช้งานได้ ค่านี้ต้องละเอียดได้ไม่เกินวินาทีเต็มและใช้ร่วมกับ `disambiguation` ไม่ได้ ผลลัพธ์รายงาน `source: "explicit-offset"` และ `ambiguous: null` โดยไม่อนุมาน instant จาก timezone ในกรณีนี้ชื่อ timezone ที่คืนมาเป็นเพียงข้อมูลประกอบ ไม่ได้นำมาใช้หาค่า offset วันที่ผิดหรือกรอบเวลาคำนวณดาวที่ไม่ถูกต้องยังใช้ `HoroscopeInputError`/`INVALID_INPUT` ส่วนโครงสร้างอาร์กิวเมนต์ของเครื่องมือที่ผิดใช้ `INVALID_ARGUMENTS`
+
+การเตรียมข้อมูลตรวจสอบ reference แต่ไม่รับประกันว่าจะมีพระอาทิตย์ขึ้นที่พิกัดนั้นในวันที่เลือก ขั้นตอนคำนวณยังจัดการวันที่ไม่มีพระอาทิตย์ขึ้นผ่านผลลัพธ์ข้อผิดพลาดตามปกติ การระบุเพียงประเทศหรือไม่มีเวลาเกิดยังไม่เพียงพอ

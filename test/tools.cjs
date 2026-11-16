@@ -30,6 +30,7 @@ function conforms(value, schema, root = schema) {
 module.exports = [
   ['Tool outputs preserve direct API results and satisfy published schemas', () => {
     const cases = [
+      ['resolve_birthplace', { date: input.date, time: input.time, location: { locationId: 'geonames:5128581' } }, api.resolveHoroscopeBirthplace({ date: input.date, time: input.time, location: { locationId: 'geonames:5128581' } })],
       ['calculate_horoscope', { input }, api.calculateThaiHoroscope(input)],
       ['calculate_transits', { natal: input, transit: input }, api.calculateHoroscopeTransits(input, input)],
       ['validate_horoscope_input', { input }, api.validateHoroscopeInput(input)],
@@ -78,7 +79,7 @@ module.exports = [
   }],
   ['Tool definitions and schemas are JSON-serializable isolated copies', () => {
     const tools = getThaiAstrologyTools()
-    assert.deepEqual(tools.map(tool => tool.name), ['search_locations', 'validate_horoscope_input', 'calculate_horoscope', 'calculate_transits'])
+    assert.deepEqual(tools.map(tool => tool.name), ['search_locations', 'resolve_birthplace', 'validate_horoscope_input', 'calculate_horoscope', 'calculate_transits'])
     assert.deepEqual(JSON.parse(JSON.stringify(tools)), tools)
     tools[0].inputSchema.properties.countryCode.type = 'number'
     assert.equal(getThaiAstrologyTools()[0].inputSchema.properties.countryCode.type, 'string')

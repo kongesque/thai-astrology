@@ -500,6 +500,7 @@ Import `getThaiAstrologyTools()` and `executeThaiAstrologyTool()` from `thai-ast
 | Tool name | Arguments | Successful `data` |
 | --- | --- | --- |
 | `search_locations` | `AstrologyLocationSearch`: countryCode, optional query/limit/offset | `AstrologyLocationSearchResult` |
+| `resolve_birthplace` | `BirthplaceResolutionInput`: date, time, location and optional clock settings | `ResolvedBirthplace` with ready `input` |
 | `validate_horoscope_input` | `{ input: unknown }` | `HoroscopeInputValidation` |
 | `calculate_horoscope` | `{ input: HoroscopeInput, sections?: HoroscopeSection[] }` | Full `ThaiHoroscope` by default, or selected sections |
 | `calculate_transits` | `{ natal: HoroscopeInput, transit: HoroscopeInput, sections?: HoroscopeSection[] }` | Full `HoroscopeTransitResult` by default, or selected sections |
@@ -531,9 +532,11 @@ Results are either `{ schemaVersion: "1.0", ok: true, data }` or `{ schemaVersio
 
 | Code | Meaning |
 | --- | --- |
-| `UNKNOWN_TOOL` | Name is not one of the four tools |
+| `UNKNOWN_TOOL` | Name is not one of the five tools |
 | `INVALID_ARGUMENTS` | Argument shape, extra fields or location-search values are invalid |
 | `INVALID_INPUT` | Horoscope domain validation failed; `issues` contains field/code/message records |
+| `INVALID_BIRTHPLACE` | Invalid location, timezone, clock choice or unsupported resolution date |
+| `AMBIGUOUS_CIVIL_TIME` | Repeated local time requires earlier/later or an explicit offset |
 | `CALCULATION_ERROR` | A calculation could not complete, for example no sunrise at polar coordinates |
 
 Transit validation prefixes issue fields with `natal.` or `transit.`. Structural failures include a field path in `message`. Unexpected programming errors propagate to the host application. Callers should use codes and issue fields for control flow; messages are explanatory text. Validation does not guarantee a sunrise exists for the requested day.
@@ -544,7 +547,7 @@ Applications can translate these definitions into a provider's tool format or an
 
 ## JSON CLI
 
-Installing `thai-astrology` also installs the `thai-astrology` executable. It uses the same four tools and result contracts as the library, without extra runtime dependencies. From a project that has installed the package, run:
+Installing `thai-astrology` also installs the `thai-astrology` executable. It uses the same five tools and result contracts as the library, without extra runtime dependencies. From a project that has installed the package, run:
 
 ```bash
 npx --no-install thai-astrology --help
@@ -611,7 +614,7 @@ For a source checkout, first run `npm run build`, then use `node bin/thai-astrol
 
 ## MCP adapter
 
-The optional package under `adapters/mcp` exposes the same four tools to an MCP client through a local stdio process. It uses the official MCP TypeScript SDK. Its dependencies are separate from the core library, whose runtime dependencies and browser entry points are unchanged.
+The optional package under `adapters/mcp` exposes the same five tools to an MCP client through a local stdio process. It uses the official MCP TypeScript SDK. Its dependencies are separate from the core library, whose runtime dependencies and browser entry points are unchanged.
 
 Use Node.js 20+ for the adapter (Node.js 24 for repository development). From the repository root:
 
@@ -679,3 +682,36 @@ codex mcp get thai_astrology
 ```
 
 Use Node.js 20+ for that command. Start a new Codex session to load the registered server. Ask it to search for a birthplace, validate an explicit civil input, then calculate the requested sections and explain the returned factors. The client needs a supported signed-in model independently of the MCP adapter. The library and adapter do not select or configure an AI model. See the [official Codex MCP documentation](https://developers.openai.com/codex/mcp).
+
+## Birthplace resolution
+
+Use `resolveHoroscopeBirthplace()` from the root library or the `resolve_birthplace` tool to prepare a selected birthplace for calculation. Both accept `BirthplaceResolutionInput` and return `ResolvedBirthplace`. Resolution supports civil Gregorian dates in CE 1900–2100, with explicit `era: "CE"` or `"BE"` and a required local hour/minute.
+
+```ts
+import { searchThaiAstrologyLocations, resolveHoroscopeBirthplace, calculateThaiHoroscope } from "thai-astrology"
+
+const city = searchThaiAstrologyLocations({ countryCode: "US", query: "New York", limit: 1 }).items[0]
+if (!city) throw new Error("Select another location or supply precise coordinates")
+const resolved = resolveHoroscopeBirthplace({
+  date: { year: 2024, era: "CE", month: 6, day: 21 },
+  time: { hour: 8, minute: 30 },
+  location: { locationId: city.id, countryCode: "US" },
+})
+console.log(resolved.civilTime.utcOffsetSeconds) // -14400 (EDT)
+const chart = calculateThaiHoroscope(resolved.input)
+console.log(chart.profile.referenceMode) // explicit
+```
+
+The tool accepts the same argument object directly, without an `input` wrapper. Pass the returned `data.input` unchanged into `validate_horoscope_input` or `calculate_horoscope`; resolve a separate input for each natal/transit date. Dates and local clock values are preserved rather than converted to UTC fields.
+
+`location` accepts a catalog `locationId` and optional matching `countryCode`. It also accepts explicit `latitude`/`longitude`, with an explicit `timeZone` or `utcOffsetHours`. Edited coordinates never inherit a catalog timezone automatically. Catalog identity/labels, the selected coordinates and their `coordinateKind` are returned in `location`; labels identify the selected catalog record if coordinates were edited. A Thai provincial-seat selection retains its province code in the ready input; manual coordinate overrides use their explicit reference instead.
+
+Defaults are sunrise rounded to the nearest minute and a planetary reference frame of +06:42:04 (24124 seconds east of UTC), matching the structured API's automatic Thai settings. Select `timePrecision: "continuous"` or provide `referenceUtcOffsetSeconds` to choose other settings. The ready input contains both `ascendantReference` and `planetaryTimeReference`, so the chart reports an explicit reference selection. A birthplace's civil UTC offset and the planetary reference frame are separate values. Classical rising durations and the library's other astrological conventions remain unchanged abroad.
+
+When no manual offset is supplied, IANA rules from the runtime resolve the dated civil offset. `civilTime` reports `source: "iana"`, exact `utcOffsetSeconds`, `utcEpochMilliseconds`, `ambiguous` and the requested `disambiguation`. Save the ready input for reproducible calculations across runtime timezone-database updates.
+
+The default `disambiguation: "reject"` returns `AMBIGUOUS_CIVIL_TIME` when a clock time occurs twice. Retry only after choosing `"earlier"` or `"later"`, or supplying a known UTC offset. For New York on 3 November 2024 at 01:30, earlier resolves to −14400 seconds and later to −18000. Nonexistent times, including New York on 10 March 2024 at 02:30, produce `INVALID_BIRTHPLACE`; they are not shifted into existence. Direct library calls throw `BirthplaceResolutionError` with the same `code` and field-level `issues`.
+
+An explicit `location.utcOffsetHours` bypasses IANA, including when Intl support is unavailable. It requires whole-second precision and cannot be combined with `disambiguation`. This branch reports `source: "explicit-offset"` and `ambiguous: null`, without inferring an instant from a timezone. A returned timezone label is not consulted in this branch. Invalid civil dates and reference-frame settings retain `HoroscopeInputError`/`INVALID_INPUT` behavior. Structural tool errors use `INVALID_ARGUMENTS`.
+
+Resolution validates references but does not guarantee that sunrise exists at the selected coordinates on that day. Calculation still handles no-sunrise dates through the usual failure result. Country-only selection and missing birth time are insufficient input.

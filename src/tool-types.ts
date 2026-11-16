@@ -1,5 +1,6 @@
 import type { HoroscopeInput, HoroscopeInputIssue, HoroscopeInputValidation, HoroscopeTransitResult, ThaiHoroscope } from "./horoscope"
 import type { AstrologyLocationSearch, AstrologyLocationSearchResult } from "./engine/astro/location-search"
+import type { BirthplaceResolutionInput, ResolvedBirthplace } from "./birthplace"
 
 export type HoroscopeSection = "points" | "houses" | "charts" | "factors" | "calendar" | "taksa" | "relationships" | "timing" | "diagnostics"
 
@@ -14,6 +15,7 @@ export interface SelectedHoroscopeTransits {
 
 export interface AstrologyToolInputs {
   search_locations: AstrologyLocationSearch
+  resolve_birthplace: BirthplaceResolutionInput
   validate_horoscope_input: { input: unknown }
   calculate_horoscope: { input: HoroscopeInput; sections?: HoroscopeSection[] }
   calculate_transits: { natal: HoroscopeInput; transit: HoroscopeInput; sections?: HoroscopeSection[] }
@@ -21,6 +23,7 @@ export interface AstrologyToolInputs {
 
 export interface AstrologyToolOutputs {
   search_locations: AstrologyLocationSearchResult
+  resolve_birthplace: ResolvedBirthplace
   validate_horoscope_input: HoroscopeInputValidation
   calculate_horoscope: SelectedHoroscope
   calculate_transits: SelectedHoroscopeTransits
@@ -29,7 +32,7 @@ export interface AstrologyToolOutputs {
 export type AstrologyToolName = keyof AstrologyToolInputs
 
 export interface AstrologyToolError {
-  code: "UNKNOWN_TOOL" | "INVALID_ARGUMENTS" | "INVALID_INPUT" | "CALCULATION_ERROR"
+  code: "UNKNOWN_TOOL" | "INVALID_ARGUMENTS" | "INVALID_INPUT" | "CALCULATION_ERROR" | "INVALID_BIRTHPLACE" | "AMBIGUOUS_CIVIL_TIME"
   message: string
   issues?: HoroscopeInputIssue[]
 }
@@ -41,6 +44,7 @@ export type AstrologyToolResult<T = AstrologyToolOutputs[AstrologyToolName]> =
 /** Concrete aliases keep published schemas aligned with the transport envelope. */
 export interface AstrologyToolResults {
   search_locations: AstrologyToolResult<AstrologyToolOutputs["search_locations"]>
+  resolve_birthplace: AstrologyToolResult<AstrologyToolOutputs["resolve_birthplace"]>
   validate_horoscope_input: AstrologyToolResult<AstrologyToolOutputs["validate_horoscope_input"]>
   calculate_horoscope: AstrologyToolResult<AstrologyToolOutputs["calculate_horoscope"]>
   calculate_transits: AstrologyToolResult<AstrologyToolOutputs["calculate_transits"]>

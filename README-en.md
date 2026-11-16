@@ -144,7 +144,7 @@ Automatic selection applies only when neither reference nor a custom province co
 
 ## AI tools and JSON contracts
 
-Optional entry points expose four provider-neutral tools: location search, input validation, horoscope calculation and transits. Existing library calls keep their behavior and have no runtime dependencies.
+Optional entry points expose five provider-neutral tools: location search, birthplace resolution, input validation, horoscope calculation and transits. Existing library calls keep their behavior and have no runtime dependencies.
 
 ```ts
 import { executeThaiAstrologyTool, getThaiAstrologyTools } from "thai-astrology/tools"
@@ -165,6 +165,8 @@ else console.log(result.error.code, result.error.issues)
 
 Tool definitions include JSON Schema 2020-12 input/output contracts. The dispatcher returns a versioned JSON envelope and rejects unknown argument fields. Applications supply their own AI provider or HTTP integration. See the [tool API contract](docs/api-en.md#agent-tools-and-json-schemas).
 
+For a birth abroad, use `resolveHoroscopeBirthplace()` or the `resolve_birthplace` tool to convert a selected city and explicit civil date/time into ready horoscope input. Dated timezone resolution includes DST and requires a choice for repeated times. See the [birthplace workflow](docs/api-en.md#birthplace-resolution).
+
 Calculation tools also accept `sections: ["points", "calendar"]` to return selected data while retaining the calculation profile and normalized input. Omit `sections` for full results. See [selected result sections](docs/api-en.md#selected-result-sections).
 
 The same package also installs a JSON CLI for terminal agents and other languages:
@@ -182,6 +184,8 @@ A separate [MCP adapter](docs/api-en.md#mcp-adapter) exposes the same tools over
 ## Development and contributions
 
 The [public test suite](test/run.cjs) covers calendar rules, zodiac boundaries, timezones and published-release regression cases. Package checks also verify installed CommonJS, ESM, TypeScript and browser consumers. See the [CI workflow](.github/workflows/ci.yml).
+
+See the [release checklist](docs/releasing.md) for compatibility and package acceptance criteria.
 
 Use Node.js 24 for development:
 

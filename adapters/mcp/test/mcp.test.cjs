@@ -8,7 +8,7 @@ const { ErrorCode } = require('@modelcontextprotocol/sdk/types.js')
 const { withClient, checkTools, input } = require('./client-check.cjs')
 const entry = resolve(__dirname, '../bin/thai-astrology-mcp.cjs')
 
-test('Official SDK client initializes, discovers and validates all four tools over stdio', { timeout: 20000 }, async () => {
+test('Official SDK client initializes, discovers and validates all five tools over stdio', { timeout: 20000 }, async () => {
   await withClient(entry, checkTools)
 })
 
@@ -55,7 +55,7 @@ test('Stdio lifecycle negotiates both structured-output protocol revisions', { t
     const responses = result.stdout.trim().split('\n').map(line => JSON.parse(line))
     assert.equal(responses.length, 3, 'Notifications must not generate responses')
     assert.equal(responses.find(item => item.id === 1).result.protocolVersion, protocolVersion)
-    assert.equal(responses.find(item => item.id === 3).result.tools.length, 4)
+    assert.equal(responses.find(item => item.id === 3).result.tools.length, 5)
   }
 })
 
@@ -89,5 +89,35 @@ test('MCP workflow resolves a birthplace, validates input and returns selected f
     assert.equal(transits.structuredContent.data.comparison.sun.natalHouse, 12)
     assert.equal(transits.structuredContent.data.natal.profile.referenceMode, 'auto')
     assert.equal(transits.structuredContent.data.transit.profile.referenceMode, 'auto')
+  })
+})
+
+test('International MCP workflow resolves a dated civil clock and handles DST choices', { timeout: 20000 }, async () => {
+  await withClient(entry, async client => {
+    await client.listTools()
+    const found = await client.callTool({ name: 'search_locations', arguments: { countryCode: 'US', query: 'New York', limit: 1 } })
+    const locationId = found.structuredContent.data.items[0].id
+    const request = { date: { year: 2024, era: 'CE', month: 6, day: 21 }, time: { hour: 8, minute: 30 }, location: { locationId } }
+    const resolved = await client.callTool({ name: 'resolve_birthplace', arguments: request })
+    assert.equal(resolved.isError, false)
+    assert.equal(resolved.structuredContent.data.civilTime.utcOffsetSeconds, -14400)
+    const chartInput = resolved.structuredContent.data.input
+    const validated = await client.callTool({ name: 'validate_horoscope_input', arguments: { input: chartInput } })
+    assert.equal(validated.structuredContent.data.valid, true)
+    const chart = await client.callTool({ name: 'calculate_horoscope', arguments: { input: chartInput, sections: ['points', 'calendar'] } })
+    assert.equal(chart.isError, false)
+    assert.equal(chart.structuredContent.data.profile.referenceMode, 'explicit')
+    const transit = await client.callTool({ name: 'calculate_transits', arguments: { natal: chartInput, transit: chartInput, sections: [] } })
+    assert.equal(transit.structuredContent.data.comparison.sun.longitudeDifferenceDegrees, 0)
+    const overlap = { ...request, date: { ...request.date, month: 11, day: 3 }, time: { hour: 1, minute: 30 } }
+    const ambiguous = await client.callTool({ name: 'resolve_birthplace', arguments: overlap })
+    assert.equal(ambiguous.isError, true)
+    assert.equal(ambiguous.structuredContent.error.code, 'AMBIGUOUS_CIVIL_TIME')
+    const later = await client.callTool({ name: 'resolve_birthplace', arguments: { ...overlap, disambiguation: 'later' } })
+    assert.equal(later.structuredContent.data.civilTime.utcOffsetSeconds, -18000)
+    assert.equal(later.structuredContent.data.civilTime.ambiguous, true)
+    const gap = await client.callTool({ name: 'resolve_birthplace', arguments: { ...request, date: { ...request.date, month: 3, day: 10 }, time: { hour: 2, minute: 30 } } })
+    assert.equal(gap.isError, true)
+    assert.equal(gap.structuredContent.error.code, 'INVALID_BIRTHPLACE')
   })
 })

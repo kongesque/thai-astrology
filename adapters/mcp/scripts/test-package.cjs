@@ -37,7 +37,7 @@ async function main() {
       args: [process.env.npm_execpath, 'exec', '--offline', '--', 'thai-astrology-mcp'],
       cwd: consumer,
     }, checkTools)
-    console.log('MCP archive verified: installed executable, SDK client, discovery and all four tools pass')
+    console.log('MCP archive verified: installed executable, SDK client, discovery and all five tools pass')
   } finally {
     rmSync(temp, { recursive: true, force: true })
   }

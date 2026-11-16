@@ -6,6 +6,7 @@ import { findRulingPlanets } from "./engine/astro/ruling-planets"
 export * from "./engine/astro-calculation"
 export * from "./engine/astro/ruling-planets"
 export * from "./horoscope"
+export * from "./birthplace"
 
 const THAI_DIGITS = ["๐", "๑", "๒", "๓", "๔", "๕", "๖", "๗", "๘", "๙"] as const
 

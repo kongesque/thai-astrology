@@ -116,6 +116,14 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
             "code": {
               "anyOf": [
                 {
+                  "const": "INVALID_BIRTHPLACE",
+                  "type": "string"
+                },
+                {
+                  "const": "AMBIGUOUS_CIVIL_TIME",
+                  "type": "string"
+                },
+                {
                   "const": "UNKNOWN_TOOL",
                   "type": "string"
                 },
@@ -305,6 +313,705 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
       }
     }
   },
+  "resolve_birthplace": {
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "date": {
+          "$ref": "#/$defs/object2"
+        },
+        "time": {
+          "$ref": "#/$defs/object3"
+        },
+        "location": {
+          "$ref": "#/$defs/object4"
+        },
+        "disambiguation": {
+          "anyOf": [
+            {
+              "const": "reject",
+              "type": "string"
+            },
+            {
+              "const": "earlier",
+              "type": "string"
+            },
+            {
+              "const": "later",
+              "type": "string"
+            }
+          ],
+          "description": "Repeated civil times require an explicit earlier/later choice; default reject."
+        },
+        "referenceUtcOffsetSeconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            }
+          ],
+          "description": "Planetary calculation frame, in seconds east of UTC. Default +06:42:04."
+        },
+        "timePrecision": {
+          "anyOf": [
+            {
+              "const": "continuous",
+              "type": "string"
+            },
+            {
+              "const": "minute",
+              "type": "string"
+            }
+          ],
+          "description": "Default minute, matching the structured horoscope's automatic sunrise precision."
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "date",
+        "time",
+        "location"
+      ],
+      "$defs": {
+        "object1": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "$ref": "#/$defs/object2"
+            },
+            "time": {
+              "$ref": "#/$defs/object3"
+            },
+            "location": {
+              "$ref": "#/$defs/object4"
+            },
+            "disambiguation": {
+              "anyOf": [
+                {
+                  "const": "reject",
+                  "type": "string"
+                },
+                {
+                  "const": "earlier",
+                  "type": "string"
+                },
+                {
+                  "const": "later",
+                  "type": "string"
+                }
+              ],
+              "description": "Repeated civil times require an explicit earlier/later choice; default reject."
+            },
+            "referenceUtcOffsetSeconds": {
+              "anyOf": [
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Planetary calculation frame, in seconds east of UTC. Default +06:42:04."
+            },
+            "timePrecision": {
+              "anyOf": [
+                {
+                  "const": "continuous",
+                  "type": "string"
+                },
+                {
+                  "const": "minute",
+                  "type": "string"
+                }
+              ],
+              "description": "Default minute, matching the structured horoscope's automatic sunrise precision."
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "date",
+            "time",
+            "location"
+          ]
+        },
+        "object2": {
+          "type": "object",
+          "properties": {
+            "year": {
+              "type": "number"
+            },
+            "era": {
+              "anyOf": [
+                {
+                  "const": "BE",
+                  "type": "string"
+                },
+                {
+                  "const": "CE",
+                  "type": "string"
+                }
+              ]
+            },
+            "month": {
+              "type": "number"
+            },
+            "day": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "year",
+            "era",
+            "month",
+            "day"
+          ]
+        },
+        "object3": {
+          "type": "object",
+          "properties": {
+            "hour": {
+              "type": "number"
+            },
+            "minute": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "hour",
+            "minute"
+          ]
+        },
+        "object4": {
+          "type": "object",
+          "properties": {
+            "longitude": {
+              "anyOf": [
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "utcOffsetHours": {
+              "anyOf": [
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "An explicit offset takes precedence and bypasses the optional Intl adapter."
+            },
+            "latitude": {
+              "anyOf": [
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "countryCode": {
+              "anyOf": [
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "timeZone": {
+              "anyOf": [
+                {
+                  "type": "string"
+                }
+              ],
+              "description": "Overrides the selected location's zone; required for edited coordinates in automatic mode."
+            },
+            "locationId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/object1"
+        },
+        {
+          "$ref": "#/$defs/object4"
+        }
+      ],
+      "$defs": {
+        "object1": {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "1.0",
+              "type": "string"
+            },
+            "ok": {
+              "const": false,
+              "type": "boolean"
+            },
+            "error": {
+              "$ref": "#/$defs/object2"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "schemaVersion",
+            "ok",
+            "error"
+          ]
+        },
+        "object2": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "anyOf": [
+                {
+                  "const": "INVALID_BIRTHPLACE",
+                  "type": "string"
+                },
+                {
+                  "const": "AMBIGUOUS_CIVIL_TIME",
+                  "type": "string"
+                },
+                {
+                  "const": "UNKNOWN_TOOL",
+                  "type": "string"
+                },
+                {
+                  "const": "INVALID_ARGUMENTS",
+                  "type": "string"
+                },
+                {
+                  "const": "INVALID_INPUT",
+                  "type": "string"
+                },
+                {
+                  "const": "CALCULATION_ERROR",
+                  "type": "string"
+                }
+              ]
+            },
+            "message": {
+              "type": "string"
+            },
+            "issues": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/object3"
+                  }
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ]
+        },
+        "object3": {
+          "type": "object",
+          "properties": {
+            "field": {
+              "type": "string"
+            },
+            "code": {
+              "anyOf": [
+                {
+                  "const": "unknown",
+                  "type": "string"
+                },
+                {
+                  "const": "required",
+                  "type": "string"
+                },
+                {
+                  "const": "type",
+                  "type": "string"
+                },
+                {
+                  "const": "range",
+                  "type": "string"
+                }
+              ]
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "field",
+            "code",
+            "message"
+          ]
+        },
+        "object4": {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "1.0",
+              "type": "string"
+            },
+            "ok": {
+              "const": true,
+              "type": "boolean"
+            },
+            "data": {
+              "$ref": "#/$defs/object5"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "schemaVersion",
+            "ok",
+            "data"
+          ]
+        },
+        "object5": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "$ref": "#/$defs/object6",
+              "description": "Ready to pass to calculateThaiHoroscope or the calculate_horoscope tool."
+            },
+            "location": {
+              "$ref": "#/$defs/object12"
+            },
+            "civilTime": {
+              "$ref": "#/$defs/object13"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "input",
+            "location",
+            "civilTime"
+          ]
+        },
+        "object6": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "$ref": "#/$defs/object7"
+            },
+            "time": {
+              "$ref": "#/$defs/object8"
+            },
+            "location": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object9"
+                }
+              ],
+              "description": "Province accepts a full Thai name or ISO 3166-2:TH code. An explicit correction overrides it."
+            },
+            "referenceMode": {
+              "anyOf": [
+                {
+                  "const": "auto",
+                  "type": "string"
+                },
+                {
+                  "const": "traditional",
+                  "type": "string"
+                }
+              ],
+              "description": "Auto selects provincial sunrise and a historical Bangkok frame when no references are supplied."
+            },
+            "ascendantReference": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object10"
+                }
+              ],
+              "description": "Optional seasonal sunrise reference on the input civil clock."
+            },
+            "planetaryTimeReference": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/object11"
+                }
+              ],
+              "description": "Optional explicit offset frame for planetary cycles; calendar/timing stay civil."
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "date",
+            "time"
+          ]
+        },
+        "object7": {
+          "type": "object",
+          "properties": {
+            "year": {
+              "type": "number"
+            },
+            "era": {
+              "anyOf": [
+                {
+                  "const": "BE",
+                  "type": "string"
+                },
+                {
+                  "const": "CE",
+                  "type": "string"
+                }
+              ]
+            },
+            "month": {
+              "type": "number"
+            },
+            "day": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "year",
+            "era",
+            "month",
+            "day"
+          ]
+        },
+        "object8": {
+          "type": "object",
+          "properties": {
+            "hour": {
+              "type": "number"
+            },
+            "minute": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "hour",
+            "minute"
+          ]
+        },
+        "object9": {
+          "type": "object",
+          "properties": {
+            "province": {
+              "anyOf": [
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "localTimeCorrectionMinutes": {
+              "anyOf": [
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "object10": {
+          "type": "object",
+          "properties": {
+            "method": {
+              "const": "sunrise",
+              "type": "string"
+            },
+            "timePrecision": {
+              "anyOf": [
+                {
+                  "const": "continuous",
+                  "type": "string"
+                },
+                {
+                  "const": "minute",
+                  "type": "string"
+                }
+              ],
+              "description": "Minute-table reference rounds sunrise to the nearest minute; omitted uses continuous time."
+            },
+            "latitude": {
+              "type": "number"
+            },
+            "longitude": {
+              "type": "number",
+              "description": "Degrees east of Greenwich; west is negative."
+            },
+            "utcOffsetHours": {
+              "type": "number",
+              "description": "Civil hours east of UTC, including any daylight-saving offset. Required."
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "latitude",
+            "longitude",
+            "utcOffsetHours"
+          ]
+        },
+        "object11": {
+          "type": "object",
+          "properties": {
+            "civilUtcOffsetSeconds": {
+              "type": "number",
+              "description": "Civil UTC offset on the input date, including DST, in whole seconds."
+            },
+            "referenceUtcOffsetSeconds": {
+              "type": "number",
+              "description": "UTC offset of the calculation's declared reference clock, in whole seconds."
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "civilUtcOffsetSeconds",
+            "referenceUtcOffsetSeconds"
+          ]
+        },
+        "object12": {
+          "type": "object",
+          "properties": {
+            "locationId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "countryCode": {
+              "anyOf": [
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "nameEnglish": {
+              "anyOf": [
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "nameThai": {
+              "anyOf": [
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "latitude": {
+              "type": "number"
+            },
+            "longitude": {
+              "type": "number"
+            },
+            "timeZone": {
+              "anyOf": [
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "coordinateKind": {
+              "anyOf": [
+                {
+                  "const": "province-seat",
+                  "type": "string"
+                },
+                {
+                  "const": "city",
+                  "type": "string"
+                },
+                {
+                  "const": "coordinates",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "latitude",
+            "longitude",
+            "coordinateKind"
+          ]
+        },
+        "object13": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "anyOf": [
+                {
+                  "const": "iana",
+                  "type": "string"
+                },
+                {
+                  "const": "explicit-offset",
+                  "type": "string"
+                }
+              ]
+            },
+            "utcOffsetSeconds": {
+              "type": "number"
+            },
+            "ambiguous": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "const": false,
+                  "type": "boolean"
+                },
+                {
+                  "const": true,
+                  "type": "boolean"
+                }
+              ],
+              "description": "Null when an explicit offset bypassed IANA resolution."
+            },
+            "disambiguation": {
+              "anyOf": [
+                {
+                  "const": "reject",
+                  "type": "string"
+                },
+                {
+                  "const": "earlier",
+                  "type": "string"
+                },
+                {
+                  "const": "later",
+                  "type": "string"
+                }
+              ]
+            },
+            "utcEpochMilliseconds": {
+              "anyOf": [
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "utcOffsetSeconds",
+            "ambiguous"
+          ]
+        }
+      }
+    }
+  },
   "validate_horoscope_input": {
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -367,6 +1074,14 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
           "properties": {
             "code": {
               "anyOf": [
+                {
+                  "const": "INVALID_BIRTHPLACE",
+                  "type": "string"
+                },
+                {
+                  "const": "AMBIGUOUS_CIVIL_TIME",
+                  "type": "string"
+                },
                 {
                   "const": "UNKNOWN_TOOL",
                   "type": "string"
@@ -1050,6 +1765,14 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
           "properties": {
             "code": {
               "anyOf": [
+                {
+                  "const": "INVALID_BIRTHPLACE",
+                  "type": "string"
+                },
+                {
+                  "const": "AMBIGUOUS_CIVIL_TIME",
+                  "type": "string"
+                },
                 {
                   "const": "UNKNOWN_TOOL",
                   "type": "string"
@@ -3003,6 +3726,14 @@ const schemas: Record<AstrologyToolName, AstrologyToolSchemas> = {
           "properties": {
             "code": {
               "anyOf": [
+                {
+                  "const": "INVALID_BIRTHPLACE",
+                  "type": "string"
+                },
+                {
+                  "const": "AMBIGUOUS_CIVIL_TIME",
+                  "type": "string"
+                },
                 {
                   "const": "UNKNOWN_TOOL",
                   "type": "string"

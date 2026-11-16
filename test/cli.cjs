@@ -41,8 +41,9 @@ module.exports = [
     assert.deepEqual(JSON.parse(pretty.stdout).data, getThaiAstrologySchemas().calculate_horoscope)
     assert.equal(pretty.stdout.endsWith('\n'), true)
   }],
-  ['CLI stdin calls match all four library tools including a full transit response', () => {
+  ['CLI stdin calls match all library tools including a full transit response', () => {
     for (const [name, args] of [
+      ['resolve_birthplace', { date: input.date, time: input.time, location: { locationId: 'geonames:5128581' } }],
       ['calculate_horoscope', { input }],
       ['calculate_transits', { natal: input, transit: input }],
       ['validate_horoscope_input', { input: null }],

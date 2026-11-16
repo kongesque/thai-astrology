@@ -32,6 +32,7 @@ async function checkTools(client) {
   assert.ok(tools.every(tool => tool.annotations.readOnlyHint && tool.annotations.openWorldHint === false))
   const calls = [
     ['search_locations', { countryCode: 'TH', query: 'เชียงใหม่' }],
+    ['resolve_birthplace', { date: input.date, time: input.time, location: { locationId: 'geonames:5128581' } }],
     ['validate_horoscope_input', { input }],
     ['calculate_horoscope', { input }],
     ['calculate_transits', { natal: input, transit: { ...input, date: { ...input.date, day: 16 } } }],
