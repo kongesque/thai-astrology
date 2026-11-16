@@ -611,3 +611,41 @@ else:
 ```
 
 หากใช้ source checkout ให้รัน `npm run build` ก่อน แล้วใช้ `node bin/thai-astrology.cjs` แทน `npx --no-install thai-astrology` CLI แยกจาก browser imports และไม่เปิด network service
+
+<a id="mcp-adapter"></a>
+
+## เชื่อมต่อผ่าน MCP
+
+แพ็กเกจเสริมใน `adapters/mcp` เปิดให้โปรแกรมที่รองรับ MCP เรียกเครื่องมือทั้งสี่ผ่าน process ภายในเครื่อง โดยใช้ stdio และ MCP TypeScript SDK อย่างเป็นทางการ dependencies ของส่วนนี้แยกจากไลบรารีหลัก จึงไม่เปลี่ยน runtime dependencies หรือการใช้งานในเบราว์เซอร์ของไลบรารี
+
+ส่วน MCP ต้องใช้ Node.js 20 ขึ้นไป (ใช้ Node.js 24 สำหรับพัฒนาใน repository) เรียกคำสั่งต่อไปนี้จากโฟลเดอร์หลัก:
+
+```bash
+npm ci
+npm --prefix adapters/mcp ci
+npm --prefix adapters/mcp test
+npm --prefix adapters/mcp run test:package
+```
+
+`npm ci` จะ build ไลบรารีหลักให้ด้วย หากแก้ source ให้รัน `npm run build` อีกครั้ง แพ็กเกจ MCP นี้ตั้งเป็น private สำหรับใช้จาก checkout และต้องอาศัย entry point `tools` และ `schemas` ในโค้ดชุดนี้ คำสั่งข้างต้นไม่เผยแพร่แพ็กเกจเวอร์ชันใหม่
+
+สำหรับโปรแกรมที่ใช้รูปแบบตั้งค่า `mcpServers` ให้แทนที่ path ทั้งสองด้วย absolute path จริงในเครื่อง:
+
+```json
+{
+  "mcpServers": {
+    "thai-astrology": {
+      "command": "/absolute/path/to/node",
+      "args": ["/absolute/path/to/thai-astrology/adapters/mcp/bin/thai-astrology-mcp.cjs"]
+    }
+  }
+}
+```
+
+เลือก executable ของ Node.js 20 ขึ้นไป หาก client ใช้รูปแบบตั้งค่าอื่น ให้ใช้ command และ arguments เดียวกันในรูปแบบที่โปรแกรมนั้นกำหนด client จะเปิด process และเริ่มขั้นตอน initialization ให้ ส่วน MCP ไม่รับตัวเลือก command line และส่งเฉพาะข้อความ MCP JSON-RPC ทาง stdout; ข้อความวินิจฉัยจะไปทาง stderr ใช้การเชื่อมต่อแบบ stdio โดยไม่เปิดพอร์ต HTTP หรือเชื่อมต่อผู้ให้บริการ AI
+
+การค้นหาเครื่องมือจะได้ชื่อ คำอธิบาย JSON Schema ของข้อมูลเข้าและออก พร้อมสถานะ read-only เมื่อเรียกเครื่องมือ จะได้รับ envelope ที่ระบุเวอร์ชันตามเดิมใน `structuredContent` และ JSON ชุดเดียวกันใน text content โดย output schema ครอบคลุมทั้งผลสำเร็จและข้อผิดพลาดที่มีโครงสร้าง หากเครื่องมือล้มเหลวจะตั้ง `isError: true` แต่การตรวจสอบที่รายงาน `data.valid: false` ยังเป็นการทำงานสำเร็จและใช้ `isError: false` ชื่อเครื่องมือที่ไม่รู้จักจะเป็นข้อผิดพลาด invalid-params ของ MCP ส่วน adapter ไม่บันทึกข้อมูลเกิดลง log และส่งผลลัพธ์ให้ client ที่เชื่อมต่อ
+
+SDK เวอร์ชันที่ตรึงไว้ใช้การตกลงรุ่นโพรโทคอลผ่าน initialization ชุดทดสอบใช้ client จาก SDK อย่างเป็นทางการเพื่อตรวจรุ่น `2025-06-18` และ `2025-11-25` รวมถึงตรวจผลลัพธ์กับ output schema ดังนั้น client ต้องรองรับวิธีเชื่อมต่อดังกล่าว ส่วนนี้ประกาศความสามารถเฉพาะเครื่องมือ ไม่ได้ให้บริการ HTTP, resources, prompts, model sampling หรือ background tasks ดู [วงจรการเชื่อมต่อ MCP](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle) และ [สัญญาเครื่องมือ](https://modelcontextprotocol.io/specification/2025-11-25/server/tools) จากเอกสารทางการ
+
+ดูรายละเอียดการติดตั้งและทดสอบแพ็กเกจใน [README ของ MCP adapter](../adapters/mcp/README.md) การเรียกไลบรารีและ JSON CLI ยังคงใช้งานแยกกันได้ตามเดิม

@@ -142,9 +142,9 @@ console.log(horoscope.charts.rasi.channels.thai)
 
 `calculateThaiHoroscope()` ใช้สุริยยาตร์เสมอ ส่วน API เดิม `generateThaiAstrologyChart()` ใช้ `legacy` เป็นค่าเริ่มต้น ต้องระบุ `method: "suriyayatra"` เมื่อต้องการสุริยยาตร์
 
-## เครื่องมือ AI และสัญญา JSON
+## เครื่องมือสำหรับ AI และรูปแบบข้อมูล JSON
 
-entry point เสริมมีเครื่องมือที่ไม่ผูกกับผู้ให้บริการ AI จำนวน 4 รายการ: ค้นหาสถานที่ ตรวจสอบข้อมูล คำนวณดวง และเทียบดาวจร การเรียกไลบรารีเดิมยังทำงานเหมือนเดิมและไม่มี runtime dependencies
+ไลบรารีมี API เสริมสำหรับให้ AI เรียกใช้เครื่องมือได้ 4 อย่าง ได้แก่ ค้นหาสถานที่ ตรวจสอบข้อมูล คำนวณดวง และเทียบดาวจร ใช้ร่วมกับผู้ให้บริการ AI ได้ตามต้องการ โดย API เดิมยังทำงานเหมือนเดิม และตัวไลบรารีไม่มี runtime dependencies
 
 ```ts
 import { executeThaiAstrologyTool, getThaiAstrologyTools } from "thai-astrology/tools"
@@ -163,9 +163,9 @@ if (result.ok) console.log(result.data.points.ascendant.signName)
 else console.log(result.error.code, result.error.issues)
 ```
 
-นิยามเครื่องมือมีสัญญาข้อมูลเข้า/ออกแบบ JSON Schema 2020-12 ตัว dispatcher คืน JSON ที่ระบุเวอร์ชันและปฏิเสธฟิลด์ argument ที่ไม่รู้จัก แอปพลิเคชันเป็นผู้เชื่อมต่อผู้ให้บริการ AI, MCP หรือ HTTP เอง ดู [สัญญา API เครื่องมือ](docs/api.md#agent-tools-and-json-schemas)
+แต่ละเครื่องมือมี JSON Schema 2020-12 อธิบายรูปแบบข้อมูลเข้าและผลลัพธ์ ฟังก์ชันเรียกเครื่องมือจะคืนผลลัพธ์ JSON พร้อมหมายเลขเวอร์ชัน และปฏิเสธอาร์กิวเมนต์ที่มีฟิลด์นอกเหนือจากที่กำหนด แอปพลิเคชันสามารถนำ API เหล่านี้ไปเชื่อมกับผู้ให้บริการ AI หรือบริการ HTTP ได้ ดู [รายละเอียด API สำหรับเครื่องมือ](docs/api.md#agent-tools-and-json-schemas)
 
-แพ็กเกจเดียวกันติดตั้ง JSON CLI สำหรับ terminal agent และการเรียกจากภาษาอื่นด้วย:
+แพ็กเกจนี้มี CLI ที่รับและส่งข้อมูลเป็น JSON ด้วย จึงเรียกใช้งานจากเอเจนต์ AI ในเทอร์มินัล หรือจากโปรแกรมที่เขียนด้วยภาษาอื่นได้:
 
 ```bash
 npx --no-install thai-astrology tools
@@ -173,7 +173,9 @@ npx --no-install thai-astrology schemas calculate_horoscope
 npx --no-install thai-astrology call calculate_horoscope --input birth.json
 ```
 
-`birth.json` เก็บ arguments ของเครื่องมือในรูป `{ "input": { ... } }`; หากไม่ระบุ `--input` จะอ่าน stdin ดู [ตัวอย่าง CLI และ exit code](docs/api.md#json-cli)
+`birth.json` ใช้เก็บอาร์กิวเมนต์ของเครื่องมือในรูป `{ "input": { ... } }` หากไม่ระบุ `--input` โปรแกรมจะอ่านข้อมูลจาก stdin ดู [ตัวอย่าง CLI และ exit code](docs/api.md#json-cli)
+
+หากต้องการใช้กับแอปที่รองรับ MCP มี [MCP adapter](docs/api.md#mcp-adapter) แยกไว้ใน `adapters/mcp` โดยใช้ Node.js 20 ขึ้นไป ส่วนตัวไลบรารียังรองรับ Node.js 16 และไม่มี runtime dependencies เช่นเดิม
 
 ## พัฒนาและร่วมปรับปรุง
 

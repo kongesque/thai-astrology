@@ -608,3 +608,39 @@ else:
 ```
 
 For a source checkout, first run `npm run build`, then use `node bin/thai-astrology.cjs` in place of `npx --no-install thai-astrology`. The CLI is independent of browser imports and does not open a network service.
+
+## MCP adapter
+
+The optional package under `adapters/mcp` exposes the same four tools to an MCP client through a local stdio process. It uses the official MCP TypeScript SDK. Its dependencies are separate from the core library, whose runtime dependencies and browser entry points are unchanged.
+
+Use Node.js 20+ for the adapter (Node.js 24 for repository development). From the repository root:
+
+```bash
+npm ci
+npm --prefix adapters/mcp ci
+npm --prefix adapters/mcp test
+npm --prefix adapters/mcp run test:package
+```
+
+The core build runs during `npm ci`; rebuild with `npm run build` after editing core source. The adapter is a private local package and depends on this checkout's `tools` and `schemas` entry points. No new release is published by these commands.
+
+For an MCP application that uses `mcpServers` configuration, replace both absolute paths:
+
+```json
+{
+  "mcpServers": {
+    "thai-astrology": {
+      "command": "/absolute/path/to/node",
+      "args": ["/absolute/path/to/thai-astrology/adapters/mcp/bin/thai-astrology-mcp.cjs"]
+    }
+  }
+}
+```
+
+Use a Node.js 20+ executable. Other clients can use the same command and arguments in their own configuration format. The client launches the process and performs initialization; the adapter accepts no command-line options. Stdout contains only MCP JSON-RPC messages, and diagnostics go to stderr. The transport is stdio and no HTTP port or AI provider connection is started.
+
+Discovery returns the tool definitions, JSON input/output schemas and read-only annotations. A call returns the existing versioned envelope in `structuredContent`, with the same JSON serialized in a text content block. The output schema describes the envelope, including structured failures. `isError` is true for tool failures and false when validation successfully reports `data.valid: false`. Unknown tools produce MCP invalid-params errors. Birth data is not logged by the adapter; results go to the connected client.
+
+The pinned SDK negotiates initialization-based MCP revisions. Tests cover `2025-06-18` and `2025-11-25` using the official SDK client, including output-schema validation. Clients must support that negotiation model. The adapter advertises only tools; HTTP transport, resources, prompts, model sampling and background tasks are outside its capabilities. See the official [lifecycle](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle) and [tool contract](https://modelcontextprotocol.io/specification/2025-11-25/server/tools).
+
+See the [adapter README](../adapters/mcp/README.md) for setup and packaging details. Core library and JSON CLI usage remain available independently.

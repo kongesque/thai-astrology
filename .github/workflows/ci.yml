@@ -24,3 +24,25 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+
+  mcp:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            adapters/mcp/package-lock.json
+      - run: npm ci
+      - run: npm --prefix adapters/mcp ci
+      - run: npm --prefix adapters/mcp test
+      - run: npm --prefix adapters/mcp run test:package

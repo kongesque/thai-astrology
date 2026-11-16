@@ -163,7 +163,7 @@ if (result.ok) console.log(result.data.points.ascendant.signName)
 else console.log(result.error.code, result.error.issues)
 ```
 
-Tool definitions include JSON Schema 2020-12 input/output contracts. The dispatcher returns a versioned JSON envelope and rejects unknown argument fields. Applications supply their own AI provider, MCP or HTTP integration. See the [tool API contract](docs/api-en.md#agent-tools-and-json-schemas).
+Tool definitions include JSON Schema 2020-12 input/output contracts. The dispatcher returns a versioned JSON envelope and rejects unknown argument fields. Applications supply their own AI provider or HTTP integration. See the [tool API contract](docs/api-en.md#agent-tools-and-json-schemas).
 
 The same package also installs a JSON CLI for terminal agents and other languages:
 
@@ -174,6 +174,8 @@ npx --no-install thai-astrology call calculate_horoscope --input birth.json
 ```
 
 `birth.json` contains the tool arguments `{ "input": { ... } }`; omit `--input` to read stdin. See [CLI examples and exit codes](docs/api-en.md#json-cli).
+
+A separate [MCP adapter](docs/api-en.md#mcp-adapter) exposes the same tools over local stdio for compatible AI applications. It uses Node.js 20+ and keeps SDK dependencies outside the core library, which retains Node.js 16 support.
 
 ## Development and contributions
 
