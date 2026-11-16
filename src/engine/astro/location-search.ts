@@ -62,6 +62,11 @@ const locations: AstrologyLocation[] = [
   })),
 ]
 const byId = new Map(locations.map(row => [row.id, row]))
+/** Internal catalog lookup shared by resolution helpers; returns a fresh record. */
+export function getCatalogLocation(locationId: string): AstrologyLocation | undefined {
+  const location = byId.get(locationId)
+  return location ? { ...location } : undefined
+}
 const countryCodes = new Set(getThaiAstrologyCountries().map(row => row.countryCode))
 const searchText = (text: string): string => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim()
 

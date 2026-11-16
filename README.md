@@ -142,9 +142,50 @@ console.log(horoscope.charts.rasi.channels.thai)
 
 `calculateThaiHoroscope()` ใช้สุริยยาตร์เสมอ ส่วน API เดิม `generateThaiAstrologyChart()` ใช้ `legacy` เป็นค่าเริ่มต้น ต้องระบุ `method: "suriyayatra"` เมื่อต้องการสุริยยาตร์
 
+## เครื่องมือสำหรับ AI และรูปแบบข้อมูล JSON
+
+ไลบรารีมี API เสริมสำหรับให้ AI เรียกใช้เครื่องมือได้ 5 อย่าง ได้แก่ ค้นหาสถานที่ เตรียมข้อมูลเกิดให้พร้อมคำนวณ ตรวจสอบข้อมูล คำนวณดวง และเทียบดาวจร ใช้ร่วมกับผู้ให้บริการ AI ได้ตามต้องการ โดย API เดิมยังทำงานเหมือนเดิม และตัวไลบรารีไม่มี runtime dependencies
+
+```ts
+import { executeThaiAstrologyTool, getThaiAstrologyTools } from "thai-astrology/tools"
+import { getThaiAstrologySchemas } from "thai-astrology/schemas"
+
+const tools = getThaiAstrologyTools()
+const schemas = getThaiAstrologySchemas()
+const result = executeThaiAstrologyTool("calculate_horoscope", {
+  input: {
+    date: { year: 2024, era: "CE", month: 9, day: 15 },
+    time: { hour: 8, minute: 30 },
+    location: { province: "TH-50" },
+  },
+})
+if (result.ok) console.log(result.data.points.ascendant.signName)
+else console.log(result.error.code, result.error.issues)
+```
+
+แต่ละเครื่องมือมี JSON Schema 2020-12 อธิบายรูปแบบข้อมูลเข้าและผลลัพธ์ ฟังก์ชันเรียกเครื่องมือจะคืนผลลัพธ์ JSON พร้อมหมายเลขเวอร์ชัน และปฏิเสธอาร์กิวเมนต์ที่มีฟิลด์นอกเหนือจากที่กำหนด แอปพลิเคชันสามารถนำ API เหล่านี้ไปเชื่อมกับผู้ให้บริการ AI หรือบริการ HTTP ได้ ดู [รายละเอียด API สำหรับเครื่องมือ](docs/api.md#agent-tools-and-json-schemas)
+
+หากเกิดในต่างประเทศ ให้ใช้ `resolveHoroscopeBirthplace()` หรือเครื่องมือ `resolve_birthplace` เพื่อเตรียมข้อมูลให้พร้อมคำนวณดวงจากเมือง วันที่ และเวลาท้องถิ่นที่ระบุ โดยใช้กฎเขตเวลาและเวลาออมแสง (DST) ที่มีผลในวันนั้น หากเวลาเกิดตรงกับช่วงที่นาฬิกาถูกปรับย้อนจนมีเวลาเดียวกันสองครั้ง ต้องระบุ `earlier` หรือ `later` เพื่อเลือกครั้งแรกหรือครั้งหลัง ดู [ขั้นตอนเตรียมสถานที่เกิด](docs/api.md#birthplace-resolution)
+
+เลือกส่วนของผลลัพธ์ที่ต้องการจากเครื่องมือคำนวณได้ด้วย `sections` เช่น `sections: ["points", "calendar"]` ผลลัพธ์จะยังมีรายละเอียดวิธีคำนวณและข้อมูลนำเข้าที่ปรับให้อยู่ในรูปแบบมาตรฐานเสมอ หากไม่ระบุ `sections` จะได้ผลลัพธ์ฉบับเต็ม ดู [วิธีเลือกส่วนของผลลัพธ์](docs/api.md#selected-result-sections)
+
+แพ็กเกจนี้มี CLI ที่รับและส่งข้อมูลเป็น JSON ด้วย จึงเรียกใช้งานจากเอเจนต์ AI ในเทอร์มินัล หรือจากโปรแกรมที่เขียนด้วยภาษาอื่นได้:
+
+```bash
+npx --no-install thai-astrology tools
+npx --no-install thai-astrology schemas calculate_horoscope
+npx --no-install thai-astrology call calculate_horoscope --input birth.json
+```
+
+`birth.json` ใช้เก็บอาร์กิวเมนต์ของเครื่องมือในรูป `{ "input": { ... } }` หากไม่ระบุ `--input` โปรแกรมจะอ่านข้อมูลจาก stdin ดู [ตัวอย่าง CLI และ exit code](docs/api.md#json-cli)
+
+หากต้องการใช้กับแอปที่รองรับ MCP มี [MCP adapter](docs/api.md#mcp-adapter) แยกไว้ใน `adapters/mcp` โดยใช้ Node.js 20 ขึ้นไป ส่วนตัวไลบรารียังรองรับ Node.js 16 และไม่มี runtime dependencies เช่นเดิม
+
 ## พัฒนาและร่วมปรับปรุง
 
 [ชุดทดสอบ](test/run.cjs) ครอบคลุมกฎปฏิทิน รอยต่อราศี เขตเวลา และการเทียบผลกับเวอร์ชันที่เผยแพร่แล้ว นอกจากนี้ยังตรวจการใช้งานแพ็กเกจที่ติดตั้งจริงทั้ง CommonJS, ESM, TypeScript และเบราว์เซอร์ ดูขั้นตอนใน [CI workflow](.github/workflows/ci.yml)
+
+ก่อนเผยแพร่เวอร์ชันใหม่ ให้ตรวจสอบความเข้ากันได้และเนื้อหาในแพ็กเกจตาม [รายการตรวจสอบก่อนออกเวอร์ชัน](docs/releasing.md)
 
 ใช้ Node.js 24 สำหรับพัฒนา:
 

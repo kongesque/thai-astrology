@@ -1,0 +1,27 @@
+{
+  "name": "thai-astrology-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local stdio MCP adapter for the Thai Astrology calculation library",
+  "license": "MIT",
+  "type": "commonjs",
+  "main": "src/server.cjs",
+  "bin": {
+    "thai-astrology-mcp": "bin/thai-astrology-mcp.cjs"
+  },
+  "files": ["src", "bin", "README.md"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test test/*.test.cjs",
+    "test:package": "node scripts/test-package.cjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2"
+  },
+  "peerDependencies": {
+    "thai-astrology": "^0.4.0"
+  },
+  "devDependencies": {
+    "thai-astrology": "file:../.."
+  }
+}

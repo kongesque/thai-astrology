@@ -492,3 +492,226 @@ console.log(chart.timing.referenceTimeMinutes) // Approximately 377.99424 minute
 The helper does not round, wrap across dates or resolve timezones. Use `Math.round(correction)` explicitly if whole minutes are required. The input bounds allow results up to ±1560 minutes, while chart `localTimeCorrectionMinutes` accepts only ±1440; values beyond that chart limit are rejected.
 
 This correction excludes the equation of time, seasonal effects and latitude. It is not a daily sunrise prediction and does not guarantee closer ascendant agreement with another method. Use the first example or the coordinate example above for daily sunrise without adding this correction again. See the formula and scope in [SOURCES.md](../SOURCES.md).
+
+## Agent tools and JSON schemas
+
+Import `getThaiAstrologyTools()` and `executeThaiAstrologyTool()` from `thai-astrology/tools`; import `getThaiAstrologySchemas()` from `thai-astrology/schemas`. These optional entry points work with CommonJS, ESM imports and browser bundlers. They add no runtime dependencies and do not change the root exports or calculation defaults.
+
+| Tool name | Arguments | Successful `data` |
+| --- | --- | --- |
+| `search_locations` | `AstrologyLocationSearch`: countryCode, optional query/limit/offset | `AstrologyLocationSearchResult` |
+| `resolve_birthplace` | `BirthplaceResolutionInput`: date, time, location and optional clock settings | `ResolvedBirthplace` with ready `input` |
+| `validate_horoscope_input` | `{ input: unknown }` | `HoroscopeInputValidation` |
+| `calculate_horoscope` | `{ input: HoroscopeInput, sections?: HoroscopeSection[] }` | Full `ThaiHoroscope` by default, or selected sections |
+| `calculate_transits` | `{ natal: HoroscopeInput, transit: HoroscopeInput, sections?: HoroscopeSection[] }` | Full `HoroscopeTransitResult` by default, or selected sections |
+
+```ts
+import { executeThaiAstrologyTool, getThaiAstrologyTools } from "thai-astrology/tools"
+import { getThaiAstrologySchemas } from "thai-astrology/schemas"
+
+const definitions = getThaiAstrologyTools()
+const schemas = getThaiAstrologySchemas()
+const input = {
+  date: { year: 2024, era: "CE" as const, month: 9, day: 15 },
+  time: { hour: 8, minute: 30 },
+  location: { province: "TH-50" },
+}
+const result = executeThaiAstrologyTool("calculate_horoscope", { input })
+if (result.ok) console.log(result.data.points.sun.longitudeDegrees)
+else console.log(result.error.code, result.error.message, result.error.issues)
+
+// JSON Schema documents can be serialized for other languages and services.
+console.log(JSON.stringify(schemas.calculate_horoscope.inputSchema))
+```
+
+Each definition has `name`, `description`, `inputSchema` and `outputSchema`. Schema documents use JSON Schema 2020-12 and local `$defs`/`$ref`. They describe structural types; civil-date validity, numeric ranges, province recognition, reference conflicts and timezone rules are checked by the existing runtime APIs. They are generated from TypeScript types with `npm run schemas`; typecheck rejects stale schemas. Returned definitions and schemas are independent mutable copies.
+
+The dispatcher accepts JSON-compatible arguments, rejects unknown fields in typed input objects and never coerces strings to numbers. The validation tool deliberately accepts arbitrary `input` so it can report invalid forms. Its result is `ok: true` even when `data.valid` is false: the validation itself completed successfully. Other tools return failures for invalid arguments or calculation inputs. Existing direct library APIs retain their earlier treatment of extra fields.
+
+Results are either `{ schemaVersion: "1.0", ok: true, data }` or `{ schemaVersion: "1.0", ok: false, error: { code, message, issues? } }`. Output schemas describe this complete envelope. Error codes are:
+
+| Code | Meaning |
+| --- | --- |
+| `UNKNOWN_TOOL` | Name is not one of the five tools |
+| `INVALID_ARGUMENTS` | Argument shape, extra fields or location-search values are invalid |
+| `INVALID_INPUT` | Horoscope domain validation failed; `issues` contains field/code/message records |
+| `INVALID_BIRTHPLACE` | Invalid location, timezone, clock choice or unsupported resolution date |
+| `AMBIGUOUS_CIVIL_TIME` | Repeated local time requires earlier/later or an explicit offset |
+| `CALCULATION_ERROR` | A calculation could not complete, for example no sunrise at polar coordinates |
+
+Transit validation prefixes issue fields with `natal.` or `transit.`. Structural failures include a field path in `message`. Unexpected programming errors propagate to the host application. Callers should use codes and issue fields for control flow; messages are explanatory text. Validation does not guarantee a sunrise exists for the requested day.
+
+Results preserve all resolved references, fallback reasons, units, Thai labels and chart markers. Signs are zero-based and houses are 1–12. No current date, AI model or interpretation is selected automatically. A catalog location ID is not a province: for foreign births, use `createSunriseReferenceForLocation()` with an explicit civil time and any required DST choice, then supply the resulting reference and the intended planetary clock settings.
+
+Applications can translate these definitions into a provider's tool format or an MCP/HTTP adapter. Check that host's supported schema vocabulary and map its response/error envelope explicitly. The package supplies contracts, a dispatcher and the JSON CLI below. Applications supply server integrations and AI connections.
+
+## JSON CLI
+
+Installing `thai-astrology` also installs the `thai-astrology` executable. It uses the same five tools and result contracts as the library, without extra runtime dependencies. From a project that has installed the package, run:
+
+```bash
+npx --no-install thai-astrology --help
+npx --no-install thai-astrology --version
+npx --no-install thai-astrology tools
+npx --no-install thai-astrology schemas
+npx --no-install thai-astrology schemas calculate_horoscope --pretty
+```
+
+`tools` returns `{ schemaVersion: "1.0", ok: true, data: ToolDefinition[] }`. `schemas` returns the same envelope with `data` containing the tool-name-to-schema map; adding a tool name selects its `{ inputSchema, outputSchema }` pair. `--version` returns an envelope whose `data.version` is the package version. `--help` (or `-h`) prints plain-text usage. Discovery and schema commands never read stdin.
+
+`call <tool>` reads one complete UTF-8 JSON value from stdin. Use the tool's argument shape, including the `input` wrapper for horoscope and validation calls:
+
+```bash
+npx --no-install thai-astrology call calculate_horoscope <<'JSON'
+{
+  "input": {
+    "date": { "year": 2024, "era": "CE", "month": 9, "day": 15 },
+    "time": { "hour": 8, "minute": 30 },
+    "location": { "province": "TH-50" }
+  }
+}
+JSON
+```
+
+Save that JSON object as `birth.json` to read it from a file instead. `--input -` explicitly selects stdin. A file path can contain spaces when quoted.
+
+```bash
+npx --no-install thai-astrology call calculate_horoscope --input birth.json --pretty
+```
+
+Search arguments are directly `{ "countryCode": "TH", "query": "Chiang Mai" }`. Transit arguments contain both `{ "natal": HoroscopeInput, "transit": HoroscopeInput }`. No current date or time is inferred. Date, era, local time and reference conventions remain identical to the library. A selected validation call returns exit 0 even if its result contains `data.valid: false`.
+
+Each invocation emits one JSON result to stdout, ending with a newline; `--pretty` adds indentation. Tool calls preserve the dispatcher's full result envelope. Failures also emit a short diagnostic to stderr, so callers should parse stdout separately from stderr. Empty input, a UTF-8 BOM, malformed JSON and multiple JSON documents are rejected. This CLI processes one call per process; it is not a JSON Lines server.
+
+| Exit code | Meaning | Error code |
+| --- | --- | --- |
+| 0 | Command or tool completed | No transport error; inspect validation `data.valid` if relevant |
+| 1 | Tool failed | `UNKNOWN_TOOL`, `INVALID_ARGUMENTS`, `INVALID_INPUT`, `CALCULATION_ERROR` |
+| 2 | Command or input could not be read | `CLI_USAGE_ERROR`, `INPUT_READ_ERROR`, `INVALID_JSON` |
+| 3 | Unexpected internal failure | `INTERNAL_ERROR`; output-stream failures report `OUTPUT_WRITE_ERROR` to stderr |
+
+Malformed JSON diagnostics do not echo the source document. Unexpected exceptions produce a generic failure instead of a stack trace. Existing tool-domain errors retain their structured issue fields. A terminal invocation of `call` requires `--input <file>` or piped stdin, so it does not wait interactively for birth data.
+
+Python can call the installed package directly through Node, without an AI SDK. Run this example from the project where the npm package is installed:
+
+```python
+import json
+import subprocess
+
+args = {"countryCode": "TH", "query": "Chiang Mai", "limit": 1}
+completed = subprocess.run(
+    ["node", "node_modules/thai-astrology/bin/thai-astrology.cjs", "call", "search_locations"],
+    input=json.dumps(args), capture_output=True, text=True, encoding="utf-8",
+)
+result = json.loads(completed.stdout)
+if completed.returncode == 0:
+    print(result["data"]["items"])
+else:
+    print(result["error"]["code"], result["error"]["message"])
+```
+
+For a source checkout, first run `npm run build`, then use `node bin/thai-astrology.cjs` in place of `npx --no-install thai-astrology`. The CLI is independent of browser imports and does not open a network service.
+
+## MCP adapter
+
+The optional package under `adapters/mcp` exposes the same five tools to an MCP client through a local stdio process. It uses the official MCP TypeScript SDK. Its dependencies are separate from the core library, whose runtime dependencies and browser entry points are unchanged.
+
+Use Node.js 20+ for the adapter (Node.js 24 for repository development). From the repository root:
+
+```bash
+npm ci
+npm --prefix adapters/mcp ci
+npm --prefix adapters/mcp test
+npm --prefix adapters/mcp run test:package
+```
+
+The core build runs during `npm ci`; rebuild with `npm run build` after editing core source. The adapter is a private local package and depends on this checkout's `tools` and `schemas` entry points. No new release is published by these commands.
+
+For an MCP application that uses `mcpServers` configuration, replace both absolute paths:
+
+```json
+{
+  "mcpServers": {
+    "thai-astrology": {
+      "command": "/absolute/path/to/node",
+      "args": ["/absolute/path/to/thai-astrology/adapters/mcp/bin/thai-astrology-mcp.cjs"]
+    }
+  }
+}
+```
+
+Use a Node.js 20+ executable. Other clients can use the same command and arguments in their own configuration format. The client launches the process and performs initialization; the adapter accepts no command-line options. Stdout contains only MCP JSON-RPC messages, and diagnostics go to stderr. The transport is stdio and no HTTP port or AI provider connection is started.
+
+Discovery returns the tool definitions, JSON input/output schemas and read-only annotations. A call returns the existing versioned envelope in `structuredContent`, with the same JSON serialized in a text content block. The output schema describes the envelope, including structured failures. `isError` is true for tool failures and false when validation successfully reports `data.valid: false`. Unknown tools produce MCP invalid-params errors. Birth data is not logged by the adapter; results go to the connected client.
+
+The pinned SDK negotiates initialization-based MCP revisions. Tests cover `2025-06-18` and `2025-11-25` using the official SDK client, including output-schema validation. Clients must support that negotiation model. The adapter advertises only tools; HTTP transport, resources, prompts, model sampling and background tasks are outside its capabilities. See the official [lifecycle](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle) and [tool contract](https://modelcontextprotocol.io/specification/2025-11-25/server/tools).
+
+See the [adapter README](../adapters/mcp/README.md) for setup and packaging details. Core library and JSON CLI usage remain available independently.
+
+## Selected result sections
+
+The calculation tools accept an optional `sections` array alongside the existing arguments. It applies equally to direct tool dispatch, JSON CLI input and MCP calls. Omit it to preserve the existing full result; the core calculation APIs always return their full results.
+
+```ts
+import { executeThaiAstrologyTool } from "thai-astrology/tools"
+
+const result = executeThaiAstrologyTool("calculate_horoscope", {
+  input: {
+    date: { year: 2024, era: "CE", month: 9, day: 15 },
+    time: { hour: 8, minute: 30 },
+    location: { province: "TH-50" },
+  },
+  sections: ["points", "calendar"],
+})
+if (result.ok) console.log(result.data.points?.ascendant.signName)
+```
+
+Allowed names are `points`, `houses`, `charts`, `factors`, `calendar`, `taksa`, `relationships`, `timing` and `diagnostics`. The chart's `schemaVersion`, `profile` and normalized `input` are always returned, including resolved references and fallback reasons. `sections: []` returns only that metadata; repeated names are ignored. Unknown names and non-array selections produce `INVALID_ARGUMENTS`. Selected values are copied from the same full calculation, without rounding or recalculation, so selection reduces response size rather than calculation cost.
+
+For `calculate_transits`, the same selection applies independently to both `natal` and `transit` charts. The complete `comparison` is always retained. Full domain validation and calculation still run, including when no data sections are selected. Failures preserve the usual error envelope.
+
+TypeScript calls with a known argument object and no selection retain the full-result type. Selected calls, and unknown arguments that could contain a selection, return `SelectedHoroscope` or `SelectedHoroscopeTransits`, whose selectable fields are optional. These types and `HoroscopeSection` are exported from `thai-astrology/tools`. The output schemas accept both full and selected envelopes; they require the always-present metadata and describe optional selectable sections.
+
+## Connect with Codex
+
+After building the core and installing the adapter dependencies, register its stdio command with Codex. Replace the executable and script paths with absolute paths on your computer:
+
+```bash
+codex mcp add thai_astrology -- /absolute/path/to/node /absolute/path/to/thai-astrology/adapters/mcp/bin/thai-astrology-mcp.cjs
+codex mcp get thai_astrology
+```
+
+Use Node.js 20+ for that command. Start a new Codex session to load the registered server. Ask it to search for a birthplace, validate an explicit civil input, then calculate the requested sections and explain the returned factors. The client needs a supported signed-in model independently of the MCP adapter. The library and adapter do not select or configure an AI model. See the [official Codex MCP documentation](https://developers.openai.com/codex/mcp).
+
+## Birthplace resolution
+
+Use `resolveHoroscopeBirthplace()` from the root library or the `resolve_birthplace` tool to prepare a selected birthplace for calculation. Both accept `BirthplaceResolutionInput` and return `ResolvedBirthplace`. Resolution supports civil Gregorian dates in CE 1900–2100, with explicit `era: "CE"` or `"BE"` and a required local hour/minute.
+
+```ts
+import { searchThaiAstrologyLocations, resolveHoroscopeBirthplace, calculateThaiHoroscope } from "thai-astrology"
+
+const city = searchThaiAstrologyLocations({ countryCode: "US", query: "New York", limit: 1 }).items[0]
+if (!city) throw new Error("Select another location or supply precise coordinates")
+const resolved = resolveHoroscopeBirthplace({
+  date: { year: 2024, era: "CE", month: 6, day: 21 },
+  time: { hour: 8, minute: 30 },
+  location: { locationId: city.id, countryCode: "US" },
+})
+console.log(resolved.civilTime.utcOffsetSeconds) // -14400 (EDT)
+const chart = calculateThaiHoroscope(resolved.input)
+console.log(chart.profile.referenceMode) // explicit
+```
+
+The tool accepts the same argument object directly, without an `input` wrapper. Pass the returned `data.input` unchanged into `validate_horoscope_input` or `calculate_horoscope`; resolve a separate input for each natal/transit date. Dates and local clock values are preserved rather than converted to UTC fields.
+
+`location` accepts a catalog `locationId` and optional matching `countryCode`. It also accepts explicit `latitude`/`longitude`, with an explicit `timeZone` or `utcOffsetHours`. Edited coordinates never inherit a catalog timezone automatically. Catalog identity/labels, the selected coordinates and their `coordinateKind` are returned in `location`; labels identify the selected catalog record if coordinates were edited. A Thai provincial-seat selection retains its province code in the ready input; manual coordinate overrides use their explicit reference instead.
+
+Defaults are sunrise rounded to the nearest minute and a planetary reference frame of +06:42:04 (24124 seconds east of UTC), matching the structured API's automatic Thai settings. Select `timePrecision: "continuous"` or provide `referenceUtcOffsetSeconds` to choose other settings. The ready input contains both `ascendantReference` and `planetaryTimeReference`, so the chart reports an explicit reference selection. A birthplace's civil UTC offset and the planetary reference frame are separate values. Classical rising durations and the library's other astrological conventions remain unchanged abroad.
+
+When no manual offset is supplied, IANA rules from the runtime resolve the dated civil offset. `civilTime` reports `source: "iana"`, exact `utcOffsetSeconds`, `utcEpochMilliseconds`, `ambiguous` and the requested `disambiguation`. Save the ready input for reproducible calculations across runtime timezone-database updates.
+
+The default `disambiguation: "reject"` returns `AMBIGUOUS_CIVIL_TIME` when a clock time occurs twice. Retry only after choosing `"earlier"` or `"later"`, or supplying a known UTC offset. For New York on 3 November 2024 at 01:30, earlier resolves to −14400 seconds and later to −18000. Nonexistent times, including New York on 10 March 2024 at 02:30, produce `INVALID_BIRTHPLACE`; they are not shifted into existence. Direct library calls throw `BirthplaceResolutionError` with the same `code` and field-level `issues`.
+
+An explicit `location.utcOffsetHours` bypasses IANA, including when Intl support is unavailable. It requires whole-second precision and cannot be combined with `disambiguation`. This branch reports `source: "explicit-offset"` and `ambiguous: null`, without inferring an instant from a timezone. A returned timezone label is not consulted in this branch. Invalid civil dates and reference-frame settings retain `HoroscopeInputError`/`INVALID_INPUT` behavior. Structural tool errors use `INVALID_ARGUMENTS`.
+
+Resolution validates references but does not guarantee that sunrise exists at the selected coordinates on that day. Calculation still handles no-sunrise dates through the usual failure result. Country-only selection and missing birth time are insufficient input.
