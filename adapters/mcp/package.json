@@ -1,6 +1,6 @@
 {
   "name": "thai-astrology-mcp",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Local stdio MCP adapter for the Thai Astrology calculation library",
   "license": "MIT",
@@ -19,7 +19,7 @@
     "@modelcontextprotocol/sdk": "1.32.2"
   },
   "peerDependencies": {
-    "thai-astrology": ">=0.3.2 <1"
+    "thai-astrology": "^0.4.0"
   },
   "devDependencies": {
     "thai-astrology": "file:../.."

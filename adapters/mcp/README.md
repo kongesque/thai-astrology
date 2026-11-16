@@ -57,4 +57,4 @@ The pinned SDK uses initialization-based MCP negotiation. Integration tests cove
 npm --prefix adapters/mcp run test:package
 ```
 
-This packs the current core and adapter, installs both archives in a temporary consumer, and calls all five tools with the official SDK client. npm reuses its cache where possible and may download dependency metadata or SDK dependencies. The adapter remains private until its release version and compatible published core version are selected.
+This packs the current core and adapter, installs both archives in a temporary consumer, and calls all five tools with the official SDK client. npm reuses its cache where possible and may download dependency metadata or SDK dependencies. The adapter remains private; publishing it is a separate release step after the compatible core is available on npm.
